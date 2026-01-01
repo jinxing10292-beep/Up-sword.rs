@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GM 패널 - 검강화 게임</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -63,16 +63,37 @@
             try {
                 // 라이브러리 존재 여부 확인 후 클라이언트 생성
                 if (window.supabase && window.supabase.createClient) {
-                    client = window.supabase.createClient(S_URL, S_KEY);
+                    client = window.supabase.createClient(S_URL, S_KEY, {
+                        auth: {
+                            persistSession: true,
+                            autoRefreshToken: true,
+                            detectSessionInUrl: true
+                        }
+                    });
+                    
+                    // 세션 확인
+                    const { data: { session }, error } = await client.auth.getSession();
+                    
+                    if (error || !session) {
+                        alert('로그인이 필요합니다.');
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    // GM 권한 확인 (profiles 테이블의 is_gm 필드 확인)
+                    const { data: profile, error: profileError } = await client
+                        .from('profiles')
+                        .select('is_gm')
+                        .eq('id', session.user.id)
+                        .single();
+                        
+                    if (profileError || !profile?.is_gm) {
+                        alert('접근 권한이 없습니다.');
+                        window.location.href = 'index.html';
+                        return;
+                    }
                 } else {
                     throw new Error("Supabase 라이브러리가 로드되지 않았습니다.");
-                }
-
-                // 인증 체크
-                if (sessionStorage.getItem('gmAuthenticated') !== 'true') {
-                    alert('접근 권한이 없습니다.');
-                    window.location.href = 'index.html';
-                    return;
                 }
 
                 // 이벤트 바인딩
@@ -185,9 +206,14 @@
         }
 
         async function handleLogout() {
-            await client.auth.signOut();
-            sessionStorage.clear();
-            window.location.href = 'index.html';
+            try {
+                const { error } = await client.auth.signOut();
+                if (error) throw error;
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('로그아웃 오류:', error);
+                showNotification('로그아웃 중 오류가 발생했습니다.', 'error');
+            }
         }
 
         // 실행
