@@ -453,206 +453,113 @@
 
     // 배틀 상태 업데이트 처리
     async function handleBattleUpdate(payload) {
-        const battle = payload.new || payload.old;
-        
-        switch(payload.eventType) {
-            case 'INSERT': // 새 배틀 생성됨
-                if (battle.player2_id) { // 상대방이 매칭된 경우
-                    currentBattle = {
-                        id: battle.id,
-                        opponent: battle.player2_nickname,
-                        opponentId: battle.player2_id,
-                        status: 'matching',
-                        isMyTurn: battle.current_player_id === myId
-                    };
-                    updateBattleUI();
-                }
-                break;
-                
-            case 'UPDATE': // 배틀 상태 업데이트
-                if (battle.status === 'in_progress') {
-                    currentBattle.status = 'in_progress';
-                    currentBattle.isMyTurn = battle.current_player_id === myId;
-                    updateBattleUI();
-                } else if (battle.status === 'completed') {
-                    // 배틀 결과 처리
-                    const isWinner = battle.winner_id === myId;
-                    const goldEarned = isWinner ? 100 : 10;
-                    
-                    // 골드 업데이트
-                    const currentGold = parseInt(document.getElementById('u-gold').textContent) || 0;
-                    document.getElementById('u-gold').textContent = currentGold + goldEarned;
-                    
-                    // 결과 표시
-                    showBattleResult(isWinner, battle.winner_nickname, goldEarned);
-                    
-                    // 서버에 골드 업데이트
-                    await updateGold(goldEarned);
-                }
-                break;
-        }
-    }
-
-    // 배틀 시작 함수
-    async function startBattle() {
-        openModal('battle-matching-modal');
-        document.getElementById('matching-status').textContent = '상대방을 찾고 있습니다...';
-        
-        // 기존에 진행 중인 배틀이 있는지 확인
-        const { data: existingBattle } = await supabase
-            .from('battles')
-            .select('*')
-            .or(`player1_id.eq.${myId},player2_id.eq.${myId}`)
-            .in('status', ['waiting', 'in_progress'])
-            .maybeSingle();
+        try {
+            const battle = payload.new || payload.old;
             
-        if (existingBattle) {
-            // 기존 배틀이 있으면 그 배틀로 복귀
-            currentBattle = {
-                id: existingBattle.id,
-                opponent: existingBattle.player1_id === myId ? 
-                    (existingBattle.player2_nickname || '상대방') : 
-                    (existingBattle.player1_nickname || '상대방'),
-                opponentId: existingBattle.player1_id === myId ? 
-                    existingBattle.player2_id : 
-                    existingBattle.player1_id,
-                status: existingBattle.status,
-                isMyTurn: existingBattle.current_player_id === myId
-            };
-            updateBattleUI();
-            return;
-        }
-        
-        // 새로운 배틀 생성 또는 기다리는 배틀에 참가
-        const { data: waitingBattle } = await supabase
-            .from('battles')
-            .select('*')
-            .eq('status', 'waiting')
-            .neq('player1_id', myId) // 자기 자신과는 매칭되지 않도록
-            .maybeSingle();
-            
-        if (waitingBattle) {
-            // 기다리는 배틀이 있으면 참가
-            const { error } = await supabase
-                .from('battles')
-                .update({
-                    player2_id: myId,
-                    player2_nickname: myNick,
-                    status: 'in_progress',
-                    current_player_id: Math.random() > 0.5 ? myId : waitingBattle.player1_id // 랜덤으로 선공 결정
-                })
-                .eq('id', waitingBattle.id);
-                
-            if (error) {
-                console.error('배틀 참가 실패:', error);
-                alert('배틀 참가에 실패했습니다. 다시 시도해주세요.');
-                closeModal('battle-matching-modal');
+            switch(payload.eventType) {
+                case 'INSERT': // 새 배틀 생성됨
+                    if (battle.player2_id) { // 상대방이 매칭된 경우
+                        currentBattle = {
+                            id: battle.id,
+                            opponent: battle.player2_nickname,
+                            opponentId: battle.player2_id,
+                            status: 'matching',
+                            isMyTurn: battle.current_player_id === myId
+                        };
+                        updateBattleUI();
+                    }
+                    break;
+                    
+                case 'UPDATE': // 배틀 상태 업데이트
+                    if (battle.status === 'in_progress') {
+                        // 배틀 결과 처리
+                        const isWinner = battle.winner_id === myId;
+                        const goldEarned = isWinner ? 100 : 10;
+                        
+                        // 골드 업데이트
+                        const currentGold = parseInt(document.getElementById('u-gold').textContent) || 0;
+                        document.getElementById('u-gold').textContent = currentGold + goldEarned;
+                        
+                        // 승리 시 상대방에게서 10% 획득
+                        if (isWinner && currentBattle && currentBattle.moneyLost) {
+                            const currentMoney = parseInt(document.getElementById('u-money').textContent) || 0;
+                            document.getElementById('u-money').textContent = currentMoney + currentBattle.moneyLost;
+                        }
+                        
+                        // 결과 표시
+                        showBattleResult(isWinner, battle.winner_nickname, goldEarned);
+                        
+                        // 서버에 골드 업데이트
+                        await updateGold(goldEarned);
+                    } else if (battle.status === 'completed') {
+                        // 배틀 결과 처리
+                        const isWinner = battle.winner_id === myId;
+                        const goldEarned = isWinner ? 100 : 10;
+                        
+                        // 패자 돈 10% 차감 및 승자에게 전달
+                        try {
+                            // 승자와 패자 ID 결정
+                            const winnerId = battle.winner_id;
+                            const loserId = winnerId === myId ? currentBattle.opponentId : myId;
+                            
+                            // 패자 정보 가져오기
+                            const { data: loserProfile } = await supabase
+                                .from('profiles')
+                                .select('money, nickname')
+                                .eq('id', loserId)
+                                .single();
+                                
+                            if (loserProfile) {
+                                const moneyToLose = Math.floor(parseInt(loserProfile.money || 0) * 0.1);
+                                
+                                // 패자 돈 차감 (0 이하로는 내려가지 않음)
+                                const newLoserMoney = Math.max(0, (parseInt(loserProfile.money) || 0) - moneyToLose);
+                                await supabase
+                                    .from('profiles')
+                                    .update({ money: newLoserMoney })
+                                    .eq('id', loserId);
+                                
+                                // 승자에게 돈 추가
+                                if (isWinner) {
+                                    const currentMoney = parseInt(document.getElementById('u-money').textContent) || 0;
+                                    document.getElementById('u-money').textContent = currentMoney + moneyToLose;
+                                    
+                                    // 서버에도 승자 돈 업데이트
+                                    await supabase.rpc('increment_money', {
+                                        user_id: myId,
+                                        amount: moneyToLose
+                                    });
+                                } else {
+                                    // 패배자 화면 업데이트
+                                    const currentMoney = parseInt(document.getElementById('u-money').textContent) || 0;
+                                    document.getElementById('u-money').textContent = newLoserMoney;
+                                }
+                                
+                                // 배틀 결과에 차감된 금액 저장 (UI 표시용)
+                                currentBattle.moneyLost = moneyToLose;
+                                currentBattle.loserNick = loserProfile.nickname || '상대방';
+                            }
+                        } catch (error) {
+                            console.error('배틀 결과 처리 중 오류:', error);
+                        }
+                        
+                        // 골드 업데이트 및 결과 표시
+                        const currentGold = parseInt(document.getElementById('u-gold').textContent) || 0;
+                        document.getElementById('u-gold').textContent = currentGold + goldEarned;
+                        
+                        // 서버에 골드 업데이트
+                        await updateGold(goldEarned);
+                        
+                        // 결과 표시
+                        showBattleResult(isWinner, battle.winner_nickname || '상대방', goldEarned);
+                    }
+                    break;
             }
-        } else {
-            // 새로운 배틀 생성
-            const { data, error } = await supabase
-                .from('battles')
-                .insert([{
-                    player1_id: myId,
-                    player1_nickname: myNick,
-                    status: 'waiting',
-                    created_at: new Date().toISOString()
-                }])
-                .select()
-                .single();
-                
-            if (error) {
-                console.error('배틀 생성 실패:', error);
-                alert('배틀 생성에 실패했습니다. 다시 시도해주세요.');
-                closeModal('battle-matching-modal');
-            } else {
-                currentBattle = {
-                    id: data.id,
-                    status: 'waiting',
-                    opponent: null,
-                    opponentId: null,
-                    isMyTurn: false
-                };
-            }
+        } catch (error) {
+            console.error('배틀 업데이트 처리 중 오류 발생:', error);
         }
     }
 
-    // 배틀 매칭 취소
-    async function cancelBattleMatching() {
-        if (currentBattle && currentBattle.status === 'waiting') {
-            // 대기 중인 배틀 삭제
-            await supabase
-                .from('battles')
-                .delete()
-                .eq('id', currentBattle.id);
-        }
-        currentBattle = null;
-        closeModal('battle-matching-modal');
-    }
-
-    // 배틀 UI 업데이트
-    function updateBattleUI() {
-        if (!currentBattle) return;
-        
-        const statusElement = document.getElementById('matching-status');
-        
-        if (currentBattle.status === 'waiting') {
-            statusElement.textContent = '상대방을 기다리고 있습니다...';
-        } else if (currentBattle.status === 'in_progress') {
-            statusElement.innerHTML = `
-                <p>상대방: <strong>${currentBattle.opponent}</strong></p>
-                <p>${currentBattle.isMyTurn ? '✅ 당신의 차례입니다!' : '⏳ 상대방의 차례입니다...'}</p>
-                <div style="margin-top: 20px;">
-                    <button class="btn-update" onclick="makeMove()" ${!currentBattle.isMyTurn ? 'disabled style="opacity:0.5;"' : ''}>
-                        공격하기
-                    </button>
-                </div>
-            `;
-        }
-    }
-    
-    // 공격하기
-    async function makeMove() {
-        if (!currentBattle || !currentBattle.isMyTurn) return;
-        
-        // 배틀 상태 업데이트 (여기서는 단순히 턴을 넘기는 것으로 구현)
-        const { error } = await supabase
-            .from('battles')
-            .update({
-                current_player_id: currentBattle.opponentId,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', currentBattle.id);
-            
-        if (error) {
-            console.error('공격 실패:', error);
-            return;
-        }
-        
-        // 승리 판정 (임의로 30% 확률로 승리)
-        if (Math.random() < 0.3) {
-            await endBattle(true);
-        }
-    }
-    
-    // 배틀 종료 처리
-    async function endBattle(isWinner) {
-        const winnerId = isWinner ? myId : currentBattle.opponentId;
-        const winnerNick = isWinner ? myNick : currentBattle.opponent;
-        
-        await supabase
-            .from('battles')
-            .update({
-                status: 'completed',
-                winner_id: winnerId,
-                winner_nickname: winnerNick,
-                completed_at: new Date().toISOString()
-            })
-            .eq('id', currentBattle.id);
-            
-        // 결과 표시는 handleBattleUpdate에서 처리됨
-    }
-    
     // 골드 업데이트
     async function updateGold(amount) {
         try {
@@ -682,16 +589,22 @@
         const resultContent = document.getElementById('battle-result-content');
         
         if (isWin) {
+            // 승리 시
             resultTitle.textContent = '🎉 승리하셨습니다! 🎉';
             resultContent.innerHTML = `
-                <p>축하합니다! <strong>${winnerNick}</strong>으로 승리하셨습니다!</p>
+                <p>축하합니다! <strong>${currentBattle.opponent}</strong>님을 상대로 승리하셨습니다!</p>
                 <p style="color: #f39c12; font-weight: bold; font-size: 24px;">+${goldEarned}G 획득!</p>
+                ${currentBattle.moneyLost ? 
+                    `<p style="color: #2ecc71; font-weight: bold;">상대방에게서 ${currentBattle.moneyLost.toLocaleString()}M을 획득했습니다!</p>` : ''}
             `;
         } else {
+            // 패배 시
+            const moneyLost = currentBattle.moneyLost || 0;
             resultTitle.textContent = '😢 아쉽게 졌습니다...';
             resultContent.innerHTML = `
                 <p><strong>${winnerNick}</strong>님에게 패배하셨습니다...</p>
-                <p>다음엔 꼭 이기세요!</p>
+                <p>보유 금액의 10%를 잃었습니다.</p>
+                <p style="color: #e74c3c; font-weight: bold; font-size: 20px;">-${moneyLost.toLocaleString()}M</p>
                 <p>위로의 상금: ${goldEarned}G</p>
             `;
         }
