@@ -156,6 +156,19 @@
     }
 
     function updateUI() {
+        // Ensure current_sword_lvl is never less than 1
+        if (user.current_sword_lvl < 1) {
+            console.log('Invalid sword level detected, resetting to level 1');
+            user.current_sword_lvl = 1;
+            // Update the database with the corrected level
+            supabaseClient.from('profiles')
+                .update({ current_sword_lvl: 1 })
+                .eq('id', user.id)
+                .then(({ error }) => {
+                    if (error) console.error('Error updating sword level:', error);
+                });
+        }
+        
         const item = swords[user.current_sword_lvl] || swords[1];
         document.getElementById('u-nick').innerText = user.nickname + "님";
         document.getElementById('u-gold').innerText = user.gold.toLocaleString() + "G";
@@ -178,9 +191,26 @@
     }
 
     async function handleUpgrade() {
+        // Ensure we have a valid sword level before proceeding
+        if (user.current_sword_lvl < 1) {
+            user.current_sword_lvl = 1;
+            await supabaseClient.from('profiles')
+                .update({ current_sword_lvl: 1 })
+                .eq('id', user.id);
+        }
+        
         const s = swords[user.current_sword_lvl];
         if (!s) {
             console.error('No sword data found for level:', user.current_sword_lvl);
+            // Try to reset to level 1 if current level is invalid
+            if (swords[1]) {
+                user.current_sword_lvl = 1;
+                await supabaseClient.from('profiles')
+                    .update({ current_sword_lvl: 1 })
+                    .eq('id', user.id);
+                updateUI();
+                return alert('검 정보를 초기화했습니다. 다시 시도해주세요.');
+            }
             return alert('강화 정보를 불러오는데 실패했습니다.');
         }
         
