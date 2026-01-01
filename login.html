@@ -3,34 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로그인 - 검 강화 게임</title>
+    <title>검 강화 게임 - 로그인</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background-color: #f0f0f0; font-family: 'Pretendard', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .auth-card { width: 90%; max-width: 350px; background: white; padding: 40px; border-radius: 30px; border: 4px solid #000; text-align: center; }
-        h1 { margin-bottom: 10px; font-size: 32px; }
-        p { color: #888; font-size: 14px; margin-bottom: 20px; }
-        input { width: 100%; padding: 15px; margin: 8px 0; border: 2px solid #ddd; border-radius: 15px; box-sizing: border-box; font-size: 16px; }
-        input:focus { border-color: #000; outline: none; }
-        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
-        button { flex: 1; padding: 15px; border-radius: 15px; border: none; font-weight: bold; font-size: 16px; cursor: pointer; color: white; transition: 0.2s; }
-        .login-btn { background: #000; }
-        .signup-btn { background: #666; }
-        button:active { transform: scale(0.95); }
+        body { background: #e6e9ed; font-family: 'Pretendard', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-box { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 350px; }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 25px; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.2s; }
+        .btn-login { background: #2c3e50; color: white; }
+        .btn-login:hover { background: #1a252f; }
+        .btn-join { background: #f1f2f6; color: #2c3e50; }
+        .btn-join:hover { background: #e2e4e9; }
+        .info-text { font-size: 11px; color: #7f8c8d; text-align: center; margin-top: 10px; line-height: 1.4; }
     </style>
 </head>
 <body>
 
-<div class="auth-card">
-    <h1>sode game</h1>
-    <p>회원가입 시에만 닉네임을 입력하세요</p>
-    <input type="email" id="email" placeholder="이메일">
-    <input type="password" id="password" placeholder="비밀번호">
-    <input type="text" id="nickname" placeholder="닉네임 (가입 시 필수)">
+<div class="login-box">
+    <h2>⚔️ 검 강화 게임</h2>
+    <input type="tel" id="phone" placeholder="전화번호 (숫자만)" maxlength="11">
+    <input type="password" id="pw" placeholder="비밀번호 (6자 이상)">
+    <input type="text" id="nick" placeholder="닉네임 (15자 이하)" maxlength="15" style="display: none;">
     
-    <div class="btn-group">
-        <button class="signup-btn" onclick="handleSignUp()">회원가입</button>
-        <button class="login-btn" onclick="handleLogin()">로그인</button>
+    <button class="btn-login" id="main-btn" onclick="handleAuth()">로그인</button>
+    <button class="btn-join" id="sub-btn" onclick="toggleMode()">계정 만들기</button>
+    
+    <div class="info-text" id="mode-desc">
+        닉네임은 한글, 영문, 숫자만 가능합니다.<br>(공백/특수문자 불가, 최대 15자)
     </div>
 </div>
 
@@ -39,46 +39,73 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 회원가입
-    async function handleSignUp() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const nick = document.getElementById('nickname').value;
+    let isJoinMode = false;
 
-        if (!nick) return alert("가입 시 사용할 닉네임을 입력해주세요!");
-
-        const { data, error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) return alert("가입 실패: " + error.message);
-        
-        // 프로필 생성
-        const { error: pError } = await supabaseClient.from('profiles').insert([
-            { id: data.user.id, nickname: nick, gold: 5000, current_sword_lvl: 1 }
-        ]);
-        
-        if (pError) alert("프로필 생성 오류: " + pError.message);
-        else alert("가입 성공! 이제 로그인을 해주세요.");
+    function toggleMode() {
+        isJoinMode = !isJoinMode;
+        document.getElementById('nick').style.display = isJoinMode ? 'block' : 'none';
+        document.getElementById('main-btn').innerText = isJoinMode ? '회원가입' : '로그인';
+        document.getElementById('sub-btn').innerText = isJoinMode ? '로그인하러 가기' : '계정 만들기';
     }
 
-    // 로그인
-    async function handleLogin() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        
-        if (error) alert("로그인 실패: 이메일이나 비밀번호를 확인하세요.");
-        else {
-            // 로그인 성공 시 index.html로 이동
-            window.location.href = "index.html";
+    // 닉네임 유효성 검사 (한글, 영문, 숫자만 허용)
+    function validateNickname(nickname) {
+        const regex = /^[a-zA-Z0-9가-힣]+$/;
+        return regex.test(nickname);
+    }
+
+    async function handleAuth() {
+        const phone = document.getElementById('phone').value.trim().replace(/[^0-9]/g, "");
+        const pw = document.getElementById('pw').value;
+        const nick = document.getElementById('nick').value.trim();
+
+        if(!phone || phone.length < 10) return alert("올바른 전화번호를 입력하세요.");
+        if(pw.length < 6) return alert("비밀번호는 6자리 이상이어야 합니다.");
+
+        const userIdentifier = `${phone}@phone.game`;
+
+        if (isJoinMode) {
+            // 1. 닉네임 기본 검사
+            if(!nick) return alert("닉네임을 입력하세요.");
+            if(nick.length > 15) return alert("닉네임은 최대 15자까지 가능합니다.");
+            if(!validateNickname(nick)) return alert("닉네임에 공백이나 특수문자를 사용할 수 없습니다.");
+
+            // 2. 닉네임 중복 체크
+            const { data: existingUser, error: checkError } = await supabaseClient
+                .from('profiles')
+                .select('nickname')
+                .eq('nickname', nick)
+                .maybeSingle();
+
+            if (checkError) return alert("데이터 확인 중 오류 발생");
+            if (existingUser) return alert("이미 존재하는 닉네임입니다.");
+
+            // 3. 회원가입 진행
+            const { data, error } = await supabaseClient.auth.signUp({ 
+                email: userIdentifier, 
+                password: pw 
+            });
+
+            if (error) return alert("가입 실패: " + error.message);
+
+            // 4. 프로필 생성
+            const { error: profileError } = await supabaseClient.from('profiles').insert([
+                { id: data.user.id, nickname: nick, gold: 10000, current_sword_lvl: 1 }
+            ]);
+
+            if (profileError) return alert("프로필 생성 실패");
+
+            alert("회원가입 성공! 로그인해주세요.");
+            toggleMode();
+        } else {
+            const { error } = await supabaseClient.auth.signInWithPassword({ 
+                email: userIdentifier, 
+                password: pw 
+            });
+            if (error) return alert("로그인 실패: 번호 또는 비밀번호 확인");
+            location.href = "index.html";
         }
     }
-
-    // 이미 로그인된 경우 자동 이동
-    async function checkSession() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) window.location.href = "index.html";
-    }
-    checkSession();
 </script>
 </body>
 </html>
-
