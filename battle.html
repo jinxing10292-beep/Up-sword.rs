@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>codetbase - 배틀</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background: #2c3e50; color: white; font-family: 'Pretendard', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        .battle-container { width: 90%; max-width: 400px; text-align: center; background: rgba(255,255,255,0.1); padding: 30px; border-radius: 30px; border: 2px solid white; }
+        .matching-loader { border: 8px solid #f3f3f3; border-top: 8px solid #ff6b6b; border-radius: 50%; width: 60px; height: 60px; animation: spin 2s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .btn-cancel { background: #e74c3c; color: white; border: none; padding: 15px 30px; border-radius: 15px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        h1 { font-size: 28px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="battle-container">
+    <h1 id="status-title">⚔️ 배틀 시스템</h1>
+    <div id="status-desc">상대방을 찾는 중입니다...</div>
+    <div class="matching-loader" id="loader"></div>
+    <button class="btn-cancel" onclick="location.href='index.html'">나가기</button>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    let myId = null;
+    let myNick = '';
+
+    async function initBattle() {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if(!user) { location.href="login.html"; return; }
+        
+        myId = user.id;
+        const { data: p } = await supabaseClient.from('profiles').select('nickname').eq('id', myId).single();
+        myNick = p.nickname;
+
+        startMatching();
+    }
+
+    async function startMatching() {
+        // 기존 대기중인 배틀 검색
+        const { data: waitingBattles } = await supabaseClient
+            .from('battles')
+            .select('*')
+            .eq('status', 'waiting')
+            .neq('player1_id', myId)
+            .limit(1);
+
+        if (waitingBattles && waitingBattles.length > 0) {
+            // 상대가 있으면 참여
+            const battle = waitingBattles[0];
+            await supabaseClient.from('battles').update({
+                player2_id: myId,
+                player2_nickname: myNick,
+                status: 'in_progress'
+            }).eq('id', battle.id);
+            
+            alert(battle.player1_nickname + "님과 매칭되었습니다!");
+            // 실제 배틀 게임 로직으로 이동
+        } else {
+            // 없으면 대기 생성
+            await supabaseClient.from('battles').insert([{
+                player1_id: myId,
+                player1_nickname: myNick,
+                status: 'waiting'
+            }]);
+        }
+    }
+
+    initBattle();
+</script>
+</body>
+</html>
