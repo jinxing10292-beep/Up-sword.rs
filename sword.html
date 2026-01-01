@@ -76,10 +76,10 @@
     const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    let user = null, swords = {};
-
-    // 기본 검 정보 (데이터베이스 로드 실패 시 사용)
-    const defaultSwords = {
+    let user = null;
+    
+    // Initialize swords with default data first
+    let swords = {
         1: {
             level: 1,
             name: "낡은 검",
@@ -98,8 +98,10 @@
             success_rate: 0.7,
             image_url: "https://via.placeholder.com/200x100?text=강철+검"
         }
-        // 필요에 따라 더 많은 레벨 추가 가능
     };
+
+    // 기본 검 정보 (데이터베이스 로드 실패 시 사용)
+    const defaultSwords = { ...swords }; // Copy initial swords as defaults
 
     async function init() {
         try {
@@ -185,30 +187,53 @@
         }
     }
 
-    async function updateUI() {
-        console.log('Updating UI, current sword level:', user.current_sword_lvl);
-        
-        // Ensure current_sword_lvl is never less than 1 or invalid
+    function ensureValidSwordLevel() {
+        // Ensure current_sword_lvl is never null/undefined or less than 1
         if (!user.current_sword_lvl || user.current_sword_lvl < 1) {
             console.warn(`Invalid sword level (${user.current_sword_lvl}), resetting to level 1`);
             user.current_sword_lvl = 1;
             
-            try {
-                console.log('Updating database with corrected sword level...');
-                const { error } = await supabaseClient
-                    .from('profiles')
-                    .update({ current_sword_lvl: 1 })
-                    .eq('id', user.id);
-                
-                if (error) throw error;
-                console.log('Successfully updated sword level in database');
-            } catch (error) {
-                console.error('Error updating sword level in database:', error);
-            }
+            // Update database in the background, but don't wait for it
+            supabaseClient
+                .from('profiles')
+                .update({ current_sword_lvl: 1 })
+                .eq('id', user.id)
+                .then(({ error }) => {
+                    if (error) {
+                        console.error('Error updating sword level in database:', error);
+                    } else {
+                        console.log('Successfully updated sword level in database');
+                    }
+                });
         }
         
-        console.log('Available sword levels:', Object.keys(swords).join(', '));
-        const item = swords[user.current_sword_lvl] || swords[1];
+        // Ensure the level exists in our swords data
+        if (!swords[user.current_sword_lvl]) {
+            console.warn(`Sword level ${user.current_sword_lvl} not found, resetting to level 1`);
+            user.current_sword_lvl = 1;
+        }
+        
+        return swords[user.current_sword_lvl] || swords[1];
+    }
+    
+    async function updateUI() {
+        console.log('Updating UI, current sword level:', user?.current_sword_lvl);
+        
+        // Make sure we have valid sword data before proceeding
+        if (Object.keys(swords).length === 0) {
+            console.warn('No sword data available, using default data');
+            Object.assign(swords, defaultSwords);
+        }
+        
+        // Ensure we have a valid user and sword level
+        if (!user) {
+            console.error('User data not loaded yet');
+            document.getElementById('loading').textContent = '사용자 정보를 불러오는 중...';
+            return;
+        }
+        
+        // Get a valid sword item
+        const item = ensureValidSwordLevel();
         
         if (!item) {
             console.error('No sword data available for any level!');
