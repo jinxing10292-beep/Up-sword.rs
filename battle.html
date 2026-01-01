@@ -91,8 +91,9 @@
     </div>
 
     <script>
-        // Supabase client is already initialized by the script tag
-        const supabase = window.supabase;
+        // Get the Supabase client instance
+        const { createClient } = window.supabase;
+        const supabase = createClient('https://utfrjzcnefsbuadnkdud.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc');
         
         let myId = null;
         let myNick = '';
