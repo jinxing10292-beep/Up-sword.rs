@@ -263,26 +263,30 @@
 
     async function handleUpgrade() {
         // Ensure we have a valid sword level before proceeding
-        if (user.current_sword_lvl < 1) {
+        if (!user.current_sword_lvl || user.current_sword_lvl < 1) {
+            console.warn('Invalid sword level detected:', user.current_sword_lvl, ', resetting to level 1');
             user.current_sword_lvl = 1;
             await supabaseClient.from('profiles')
                 .update({ current_sword_lvl: 1 })
                 .eq('id', user.id);
+            updateUI();
+            return;
         }
         
+        // Ensure the sword data exists for the current level
         const s = swords[user.current_sword_lvl];
         if (!s) {
             console.error('No sword data found for level:', user.current_sword_lvl);
-            // Try to reset to level 1 if current level is invalid
+            // Reset to level 1 if current level is invalid
+            user.current_sword_lvl = 1;
             if (swords[1]) {
-                user.current_sword_lvl = 1;
                 await supabaseClient.from('profiles')
                     .update({ current_sword_lvl: 1 })
                     .eq('id', user.id);
                 updateUI();
                 return alert('검 정보를 초기화했습니다. 다시 시도해주세요.');
             }
-            return alert('강화 정보를 불러오는데 실패했습니다.');
+            return alert('강화 정보를 불러오는데 실패했습니다. 게임을 새로고침 해주세요.');
         }
         
         if(user.gold < s.upgrade_cost) return alert("골드 부족!");
