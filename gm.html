@@ -8,169 +8,29 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Pretendard', sans-serif;
-        }
-        
-        body {
-            background: #f0f2f5;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: #2c3e50;
-            color: white;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .header h1 {
-            font-size: 1.5rem;
-            margin: 0;
-        }
-        
-        .search-box {
-            padding: 20px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .search-box input {
-            width: 100%;
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        
-        .user-list {
-            overflow-y: auto;
-            max-height: 70vh;
-        }
-        
-        .user-card {
-            padding: 15px 20px;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-items: center;
-        }
-        
-        .user-info {
-            flex: 1;
-            min-width: 200px;
-        }
-        
-        .user-email {
-            color: #6c757d;
-            font-size: 0.9em;
-            margin-top: 3px;
-        }
-        
-        .user-stats {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .stat-box {
-            min-width: 120px;
-        }
-        
-        .stat-label {
-            font-size: 0.8em;
-            color: #6c757d;
-            margin-bottom: 3px;
-        }
-        
-        .stat-value {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        input[type="number"] {
-            width: 80px;
-            padding: 5px 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        
-        .btn {
-            padding: 5px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        
-        .btn-save {
-            background-color: #28a745;
-            color: white;
-        }
-        
-        .btn-save:hover {
-            background-color: #218838;
-        }
-        
-        .btn-ban {
-            background-color: #dc3545;
-            color: white;
-        }
-        
-        .btn-ban:hover {
-            background-color: #c82333;
-        }
-        
-        .banned {
-            background-color: #fff3cd;
-        }
-        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body { background: #f0f2f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: #2c3e50; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .search-box { padding: 20px; background: #f8f9fa; border-bottom: 1px solid #e9ecef; }
+        .search-box input { width: 100%; padding: 10px 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .user-list { overflow-y: auto; max-height: 70vh; }
+        .user-card { padding: 15px 20px; border-bottom: 1px solid #e9ecef; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
+        .user-card.banned { background-color: #fff3cd; }
+        .user-info { flex: 1; min-width: 200px; }
+        .user-email { color: #6c757d; font-size: 0.9em; }
+        .user-stats { display: flex; gap: 15px; }
+        .stat-box { min-width: 120px; }
+        .stat-label { font-size: 0.8em; color: #6c757d; }
+        .stat-value { display: flex; align-items: center; gap: 5px; }
+        input[type="number"] { width: 80px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; }
+        .btn { padding: 5px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
+        .btn-save { background-color: #28a745; color: white; }
+        .btn-ban { background-color: #dc3545; color: white; }
         .gold { color: #f1c40f; }
         .money { color: #9b59b6; }
-        
-        .actions {
-            display: flex;
-            gap: 10px;
-            margin-left: auto;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 5px;
-            color: white;
-            font-weight: 600;
-            opacity: 0;
-            transform: translateY(-20px);
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-        
-        .notification.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
+        .notification { position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 5px; color: white; opacity: 0; transition: 0.3s; z-index: 1000; }
+        .notification.show { opacity: 1; }
         .success { background-color: #28a745; }
         .error { background-color: #dc3545; }
     </style>
@@ -179,232 +39,159 @@
     <div class="container">
         <div class="header">
             <h1><i class="fas fa-shield-alt"></i> GM 관리자 패널</h1>
-            <div>
-                <button id="logoutBtn" class="btn btn-ban">로그아웃</button>
-            </div>
+            <button id="logoutBtn" class="btn btn-ban">로그아웃</button>
         </div>
-        
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="이메일 또는 닉네임으로 검색...">
         </div>
-        
-        <div class="user-list" id="userList">
-            <div style="padding: 20px; text-align: center; color: #6c757d;">
-                사용자 목록을 불러오는 중입니다...
-            </div>
+        <div id="userList" class="user-list">
+            <div style="padding: 20px; text-align: center;">로딩 중...</div>
         </div>
     </div>
-    
     <div id="notification" class="notification"></div>
-    
+
     <script>
-        // Supabase 설정
-        const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
+        // 1. 설정값
+        const S_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
+        const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
         
-        let supabase; // Supabase 인스턴스 전역 변수
+        let client; // supabase 대신 client라는 명칭 사용 (충돌 방지)
         let allUsers = [];
-        
-        document.addEventListener('DOMContentLoaded', async () => {
+
+        // 2. 초기화 함수
+        async function init() {
             try {
-                // 1. Supabase 초기화 (변수명 통일)
-                supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                
-                // 2. GM 인증 체크
-                const isGMAuthenticated = sessionStorage.getItem('gmAuthenticated') === 'true';
-                if (!isGMAuthenticated) {
+                // 라이브러리 존재 여부 확인 후 클라이언트 생성
+                if (window.supabase && window.supabase.createClient) {
+                    client = window.supabase.createClient(S_URL, S_KEY);
+                } else {
+                    throw new Error("Supabase 라이브러리가 로드되지 않았습니다.");
+                }
+
+                // 인증 체크
+                if (sessionStorage.getItem('gmAuthenticated') !== 'true') {
                     alert('접근 권한이 없습니다.');
                     window.location.href = 'index.html';
                     return;
                 }
-                
-                // 3. 이벤트 리스너 설정
-                document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-                document.getElementById('searchInput').addEventListener('input', filterUsers);
-                
-                // 4. 초기 데이터 로드
+
+                // 이벤트 바인딩
+                document.getElementById('logoutBtn').onclick = handleLogout;
+                document.getElementById('searchInput').oninput = filterUsers;
+
                 await loadUsers();
-                
-            } catch (error) {
-                console.error('초기화 중 오류 발생:', error);
-                showNotification('시스템 초기화 중 오류가 발생했습니다.', 'error');
+            } catch (e) {
+                console.error(e);
+                alert(e.message);
             }
-        });
-        
-        // 사용자 데이터 로드 함수
+        }
+
+        // 3. 데이터 로드
         async function loadUsers() {
-            // [수정 포인트] supabaseClient -> supabase 로 변경
-            const { data: users, error } = await supabase
+            const { data, error } = await client
                 .from('profiles')
                 .select('*')
                 .order('created_at', { ascending: false });
-                
+
             if (error) {
-                showNotification('사용자 목록 로드 실패', 'error');
-                console.error('Error loading users:', error);
+                showNotification('데이터 로드 실패: ' + error.message, 'error');
                 return;
             }
-            
-            allUsers = users;
-            renderUsers(users);
+            allUsers = data;
+            renderUsers(data);
         }
-        
-        // 화면에 사용자 카드 렌더링
+
+        // 4. 화면 렌더링
         function renderUsers(users) {
-            const userList = document.getElementById('userList');
-            
+            const list = document.getElementById('userList');
             if (!users || users.length === 0) {
-                userList.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d;">사용자가 없습니다.</div>';
+                list.innerHTML = '<div style="padding:20px; text-align:center;">사용자가 없습니다.</div>';
                 return;
             }
-            
-            userList.innerHTML = users.map(user => `
-                <div class="user-card ${user.is_banned ? 'banned' : ''}" data-id="${user.id}">
+
+            list.innerHTML = users.map(u => `
+                <div class="user-card ${u.is_banned ? 'banned' : ''}">
                     <div class="user-info">
-                        <div class="user-name">
-                            ${user.username || '이름 없음'} 
-                            ${user.is_banned ? '<span style="color: #dc3545; font-size: 0.8em;">(정지됨)</span>' : ''}
-                        </div>
-                        <div class="user-email">${user.email}</div>
+                        <strong>${u.username || '이름 없음'}</strong> ${u.is_banned ? '<span style="color:red">(정지)</span>' : ''}
+                        <div class="user-email">${u.email}</div>
                     </div>
-                    
                     <div class="user-stats">
                         <div class="stat-box">
-                            <div class="stat-label">골드 (G)</div>
-                            <div class="stat-value">
-                                <i class="fas fa-coins gold"></i>
-                                <input type="number" value="${user.gold || 0}" min="0" id="gold-${user.id}">
-                            </div>
+                            <div class="stat-label">골드</div>
+                            <input type="number" id="g-${u.id}" value="${u.gold || 0}">
                         </div>
-                        
                         <div class="stat-box">
-                            <div class="stat-label">머니 (M)</div>
-                            <div class="stat-value">
-                                <i class="fas fa-wallet money"></i>
-                                <input type="number" value="${user.money || 0}" min="0" id="money-${user.id}">
-                            </div>
+                            <div class="stat-label">머니</div>
+                            <input type="number" id="m-${u.id}" value="${u.money || 0}">
                         </div>
-                        
                         <div class="stat-box">
-                            <div class="stat-label">검 레벨</div>
-                            <div class="stat-value">
-                                <i class="fas fa-sword"></i>
-                                <input type="number" value="${user.current_sword_lvl || 1}" min="1" max="20" id="level-${user.id}">
-                            </div>
+                            <div class="stat-label">레벨</div>
+                            <input type="number" id="l-${u.id}" value="${u.current_sword_lvl || 1}" max="20">
                         </div>
                     </div>
-                    
-                    <div class="actions">
-                        <button class="btn btn-save" onclick="saveUserChanges('${user.id}')">
-                            <i class="fas fa-save"></i> 저장
-                        </button>
-                        <button class="btn ${user.is_banned ? 'btn-save' : 'btn-ban'}" onclick="toggleBan('${user.id}', ${!user.is_banned})">
-                            <i class="fas ${user.is_banned ? 'fa-unlock' : 'fa-ban'}"></i>
-                            ${user.is_banned ? '정지 해제' : '정지'}
+                    <div style="margin-left:auto; display:flex; gap:5px;">
+                        <button class="btn btn-save" onclick="updateUser('${u.id}')">저장</button>
+                        <button class="btn btn-ban" onclick="toggleBan('${u.id}', ${!u.is_banned})">
+                            ${u.is_banned ? '해제' : '정지'}
                         </button>
                     </div>
                 </div>
             `).join('');
         }
-        
-        // 검색 필터링
+
+        // 5. 검색
         function filterUsers() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            
-            if (!searchTerm.trim()) {
-                renderUsers(allUsers);
-                return;
-            }
-            
-            const filtered = allUsers.filter(user => 
-                (user.email && user.email.toLowerCase().includes(searchTerm)) ||
-                (user.username && user.username.toLowerCase().includes(searchTerm))
+            const val = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allUsers.filter(u => 
+                (u.email && u.email.toLowerCase().includes(val)) || 
+                (u.username && u.username.toLowerCase().includes(val))
             );
-            
             renderUsers(filtered);
         }
-        
-        // 사용자 데이터 저장
-        async function saveUserChanges(userId) {
-            const gold = parseInt(document.getElementById(`gold-${userId}`).value) || 0;
-            const money = parseInt(document.getElementById(`money-${userId}`).value) || 0;
-            let level = parseInt(document.getElementById(`level-${userId}`).value) || 1;
-            
-            level = Math.min(level, 20); // 최대 20레벨 제한
-            
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        gold: Math.max(0, gold),
-                        money: Math.max(0, money),
-                        current_sword_lvl: level 
-                    })
-                    .eq('id', userId);
-                    
-                if (error) throw error;
-                
-                // 로컬 데이터 동기화
-                const userIndex = allUsers.findIndex(u => u.id === userId);
-                if (userIndex !== -1) {
-                    allUsers[userIndex].gold = gold;
-                    allUsers[userIndex].money = money;
-                    allUsers[userIndex].current_sword_lvl = level;
-                }
-                
-                showNotification('성공적으로 저장되었습니다!', 'success');
-            } catch (error) {
-                console.error('Update error:', error);
-                showNotification('저장 중 오류가 발생했습니다.', 'error');
-            }
-        }
-        
-        // 정지/해제 토글
-        async function toggleBan(userId, banStatus) {
-            if (!confirm(`${banStatus ? '정지하시겠습니까?' : '정지를 해제하시겠습니까?'}`)) return;
-            
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ is_banned: banStatus })
-                    .eq('id', userId);
-                    
-                if (error) throw error;
-                
-                // 로컬 데이터 및 UI 즉시 반영을 위해 다시 로드하거나 직접 조작
-                await loadUsers();
-                showNotification(`성공적으로 처리되었습니다.`, 'success');
-            } catch (error) {
-                console.error('Ban error:', error);
-                showNotification('처리 중 오류가 발생했습니다.', 'error');
-            }
-        }
-        
-        // 알림 표시
-        function showNotification(message, type = 'success') {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.className = `notification ${type} show`;
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-        
-        // 로그아웃
-        async function handleLogout() {
-            try {
-                await supabase.auth.signOut();
-                sessionStorage.removeItem('gmAuthenticated');
-                window.location.href = 'index.html';
-            } catch (error) {
-                console.error('Logout error:', error);
+
+        // 6. 업데이트 (저장)
+        async function updateUser(id) {
+            const gold = document.getElementById(`g-${id}`).value;
+            const money = document.getElementById(`m-${id}`).value;
+            const lvl = document.getElementById(`l-${id}`).value;
+
+            const { error } = await client.from('profiles').update({
+                gold: parseInt(gold),
+                money: parseInt(money),
+                current_sword_lvl: parseInt(lvl)
+            }).eq('id', id);
+
+            if (error) showNotification('저장 실패', 'error');
+            else {
+                showNotification('저장 완료', 'success');
+                loadUsers();
             }
         }
 
-        // 전역 함수로 등록 (onclick 대응)
-        window.saveUserChanges = saveUserChanges;
-        window.toggleBan = toggleBan;
+        // 7. 정지 토글
+        async function toggleBan(id, status) {
+            if(!confirm('진행하시겠습니까?')) return;
+            const { error } = await client.from('profiles').update({ is_banned: status }).eq('id', id);
+            if (error) showNotification('처리 실패', 'error');
+            else loadUsers();
+        }
+
+        // 8. 기타 기능
+        function showNotification(msg, type) {
+            const n = document.getElementById('notification');
+            n.textContent = msg;
+            n.className = `notification ${type} show`;
+            setTimeout(() => n.classList.remove('show'), 2000);
+        }
+
+        async function handleLogout() {
+            await client.auth.signOut();
+            sessionStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        // 실행
+        window.onload = init;
     </script>
 </body>
 </html>
