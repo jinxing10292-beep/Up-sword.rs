@@ -202,52 +202,85 @@
         // 6. 업데이트 (저장)
         async function updateUser(id) {
             try {
-                const goldInput = document.getElementById(`g-${id}`);
-                const moneyInput = document.getElementById(`m-${id}`);
-                const lvlInput = document.getElementById(`l-${id}`);
-                
-                // 입력값 검증 및 변환
-                const gold = parseInt(goldInput.value, 10);
-                const money = parseInt(moneyInput.value, 10);
-                const lvl = parseInt(lvlInput.value, 10);
+                const gold = parseInt(document.getElementById(`g-${id}`).value);
+                const money = parseInt(document.getElementById(`m-${id}`).value);
+                const lvl = parseInt(document.getElementById(`l-${id}`).value) || 0;
+                const goldToMoney = parseInt(document.getElementById(`gold-to-money-${id}`).value) || 0;
+                const moneyToGold = parseInt(document.getElementById(`money-to-gold-${id}`).value) || 0;
 
+                // 숫자 유효성 검사
                 if (isNaN(gold) || isNaN(money) || isNaN(lvl)) {
-                    throw new Error('유효하지 않은 값이 있습니다. 숫자만 입력해주세요.');
+                    showNotification('모든 필드에 유효한 숫자를 입력해주세요.', 'error');
+                    return;
                 }
 
+                // 레벨 범위 검사 (1~20)
                 if (lvl < 1 || lvl > 20) {
-                    throw new Error('레벨은 1에서 20 사이여야 합니다.');
+                    showNotification('검 레벨은 1에서 20 사이여야 합니다.', 'error');
+                    return;
                 }
 
-                // 숫자로 변환된 값으로 업데이트
+                // 골드/머니 변환 검사
+                if (goldToMoney > 0 && moneyToGold > 0) {
+                    showNotification('골드→머니와 머니→골드 중 하나만 선택해주세요.', 'error');
+                    return;
+                }
+
+                let finalGold = gold;
+                let finalMoney = money;
+
+                // 골드 → 머니 변환
+                if (goldToMoney > 0) {
+                    if (gold < goldToMoney) {
+                        showNotification('보유한 골드가 부족합니다.', 'error');
+                        return;
+                    }
+                    finalGold -= goldToMoney;
+                    finalMoney += Math.floor(goldToMoney * 10);
+                }
+
+                // 머니 → 골드 변환
+                if (moneyToGold > 0) {
+                    if (money < moneyToGold) {
+                        showNotification('보유한 머니가 부족합니다.', 'error');
+                        return;
+                    }
+                    finalMoney -= moneyToGold;
+                    finalGold += Math.floor(moneyToGold / 10);
+                }
+
+                // 데이터베이스 업데이트
                 const { data, error } = await client
                     .from('profiles')
                     .update({
-                        gold: gold,
-                        money: money,
+                        gold: finalGold,
+                        money: finalMoney,
                         current_sword_lvl: lvl,
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', id);
+                    .eq('id', id)
+                    .select();  // 업데이트된 데이터 반환
 
                 if (error) {
-                    console.error('Supabase 오류 상세:', {
-                        code: error.code,
-                        message: error.message,
-                        details: error.details,
-                        hint: error.hint,
-                        data: { id, gold, money, lvl }
-                    });
-                    throw error;
+                    console.error('업데이트 오류:', error);
+                    showNotification('업데이트 중 오류가 발생했습니다: ' + error.message, 'error');
+                    return;
                 }
-                
-                showNotification('저장이 완료되었습니다.', 'success');
-                // 변경사항 반영을 위해 사용자 목록 새로고침
-                await loadUsers();
-            } catch (error) {
-                console.error('업데이트 실패:', error);
-                const errorMessage = error.message || '데이터 저장 중 오류가 발생했습니다.';
-                showNotification(`오류: ${errorMessage}`, 'error');
+
+                if (data && data.length > 0) {
+                    showNotification('성공적으로 업데이트되었습니다!', 'success');
+                    // 업데이트된 데이터로 사용자 목록 갱신
+                    const userIndex = window.users.findIndex(u => u.id === id);
+                    if (userIndex !== -1) {
+                        window.users[userIndex] = { ...window.users[userIndex], ...data[0] };
+                        renderUsers(window.users);
+                    }
+                } else {
+                    showNotification('업데이트된 데이터를 가져오지 못했습니다.', 'error');
+                }
+            } catch (err) {
+                console.error('업데이트 중 오류 발생:', err);
+                showNotification('오류가 발생했습니다: ' + err.message, 'error');
             }
         }
 
