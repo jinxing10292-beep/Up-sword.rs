@@ -51,7 +51,6 @@
 
         .admin-trigger { position: fixed; bottom: 10px; right: 10px; width: 30px; height: 30px; opacity: 0.1; cursor: default; }
         
-        /* 애니메이션 효과 */
         .upgrade-success { animation: success-pulse 0.5s ease-out; }
         @keyframes success-pulse {
             0% { transform: scale(1); filter: brightness(1); }
@@ -59,7 +58,6 @@
             100% { transform: scale(1); filter: brightness(1); }
         }
 
-        /* 플로팅 텍스트 */
         .float-text { position: absolute; font-weight: 900; pointer-events: none; animation: floatUp 0.8s forwards; z-index: 100; }
         @keyframes floatUp {
             0% { opacity: 1; transform: translateY(0); }
@@ -128,12 +126,6 @@
     let user = null;
     let isProcessing = false;
 
-    // 검 레벨별 이미지 (이미지 시안에 따라 추가 가능)
-    const SWORD_IMAGES = {
-        default: "https://i.ifh.cc/Y15g2p.png",
-        high: "https://i.ifh.cc/Y15g2p.png" // 추후 레벨별 이미지 변경 시 사용
-    };
-
     async function init() {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if(!session) { location.href = "login.html"; return; }
@@ -187,7 +179,6 @@
             document.getElementById('sword-img').classList.add('upgrade-success');
             setTimeout(() => document.getElementById('sword-img').classList.remove('upgrade-success'), 500);
         } else {
-            // 실패 시 5레벨마다 세이프티 존 (선택사항)
             if(user.current_sword_lvl > 1) {
                 user.current_sword_lvl -= 1;
             }
@@ -232,7 +223,6 @@
         setTimeout(() => el.remove(), 800);
     }
 
-    // 관리자 패널 로직
     function adminAuth() {
         const pw = prompt("관리자 암호");
         if(pw === "yejun123") showAdminPanel();
@@ -283,7 +273,7 @@
             user.gold += data.reward_gold;
             const { error: updateError } = await supabaseClient
                 .from('profiles')
-                .update({ gold: user.gold })\
+                .update({ gold: user.gold })
                 .eq('id', user.id);
                 
             if (updateError) throw updateError;
