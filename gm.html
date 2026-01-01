@@ -65,15 +65,6 @@
         // 2. 초기화 함수
         async function init() {
             try {
-                // Check for GM authentication in session storage first
-                const isGMAuthenticated = sessionStorage.getItem('gmAuthenticated') === 'true';
-                
-                if (!isGMAuthenticated) {
-                    alert('GM 인증이 필요합니다.');
-                    window.location.href = 'index.html';
-                    return;
-                }
-
                 // 라이브러리 존재 여부 확인 후 클라이언트 생성
                 if (window.supabase && window.supabase.createClient) {
                     client = window.supabase.createClient(S_URL, S_KEY, {
@@ -84,27 +75,11 @@
                         }
                     });
                     
-                    // 세션 확인
+                    // 세션 확인 (오류 처리만 남김)
                     const { data: { session }, error } = await client.auth.getSession();
                     
-                    if (error || !session) {
-                        alert('로그인이 필요합니다.');
-                        window.location.href = 'index.html';
-                        return;
-                    }
-                    
-                    // GM 권한 확인 (profiles 테이블의 is_gm 필드 또는 닉네임으로 확인)
-                    const { data: profile, error: profileError } = await client
-                        .from('profiles')
-                        .select('is_gm, nickname')
-                        .eq('id', session.user.id)
-                        .single();
-                        
-                    // 닉네임이 '닉네임'이거나 is_gm이 true인 경우에만 접근 허용
-                    if (profileError || (!profile?.is_gm && profile?.nickname !== '닉네임')) {
-                        alert('접근 권한이 없습니다.');
-                        window.location.href = 'index.html';
-                        return;
+                    if (error) {
+                        console.error('세션 확인 오류:', error);
                     }
                 } else {
                     throw new Error("Supabase 라이브러리가 로드되지 않았습니다.");
