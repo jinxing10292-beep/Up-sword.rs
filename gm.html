@@ -189,7 +189,6 @@
         </div>
         
         <div class="user-list" id="userList">
-            <!-- 사용자 목록이 여기에 동적으로 로드됩니다 -->
             <div style="padding: 20px; text-align: center; color: #6c757d;">
                 사용자 목록을 불러오는 중입니다...
             </div>
@@ -199,36 +198,19 @@
     <div id="notification" class="notification"></div>
     
     <script>
-        // Supabase configuration
+        // Supabase 설정
         const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
         
-        // Global variables
-        let supabase;
-        let currentUser = null;
+        let supabase; // Supabase 인스턴스 전역 변수
         let allUsers = [];
         
-        // Initialize the application
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                // Initialize Supabase client
-                if (typeof supabase === 'undefined') {
-                    // Check if Supabase URL and Key are defined
-                    if (!SUPABASE_URL || !SUPABASE_KEY) {
-                        throw new Error('Supabase URL or Key is not defined');
-                    }
-                    // Create and initialize Supabase client
-                    supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                    window.supabase = supabase; // Make it globally available
-                }
-                // Add event listeners
-                document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-                document.getElementById('searchInput').addEventListener('input', filterUsers);
+                // 1. Supabase 초기화 (변수명 통일)
+                supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 
-                // Load users
-                await loadUsers();
-                
-                // Check GM authentication
+                // 2. GM 인증 체크
                 const isGMAuthenticated = sessionStorage.getItem('gmAuthenticated') === 'true';
                 if (!isGMAuthenticated) {
                     alert('접근 권한이 없습니다.');
@@ -236,35 +218,29 @@
                     return;
                 }
                 
-                // Set current user as GM
-                currentUser = {
-                    id: 'gm-user',
-                    email: 'gm@game.com',
-                    username: 'Game Master',
-                    role: 'admin'
-                };
+                // 3. 이벤트 리스너 설정
+                document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+                document.getElementById('searchInput').addEventListener('input', filterUsers);
+                
+                // 4. 초기 데이터 로드
+                await loadUsers();
                 
             } catch (error) {
                 console.error('초기화 중 오류 발생:', error);
-                showNotification('초기화 중 오류가 발생했습니다: ' + error.message, 'error');
+                showNotification('시스템 초기화 중 오류가 발생했습니다.', 'error');
             }
-            document.getElementById('searchInput').addEventListener('input', filterUsers);
-            // Search input enter key handler
-            document.getElementById('searchInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    filterUsers();
-                }
-            });
         });
         
+        // 사용자 데이터 로드 함수
         async function loadUsers() {
+            // [수정 포인트] supabaseClient -> supabase 로 변경
             const { data: users, error } = await supabase
                 .from('profiles')
                 .select('*')
                 .order('created_at', { ascending: false });
                 
             if (error) {
-                showNotification('사용자 목록을 불러오는 중 오류가 발생했습니다.', 'error');
+                showNotification('사용자 목록 로드 실패', 'error');
                 console.error('Error loading users:', error);
                 return;
             }
@@ -273,6 +249,7 @@
             renderUsers(users);
         }
         
+        // 화면에 사용자 카드 렌더링
         function renderUsers(users) {
             const userList = document.getElementById('userList');
             
@@ -330,6 +307,7 @@
             `).join('');
         }
         
+        // 검색 필터링
         function filterUsers() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             
@@ -346,13 +324,13 @@
             renderUsers(filtered);
         }
         
+        // 사용자 데이터 저장
         async function saveUserChanges(userId) {
             const gold = parseInt(document.getElementById(`gold-${userId}`).value) || 0;
             const money = parseInt(document.getElementById(`money-${userId}`).value) || 0;
             let level = parseInt(document.getElementById(`level-${userId}`).value) || 1;
             
-            // 최대 레벨 제한 (20)
-            level = Math.min(level, 20);
+            level = Math.min(level, 20); // 최대 20레벨 제한
             
             try {
                 const { error } = await supabase
@@ -366,7 +344,7 @@
                     
                 if (error) throw error;
                 
-                // 로컬 데이터 업데이트
+                // 로컬 데이터 동기화
                 const userIndex = allUsers.findIndex(u => u.id === userId);
                 if (userIndex !== -1) {
                     allUsers[userIndex].gold = gold;
@@ -376,15 +354,14 @@
                 
                 showNotification('성공적으로 저장되었습니다!', 'success');
             } catch (error) {
-                console.error('Error updating user:', error);
+                console.error('Update error:', error);
                 showNotification('저장 중 오류가 발생했습니다.', 'error');
             }
         }
         
+        // 정지/해제 토글
         async function toggleBan(userId, banStatus) {
-            if (!confirm(`${banStatus ? '이 사용자를 정지하시겠습니까?' : '이 사용자의 정지를 해제하시겠습니까?'}`)) {
-                return;
-            }
+            if (!confirm(`${banStatus ? '정지하시겠습니까?' : '정지를 해제하시겠습니까?'}`)) return;
             
             try {
                 const { error } = await supabase
@@ -394,47 +371,16 @@
                     
                 if (error) throw error;
                 
-                // 로컬 데이터 업데이트
-                const userIndex = allUsers.findIndex(u => u.id === userId);
-                if (userIndex !== -1) {
-                    allUsers[userIndex].is_banned = banStatus;
-                }
-                
-                // UI 업데이트
-                const userCard = document.querySelector(`.user-card[data-id="${userId}"]`);
-                if (userCard) {
-                    if (banStatus) {
-                        userCard.classList.add('banned');
-                    } else {
-                        userCard.classList.remove('banned');
-                    }
-                    
-                    // 버튼 텍스트 업데이트
-                    const banBtn = userCard.querySelector('.btn-ban, .btn-save');
-                    if (banBtn) {
-                        banBtn.innerHTML = `<i class="fas ${banStatus ? 'fa-unlock' : 'fa-ban'}"></i> ${banStatus ? '정지 해제' : '정지'}`;
-                        banBtn.className = `btn ${banStatus ? 'btn-save' : 'btn-ban'}`;
-                    }
-                    
-                    // 상태 표시 업데이트
-                    const statusSpan = userCard.querySelector('.user-name span');
-                    if (statusSpan) {
-                        statusSpan.textContent = banStatus ? '(정지됨)' : '';
-                    } else if (banStatus) {
-                        const nameDiv = userCard.querySelector('.user-name');
-                        if (nameDiv) {
-                            nameDiv.innerHTML += ' <span style="color: #dc3545; font-size: 0.8em;">(정지됨)</span>';
-                        }
-                    }
-                }
-                
-                showNotification(`사용자가 성공적으로 ${banStatus ? '정지' : '정지 해제'}되었습니다.`, 'success');
+                // 로컬 데이터 및 UI 즉시 반영을 위해 다시 로드하거나 직접 조작
+                await loadUsers();
+                showNotification(`성공적으로 처리되었습니다.`, 'success');
             } catch (error) {
-                console.error('Error toggling ban status:', error);
+                console.error('Ban error:', error);
                 showNotification('처리 중 오류가 발생했습니다.', 'error');
             }
         }
         
+        // 알림 표시
         function showNotification(message, type = 'success') {
             const notification = document.getElementById('notification');
             notification.textContent = message;
@@ -445,24 +391,18 @@
             }, 3000);
         }
         
+        // 로그아웃
         async function handleLogout() {
             try {
-                // Sign out from Supabase
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-                
-                // 세션 스토리지에서 GM 인증 제거
+                await supabase.auth.signOut();
                 sessionStorage.removeItem('gmAuthenticated');
-                
-                // Redirect to login page
                 window.location.href = 'index.html';
             } catch (error) {
-                console.error('Error signing out:', error.message);
-                showNotification('로그아웃 중 오류가 발생했습니다: ' + error.message, 'error');
+                console.error('Logout error:', error);
             }
         }
-        
-        // 전역 함수로 노출
+
+        // 전역 함수로 등록 (onclick 대응)
         window.saveUserChanges = saveUserChanges;
         window.toggleBan = toggleBan;
     </script>
