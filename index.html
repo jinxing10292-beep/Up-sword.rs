@@ -159,39 +159,41 @@
         document.getElementById('edit-avatar-prev').src = DEFAULT_AVATAR; 
     }
 
-    // 사진 선택 즉시 업로드 및 미리보기
+    // 170번째 줄 부근: 업로드 로직 대폭 수정 (에러 캐칭 및 경로 안정성 확보)
     async function uploadAndPreview(file) {
         if(!file) return;
         
         const saveBtn = document.getElementById('save-btn');
+        const prevText = saveBtn.innerText;
         saveBtn.disabled = true;
-        saveBtn.innerText = "사진 업로드 중...";
+        saveBtn.innerText = "업로드 중...";
 
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+            const filePath = `avatars/${fileName}`;
 
-        // Storage 업로드
-        const { data, error: uploadError } = await supabaseClient.storage
-            .from('codet-img')
-            .upload(filePath, file);
+            // 1. Storage 업로드
+            const { error: uploadError } = await supabaseClient.storage
+                .from('codet-img')
+                .upload(filePath, file);
 
-        if(uploadError) {
-            console.error("업로드 에러:", uploadError);
-            alert("사진 업로드 실패: " + uploadError.message + "\n(Storage 정책을 확인하세요)");
+            if(uploadError) throw uploadError;
+
+            // 2. 공개 URL 생성
+            const { data: { publicUrl } } = supabaseClient.storage
+                .from('codet-img')
+                .getPublicUrl(filePath);
+
+            // 3. 화면 미리보기 업데이트
+            document.getElementById('edit-avatar-prev').src = publicUrl;
+        } catch (error) {
+            console.error("Upload Error:", error);
+            alert("사진 업로드 중 오류가 발생했습니다.\n사유: " + error.message);
+        } finally {
             saveBtn.disabled = false;
-            saveBtn.innerText = "수정 내용 저장";
-            return;
+            saveBtn.innerText = prevText;
         }
-
-        // 공개 URL 가져오기
-        const { data: { publicUrl } } = supabaseClient.storage
-            .from('codet-img')
-            .getPublicUrl(filePath);
-
-        document.getElementById('edit-avatar-prev').src = publicUrl;
-        saveBtn.disabled = false;
-        saveBtn.innerText = "수정 내용 저장";
     }
 
     async function saveMyInfo() {
@@ -205,7 +207,7 @@
         const newPw = document.getElementById('edit-pw').value;
 
         try {
-            // 1. 프로필 정보 업데이트
+            // DB 업데이트 (avatar_url, nickname, phone 한꺼번에 업데이트)
             const { error: updateError } = await supabaseClient
                 .from('profiles')
                 .update({ 
@@ -215,20 +217,21 @@
                 })
                 .eq('id', user.id);
 
-            if(updateError) throw updateError;
+            if(updateError) {
+                // 여기서 'column does not exist' 에러가 나면 SQL Editor에서 컬럼을 추가해야 함
+                if(updateError.message.includes("column")) {
+                    throw new Error("DB에 'avatar_url' 또는 'phone' 컬럼이 없습니다. SQL Editor에서 컬럼을 생성해 주세요.");
+                }
+                throw updateError;
+            }
 
-            // 2. 비밀번호 변경 (입력했을 경우만)
+            // 비밀번호 변경 처리
             if(newPw && newPw.length >= 6) { 
                 const { error: pwError } = await supabaseClient.auth.updateUser({ password: newPw });
                 if(pwError) throw pwError;
-            } else if(newPw && newPw.length < 6) {
-                alert("비밀번호는 6자 이상이어야 합니다.");
-                btn.innerText = "수정 내용 저장";
-                btn.disabled = false;
-                return;
             }
 
-            alert("정보가 수정되었습니다.");
+            alert("정보가 성공적으로 수정되었습니다.");
             window.location.reload();
         } catch (e) {
             alert("수정 실패: " + e.message);
