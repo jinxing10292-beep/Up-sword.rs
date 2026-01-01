@@ -8,7 +8,6 @@
     <style>
         body { background: #f0f0f0; font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px 0; display: flex; flex-direction: column; align-items: center; }
         .app-container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; padding: 0 20px; }
-
         .profile-card { background: white; border: 3px solid black; border-radius: 30px; padding: 20px; box-sizing: border-box; }
         .user-info { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
         .user-text h2 { margin: 0; font-size: 24px; font-weight: 900; }
@@ -18,19 +17,14 @@
         .gold-value { color: #f39c12; font-weight: 900; font-size: 22px; }
         .top-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .top-btn { background: #ddd; border: none; border-radius: 20px; padding: 12px; font-weight: 900; font-size: 18px; cursor: pointer; }
-
-        /* 공지 배너 고정 설정 */
         .banner-container { width: 100%; height: 110px; overflow: hidden; border-radius: 15px; background: #fff; border: 1px solid #ddd; margin-top: 5px; }
         .banner-item { width: 100%; height: 100%; }
         .banner-item img { width: 100%; height: 100%; display: block; object-fit: contain; background: #fff; }
-
         .bottom-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .menu-btn { background: #c2cfff; border: none; border-radius: 20px; padding: 15px; font-weight: 900; font-size: 20px; cursor: pointer; }
-
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 85%; max-width: 350px; border-radius: 25px; padding: 25px; position: relative; max-height: 90vh; overflow-y: auto; }
         .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; font-weight: bold; }
-        
         .edit-group { margin-bottom: 15px; text-align: left; }
         .edit-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #666; }
         .edit-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
@@ -76,7 +70,7 @@
         <h2 style="text-align:center;">👤 내 정보 수정</h2>
         <div style="text-align:center; margin-bottom: 20px;">
             <img id="edit-avatar-prev" src="" style="width:80px; height:80px; border-radius:50%; border:2px solid #ddd; object-fit:cover;">
-            <input type="file" id="avatar-file" style="display:none;" onchange="updateAvatarPreview(this.files[0])">
+            <input type="file" id="avatar-file" accept="image/*" style="display:none;" onchange="uploadAndPreview(this.files[0])">
             <div style="display:flex; gap:5px; justify-content:center; margin-top:10px;">
                 <button onclick="document.getElementById('avatar-file').click()" style="font-size:11px; cursor:pointer; padding:5px 10px;">사진 변경</button>
                 <button onclick="resetToDefaultAvatar()" style="font-size:11px; cursor:pointer; padding:5px 10px; background:#eee; border:1px solid #ccc;">기본 이미지</button>
@@ -117,10 +111,13 @@
     async function init() {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if(!session) { window.location.href="login.html"; return; }
+        
         const { data: p, error } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
         if(error || !p) { window.location.href="login.html"; return; }
+        
         user = p;
         if(user.is_banned) { alert("정지된 계정입니다."); handleLogout(); return; }
+        
         updateUI();
         document.getElementById('main-ui').style.display = 'flex';
     }
@@ -135,10 +132,14 @@
         const today = new Date().toLocaleDateString();
         const lastCheck = localStorage.getItem(`daily_chk_${user.id}`);
         if(lastCheck === today) return alert("이미 오늘 출석하셨습니다.");
+        
         const reward = parseInt(localStorage.getItem('codet_daily')) || 5000;
         const newGold = (user.gold || 0) + reward;
+        
         const { error } = await supabaseClient.from('profiles').update({ gold: newGold }).eq('id', user.id);
-        if (error) { alert("출석 실패"); } else {
+        if (error) { 
+            alert("출석 실패: " + error.message); 
+        } else {
             user.gold = newGold;
             localStorage.setItem(`daily_chk_${user.id}`, today);
             alert(`${reward.toLocaleString()}G 출석 완료!`);
@@ -154,15 +155,43 @@
         openModal('info-modal');
     }
 
-    function resetToDefaultAvatar() { document.getElementById('edit-avatar-prev').src = DEFAULT_AVATAR; }
+    function resetToDefaultAvatar() { 
+        document.getElementById('edit-avatar-prev').src = DEFAULT_AVATAR; 
+    }
 
-    async function updateAvatarPreview(file) {
+    // 사진 선택 즉시 업로드 및 미리보기
+    async function uploadAndPreview(file) {
         if(!file) return;
-        const path = `avatars/${user.id}_${Date.now()}`;
-        const { error: uploadError } = await supabaseClient.storage.from('codet-img').upload(path, file);
-        if(uploadError) return alert("사진 업로드 실패");
-        const { data } = supabaseClient.storage.from('codet-img').getPublicUrl(path);
-        document.getElementById('edit-avatar-prev').src = data.publicUrl;
+        
+        const saveBtn = document.getElementById('save-btn');
+        saveBtn.disabled = true;
+        saveBtn.innerText = "사진 업로드 중...";
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+        const filePath = `avatars/${fileName}`;
+
+        // Storage 업로드
+        const { data, error: uploadError } = await supabaseClient.storage
+            .from('codet-img')
+            .upload(filePath, file);
+
+        if(uploadError) {
+            console.error("업로드 에러:", uploadError);
+            alert("사진 업로드 실패: " + uploadError.message + "\n(Storage 정책을 확인하세요)");
+            saveBtn.disabled = false;
+            saveBtn.innerText = "수정 내용 저장";
+            return;
+        }
+
+        // 공개 URL 가져오기
+        const { data: { publicUrl } } = supabaseClient.storage
+            .from('codet-img')
+            .getPublicUrl(filePath);
+
+        document.getElementById('edit-avatar-prev').src = publicUrl;
+        saveBtn.disabled = false;
+        saveBtn.innerText = "수정 내용 저장";
     }
 
     async function saveMyInfo() {
@@ -176,12 +205,28 @@
         const newPw = document.getElementById('edit-pw').value;
 
         try {
-            // 1. 닉네임, 전화번호 업데이트
-            await supabaseClient.from('profiles').update({ nickname: newNick, phone: newPhone }).eq('id', user.id);
-            // 2. 아바타 업데이트 (분리해서 안정성 확보)
-            await supabaseClient.from('profiles').update({ avatar_url: newAvatar }).eq('id', user.id);
-            // 3. 비밀번호 변경
-            if(newPw && newPw.length >= 6) { await supabaseClient.auth.updateUser({ password: newPw }); }
+            // 1. 프로필 정보 업데이트
+            const { error: updateError } = await supabaseClient
+                .from('profiles')
+                .update({ 
+                    nickname: newNick, 
+                    phone: newPhone,
+                    avatar_url: newAvatar 
+                })
+                .eq('id', user.id);
+
+            if(updateError) throw updateError;
+
+            // 2. 비밀번호 변경 (입력했을 경우만)
+            if(newPw && newPw.length >= 6) { 
+                const { error: pwError } = await supabaseClient.auth.updateUser({ password: newPw });
+                if(pwError) throw pwError;
+            } else if(newPw && newPw.length < 6) {
+                alert("비밀번호는 6자 이상이어야 합니다.");
+                btn.innerText = "수정 내용 저장";
+                btn.disabled = false;
+                return;
+            }
 
             alert("정보가 수정되었습니다.");
             window.location.reload();
@@ -194,13 +239,28 @@
 
     async function openRank() {
         openModal('rank-modal');
-        const { data } = await supabaseClient.from('profiles').select('nickname, gold').order('gold', { ascending: false }).limit(10);
-        document.getElementById('rank-list').innerHTML = (data || []).map((u, i) => `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;"><span>${i+1}위 ${u.nickname}</span><b>${(u.gold||0).toLocaleString()}G</b></div>`).join('');
+        const { data } = await supabaseClient
+            .from('profiles')
+            .select('nickname, gold')
+            .order('gold', { ascending: false })
+            .limit(10);
+            
+        document.getElementById('rank-list').innerHTML = (data || []).map((u, i) => `
+            <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;">
+                <span>${i+1}위 ${u.nickname || '익명'}</span>
+                <b>${(u.gold||0).toLocaleString()}G</b>
+            </div>
+        `).join('');
     }
 
-    async function handleLogout() { await supabaseClient.auth.signOut(); window.location.href = "login.html"; }
+    async function handleLogout() { 
+        await supabaseClient.auth.signOut(); 
+        window.location.href = "login.html"; 
+    }
+    
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    
     init();
 </script>
 </body>
