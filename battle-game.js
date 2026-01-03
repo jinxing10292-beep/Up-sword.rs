@@ -32,60 +32,85 @@ let gameState = {
 // DOM Elements - initialized in DOMContentLoaded
 let elements = {};
 
-// Initialize DOM elements
+// Initialize DOM elements with null checks
 function initializeElements() {
-    elements = {
-        player1Name: document.getElementById('player1-name'),
-        player1Level: document.getElementById('player1-level'),
-        player1Hp: document.getElementById('player1-hp'),
-        player1HpBar: document.getElementById('player1-hp-bar'),
-        player1Attack: document.getElementById('player1-attack'),
-        
-        player2Name: document.getElementById('player2-name'),
-        player2Level: document.getElementById('player2-level'),
-        player2Hp: document.getElementById('player2-hp'),
-        player2HpBar: document.getElementById('player2-hp-bar'),
-        player2Attack: document.getElementById('player2-attack'),
-        
-        turnIndicator: document.getElementById('turn-indicator'),
-        battleLog: document.getElementById('battle-log'),
-        
-        attackBtn: document.getElementById('attack-btn'),
-        skillBtn: document.getElementById('skill-btn'),
-        runBtn: document.getElementById('run-btn'),
-        
-        victoryScreen: document.getElementById('victory-screen'),
-        victoryTitle: document.getElementById('victory-title'),
-        victoryMessage: document.getElementById('victory-message'),
-        rewardMessage: document.getElementById('reward-message')
-    };
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/eacc4797-bdd6-4f0f-88a3-8933967b8fd6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'battle-game.js:58',message:'DOM elements initialized',data:{player1NameNull:!elements.player1Name,attackBtnNull:!elements.attackBtn,battleLogNull:!elements.battleLog},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    console.log('[DEBUG] Elements initialized', {player1NameNull:!elements.player1Name,attackBtnNull:!elements.attackBtn});
-    // #endregion
+    try {
+        elements = {
+            player1Name: document.getElementById('player1-name'),
+            player1Level: document.getElementById('player1-level'),
+            player1Hp: document.getElementById('player1-hp'),
+            player1HpBar: document.getElementById('player1-hp-bar'),
+            player1Attack: document.getElementById('player1-attack'),
+            
+            player2Name: document.getElementById('player2-name'),
+            player2Level: document.getElementById('player2-level'),
+            player2Hp: document.getElementById('player2-hp'),
+            player2HpBar: document.getElementById('player2-hp-bar'),
+            player2Attack: document.getElementById('player2-attack'),
+            
+            turnIndicator: document.getElementById('turn-indicator'),
+            battleLog: document.getElementById('battle-log'),
+            
+            attackBtn: document.getElementById('attack-btn'),
+            skillBtn: document.getElementById('skill-btn'),
+            runBtn: document.getElementById('run-btn'),
+            
+            victoryScreen: document.getElementById('victory-screen'),
+            victoryTitle: document.getElementById('victory-title'),
+            victoryMessage: document.getElementById('victory-message'),
+            rewardMessage: document.getElementById('reward-message')
+        };
+
+        // 요소가 제대로 로드되었는지 확인
+        const missingElements = [];
+        for (const [key, element] of Object.entries(elements)) {
+            if (!element) {
+                missingElements.push(key);
+                console.error(`[ERROR] Element not found: ${key}`);
+            }
+        }
+
+        if (missingElements.length > 0) {
+            console.warn(`[WARNING] ${missingElements.length} elements not found in the DOM`);
+            // 필수 요소가 없을 경우 에러 메시지 표시
+            if (elements.battleLog) {
+                elements.battleLog.innerHTML += `<p style="color: #f56565;">경고: 일부 UI 요소를 로드하지 못했습니다. 페이지를 새로고침 해주세요.</p>`;
+            }
+        }
+
+        console.log('[DEBUG] Elements initialized', {
+            player1NameNull: !elements.player1Name,
+            attackBtnNull: !elements.attackBtn,
+            battleLogNull: !elements.battleLog,
+            missingElements: missingElements.length > 0 ? missingElements : 'None'
+        });
+
+    } catch (error) {
+        console.error('[ERROR] Failed to initialize elements:', error);
+        alert('게임 UI를 초기화하는 중 오류가 발생했습니다. 페이지를 새로고침 해주세요.');
+        throw error; // 상위 핸들러에서 처리할 수 있도록 에러 전파
+    }
 }
 
 // Initialize the game
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('[BATTLE] DOMContentLoaded fired');
-    // Initialize DOM elements first
-    initializeElements();
-    console.log('[BATTLE] Elements initialized, checking...', {
-        attackBtn: !!elements.attackBtn,
-        player1Name: !!elements.player1Name,
-        battleLog: !!elements.battleLog
-    });
+async function initializeGame() {
+    console.log('[BATTLE] Starting game initialization...');
     
     try {
-        // Initialize Supabase
+        // 1. DOM 요소 초기화
+        console.log('[BATTLE] Initializing DOM elements');
+        initializeElements();
+        
+        // 2. Supabase 클라이언트 초기화
         console.log('[BATTLE] Initializing Supabase client');
         window.supabase = supabase.createClient(
             'https://utfrjzcnefsbuadnkdud.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc'
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc',
+            { auth: { persistSession: false } } // 세션 유지 비활성화
         );
         console.log('[BATTLE] Supabase client created');
 
-        // Check if user is authenticated
+        // 3. 인증 확인
         console.log('[BATTLE] Checking authentication');
         const { data: { session }, error: sessionError } = await window.supabase.auth.getSession();
         if (sessionError || !session) {
@@ -95,47 +120,74 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         console.log('[BATTLE] User authenticated', session.user.id);
 
-        // Get URL parameters
+        // 4. URL 파라미터 확인
         const urlParams = new URLSearchParams(window.location.search);
         const battleId = urlParams.get('battleId');
         const isAI = urlParams.get('ai') === 'true';
         console.log('[BATTLE] URL params', { battleId, isAI });
         
-        // Initialize game based on battle type
-        if (isAI) {
-            console.log('[BATTLE] Initializing AI battle');
-            initAIBattle(urlParams);
-        } else if (battleId) {
-            console.log('[BATTLE] Initializing PvP battle', battleId);
-            await initPvPBattle(battleId, session.user.id);
-        } else {
-            throw new Error('잘못된 배틀 접근입니다.');
+        // 5. 배틀 유형에 따라 초기화
+        try {
+            if (isAI) {
+                console.log('[BATTLE] Initializing AI battle');
+                initAIBattle(urlParams);
+            } else if (battleId) {
+                console.log('[BATTLE] Initializing PvP battle', battleId);
+                await initPvPBattle(battleId, session.user.id);
+            } else {
+                throw new Error('잘못된 배틀 접근입니다.');
+            }
+            console.log('[BATTLE] Battle initialized', gameState);
+        } catch (battleInitError) {
+            console.error('[BATTLE] 배틀 초기화 실패:', battleInitError);
+            throw new Error(`배틀을 시작할 수 없습니다: ${battleInitError.message}`);
         }
-        console.log('[BATTLE] Battle initialized', gameState);
 
-        // Set up event listeners
+        // 6. 이벤트 리스너 설정
         console.log('[BATTLE] Setting up event listeners');
         setupEventListeners();
         console.log('[BATTLE] Event listeners set up');
         
-        // Start the game
+        // 7. UI 업데이트 및 게임 시작
         console.log('[BATTLE] Updating UI');
         updateUI();
         addToBattleLog('배틀이 시작되었습니다!');
         console.log('[BATTLE] UI updated, battle started');
         
-        // If it's AI's turn, make AI move
+        // 8. AI 턴인 경우 AI 동작 시작
         if (gameState.isAIBattle && !gameState.player1.isTurn) {
             console.log('[BATTLE] Starting AI turn');
             setTimeout(aiTurn, 1500);
         }
         
+        console.log('[BATTLE] Game initialization completed successfully');
+        
     } catch (error) {
         console.error('[BATTLE] 게임 초기화 중 오류 발생:', error);
         console.error('[BATTLE] Error stack:', error.stack);
-        alert('게임을 시작하는 중 오류가 발생했습니다: ' + error.message);
-        window.location.href = 'index.html';
+        
+        // 오류 메시지를 사용자에게 표시
+        const errorMessage = `게임을 시작하는 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}`;
+        alert(errorMessage);
+        
+        // 배틀 로그가 있으면 오류 메시지 추가
+        if (elements.battleLog) {
+            addToBattleLog(`[오류] ${errorMessage}`);
+        }
+        
+        // 3초 후 메인 페이지로 리다이렉트
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 3000);
     }
+}
+
+// DOM이 완전히 로드된 후 게임 초기화 시작
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('[BATTLE] DOM fully loaded, starting game initialization');
+    initializeGame().catch(error => {
+        console.error('[BATTLE] Unhandled error in game initialization:', error);
+    });
 });
 
 // Initialize AI Battle

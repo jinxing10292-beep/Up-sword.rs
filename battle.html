@@ -153,8 +153,18 @@
         const aiBattleBtn = document.getElementById('ai-battle');
         const friendlyBattleBtn = document.getElementById('friendly-battle');
         const cancelMatchingBtn = document.getElementById('cancel-matching');
+        const statusDesc = document.getElementById('status-desc');
+        const waitingMessage = document.getElementById('waiting-message');
+        const playerCount = document.getElementById('player-count');
 
-        // 배틀 모드 선택 이벤트 리스너
+        // Initialize Supabase
+        const supabase = supabase.createClient(
+            'https://utfrjzcnefsbuadnkdud.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc',
+            { auth: { persistSession: false } }
+        );
+
+        // Event listeners
         if (aiBattleBtn) {
             aiBattleBtn.addEventListener('click', () => {
                 isAIBattle = true;
@@ -180,9 +190,10 @@
             });
         }
 
-        // AI 배틀 시작 함수
+        // Start AI Battle
         async function startAIBattle() {
             try {
+                console.log('[BATTLE] Starting AI battle...');
                 modeSelection.style.display = 'none';
                 matchingScreen.style.display = 'block';
                 updateStatus('AI 배틀 준비 중...', 'AI 상대를 생성하고 있습니다.');
@@ -195,374 +206,290 @@
                     hp: Math.floor(Math.random() * 50) + 50
                 };
                 
-                // 2초 후 게임 시작
+                // 1초 후 게임 시작 (로딩 시간 확보)
                 setTimeout(() => {
-                    window.location.href = `battle-game.html?ai=true&enemyName=AI_${Math.floor(Math.random() * 1000)}&stats=${JSON.stringify(aiStats)}`;
-                }, 2000);
+                    // URL 파라미터로 AI 정보 전달
+                    const params = new URLSearchParams({
+                        ai: 'true',
+                        enemyName: `AI_${Math.floor(Math.random() * 1000)}`,
+                        stats: JSON.stringify(aiStats)
+                    });
+                    
+                    // 새 창에서 게임 시작
+                    window.location.href = `battle-game.html?${params.toString()}`;
+                }, 1000);
                 
             } catch (error) {
-                console.error('AI 배틀 시작 오류:', error);
-                alert('AI 배틀을 시작하는 중 오류가 발생했습니다.');
-                window.location.href = 'battle.html';
+                console.error('[BATTLE] AI 배틀 시작 중 오류 발생:', error);
+                alert('AI 배틀을 시작하는 중 오류가 발생했습니다. 다시 시도해 주세요.');
+                resetUI();
             }
         }
 
-
-        // Initialize Supabase client
-        document.addEventListener('DOMContentLoaded', async function() {
-            try {
-                // Initialize Supabase
-                const { createClient } = supabase;
-                window.supabase = createClient(
-                    'https://utfrjzcnefsbuadnkdud.supabase.co',
-                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTQxMTQ0NDgsImV4cCI6MjAyOTY5MDQ0OH0.7J7X5OZ4QzKx7Q4Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q'
-                );
-
-                // Check if user is logged in
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (!profile) {
-                    alert('프로필을 찾을 수 없습니다. 다시 로그인해주세요.');
-                    window.location.href = 'login.html';
-                    return;
-                }
-
-                currentUser = session.user;
-                myId = session.user.id;
-                myNick = profile.username || `플레이어_${Math.floor(Math.random() * 1000)}`;
-
-                // Start matching process
-                startMatching();
-            } catch (error) {
-                console.error('배틀 초기화 오류:', error);
-                alert('배틀 시스템 초기화 중 오류가 발생했습니다.');
-                window.location.href = 'index.html';
-            }
-        });
-
-        // Initialize battle system
+        // Initialize battle
         async function initBattle() {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) {
+                console.log('[BATTLE] Initializing battle...');
+                
+                // Check if user is authenticated
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError || !session) {
+                    console.error('[BATTLE] Authentication failed', sessionError);
                     window.location.href = 'login.html';
                     return;
                 }
-
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (!profile) {
-                    alert('프로필을 찾을 수 없습니다. 다시 로그인해주세요.');
-                    window.location.href = 'login.html';
-                    return;
-                }
-
+                
+                // Set current user info
                 currentUser = session.user;
-                myId = session.user.id;
-                myNick = profile.username || `플레이어_${Math.floor(Math.random() * 1000)}`;
-
-                // Start matching process
-                startMatching();
+                myId = currentUser.id;
+                
+                // Get user profile for nickname
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('nickname')
+                    .eq('id', myId)
+                    .single();
+                    
+                if (profileError) throw profileError;
+                myNick = profile?.nickname || `User_${myId.substring(0, 6)}`;
+                
+                console.log('[BATTLE] User info loaded', { id: myId, nick: myNick });
+                
+                // Start matching
+                if (!isAIBattle) {
+                    await startMatching();
+                }
+                
             } catch (error) {
-                console.error('배틀 초기화 오류:', error);
-                alert('배틀 시스템 초기화 중 오류가 발생했습니다.');
-                window.location.href = 'index.html';
+                console.error('[BATTLE] 배틀 초기화 중 오류 발생:', error);
+                alert('배틀을 시작하는 중 오류가 발생했습니다: ' + error.message);
+                resetUI();
             }
         }
 
-        // 매칭 시작 함수
+        // Start matching for PvP
         async function startMatching() {
             try {
-                updateStatus('플레이어를 찾는 중...', '잠시만 기다려주세요.');
+                console.log('[BATTLE] Starting PvP matching...');
+                updateStatus('상대방을 찾는 중...', '잠시만 기다려 주세요.');
                 
-                // 1. 기다리고 있는 배틀이 있는지 확인 (최근 1분 이내 생성된 배틀만 확인)
-                const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
-                const { data: waitingBattles, error: findError } = await supabase
+                // Check for existing battles
+                const { data: existingBattles, error: findError } = await supabase
                     .from('battles')
                     .select('*')
+                    .or(`player1_id.eq.${myId},player2_id.eq.${myId}`)
                     .eq('status', 'waiting')
-                    .neq('player1_id', myId)
-                    .gte('created_at', oneMinuteAgo) // 1분 이내에 생성된 배틀만
-                    .order('created_at', { ascending: true })
                     .limit(1);
                 
                 if (findError) throw findError;
                 
-                // 2. 대기 중인 배틀이 있으면 참가
-                if (waitingBattles && waitingBattles.length > 0) {
-                    const battle = waitingBattles[0];
+                if (existingBattles && existingBattles.length > 0) {
+                    // Join existing battle
+                    const battle = existingBattles[0];
+                    battleId = battle.id;
                     
-                    // 배틀에 참가 (원자적 업데이트를 위해 조건부 업데이트 사용)
-                    const { data: updatedBattle, error: joinError } = await supabase
+                    // Update battle with player2 info
+                    const { error: updateError } = await supabase
                         .from('battles')
                         .update({
                             player2_id: myId,
                             player2_nickname: myNick,
                             status: 'in_progress',
-                            current_turn: 'player1',
                             updated_at: new Date().toISOString()
                         })
-                        .eq('id', battle.id)
-                        .eq('status', 'waiting') // 여전히 대기 중인 배틀만 업데이트
-                        .select()
-                        .single();
-                    
-                    // 다른 플레이어가 이미 참가한 경우
-                    if (joinError || !updatedBattle) {
-                        console.log('다른 플레이어가 이미 참가했습니다. 다시 매칭을 시도합니다.');
-                        return startMatching(); // 재시도
-                    }
-                    
-                    battleId = updatedBattle.id;
-                    
-                    // 매칭 성공 알림
-                    updateStatus('매칭 성공!', `${battle.player1_nickname}님과 매칭되었습니다!`);
-                    
-                    // 3초 후 게임 시작
-                    setTimeout(() => {
-                        window.location.href = `battle-game.html?battleId=${battle.id}`;
-                    }, 3000);
-                    
-                } else {
-                    // 3. 대기 중인 배틀이 없으면 새로 생성
-                    try {
-                        const { data: newBattle, error: createError } = await supabase
-                            .from('battles')
-                            .insert([{
-                                player1_id: myId,
-                                player1_nickname: myNick,
-                                status: 'waiting',
-                                created_at: new Date().toISOString(),
-                                updated_at: new Date().toISOString(),
-                                expires_at: new Date(Date.now() + 300000).toISOString() // 5분 후 만료
-                            }])
-                            .select()
-                            .single();
-                        
-                        if (createError) throw createError;
-                        
-                        battleId = newBattle.id;
-                        updateStatus('상대를 기다리는 중...', '다른 플레이어가 참가할 때까지 기다려주세요.');
-                        
-                        // 만료 시간 타이머 설정
-                        const expireTimer = setTimeout(() => {
-                            if (battleId === newBattle.id) {
-                                updateStatus('매칭 시간 초과', '상대방을 찾지 못했습니다. 다시 시도해주세요.');
-                                cancelMatching();
-                            }
-                        }, 300000); // 5분 후 자동 취소
-                        
-                        // 실시간으로 상대방이 참가할 때까지 대기
-                        await waitForOpponent(expireTimer);
-                    } catch (createError) {
-                        // 동시에 여러 배틀이 생성된 경우, 기존 대기 중인 배틀에 참가 시도
-                        if (createError.code === '23505') { // Unique violation
-                            console.log('이미 배틀이 생성되었습니다. 기존 배틀에 참가 시도...');
-                            return startMatching();
-                        }
-                        throw createError;
-                    }
-                    
-                    // waitForOpponent is now called inside the try block above
-                }
-                
-            } catch (error) {
-                console.error('매칭 오류:', error);
-                updateStatus('오류 발생', '매칭 중 오류가 발생했습니다. 다시 시도해주세요.');
-                document.querySelector('.btn-cancel').textContent = '돌아가기';
-            }
-        }
-        
-        // 상대방이 참가할 때까지 기다리는 함수
-        async function waitForOpponent(expireTimer) {
-            // 기존 구독이 있으면 해제
-            if (battleSubscription) {
-                battleSubscription.unsubscribe();
-            }
-            
-            // 실시간 업데이트 구독
-            battleSubscription = supabase
-                .channel('battle-updates')
-                .on('postgres_changes', {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'battles',
-                    filter: `id=eq.${battleId}`
-                }, async (payload) => {
-                    const battle = payload.new;
-                    
-                    // 상대방이 참가했는지 확인
-                    if (battle.status === 'in_progress' && battle.player2_id) {
-                        // 만료 타이머 정리
-                        if (expireTimer) {
-                            clearTimeout(expireTimer);
-                        }
-                        
-                        updateStatus('매칭 성공!', `${battle.player2_nickname}님이 참가했습니다!`);
-                        
-                        // 3초 후 게임 시작
-                        setTimeout(() => {
-                            window.location.href = `battle-game.html?battleId=${battle.id}`;
-                        }, 3000);
-                    }
-                })
-                .subscribe();
-            
-            // 5분 후 자동 취소
-            setTimeout(() => {
-                if (battleSubscription) {
-                    battleSubscription.unsubscribe();
-                    battleSubscription = null;
-                    if (confirm('매칭이 지연되고 있습니다. 계속 기다리시겠습니까?')) {
-                        waitForOpponent();
-                    } else {
-                        cancelMatching();
-                    }
-                }
-            }, 5 * 60 * 1000);
-        }
-        
-        // 매칭 취소 함수
-        async function cancelMatching() {
-            try {
-                if (battleSubscription) {
-                    battleSubscription.unsubscribe();
-                    battleSubscription = null;
-                }
-                
-                if (battleId) {
-                    // Remove battle from database
-                    await supabase
-                        .from('battles')
-                        .delete()
                         .eq('id', battleId);
-                    battleId = null;
+                    
+                    if (updateError) throw updateError;
+                    
+                    // Start the game
+                    startBattle(battleId);
+                    return;
                 }
                 
-                // Reset UI
-                modeSelection.style.display = 'block';
-                matchingScreen.style.display = 'none';
-                document.querySelector('.btn-cancel').textContent = '뒤로 가기';
+                // Create new battle
+                const { data: newBattle, error: createError } = await supabase
+                    .from('battles')
+                    .insert([{
+                        player1_id: myId,
+                        player1_nickname: myNick,
+                        status: 'waiting',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    }])
+                    .select()
+                    .single();
                 
-                // Clear any active timers
-                if (expireTimer) {
-                    clearTimeout(expireTimer);
-                    expireTimer = null;
-                }
+                if (createError) throw createError;
+                
+                battleId = newBattle.id;
+                console.log('[BATTLE] Created new battle:', battleId);
+                
+                // Wait for opponent
+                await waitForOpponent();
                 
             } catch (error) {
-                console.error('매칭 취소 오류:', error);
-                alert('매칭 취소 중 오류가 발생했습니다.');
+                console.error('[BATTLE] 매칭 중 오류 발생:', error);
+                alert('매칭 중 오류가 발생했습니다: ' + error.message);
+                resetUI();
             }
         }
 
-        battleSubscription = null;
-    }
-    
-    // AI 배틀 모드인 경우
-    if (isAIBattle) {
-        window.location.href = 'battle.html';
-        return;
-    }
-    
-    // 친선전 모드인 경우
-    try {
-        if (battleId) {
-            // 배틀 상태 확인
-            supabase.from('battles')
-                .select('status, player2_id')
-                .eq('id', battleId)
-                .single()
-                .then(({ data: battle, error }) => {
-                    // 대기 중인 배틀이고 아직 상대가 없으면 삭제
-                    if (!error && battle && battle.status === 'waiting' && !battle.player2_id) {
-                        supabase
-                            .from('battles')
-                            .delete()
-                            .eq('id', battleId);
-                    }
-        
-        // 상태 업데이트 함수
-        function updateStatus(title, message, playerCount) {
-            const titleEl = document.getElementById('status-desc');
-            const messageEl = document.getElementById('waiting-message');
-            const countEl = document.getElementById('player-count');
-            const infoEl = document.getElementById('matching-info');
-            
-            if (titleEl) titleEl.textContent = title;
-            if (messageEl) messageEl.textContent = message;
-            
-            if (playerCount !== undefined && countEl) {
-                countEl.textContent = `현재 대기 중인 플레이어: ${playerCount}명`;
-                infoEl.style.display = 'block';
-            } else if (countEl) {
-                countEl.textContent = '';
+        // Wait for opponent to join
+        async function waitForOpponent() {
+            try {
+                updateStatus('상대방을 기다리는 중...', '다른 플레이어가 참가할 때까지 기다려 주세요.');
+                
+                // Subscribe to battle updates
+                battleSubscription = supabase
+                    .channel(`battle_${battleId}`)
+                    .on('postgres_changes', {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'battles',
+                        filter: `id=eq.${battleId}`
+                    }, (payload) => {
+                        console.log('[BATTLE] Battle update:', payload.new);
+                        
+                        // Check if opponent joined
+                        if (payload.new.player2_id && payload.new.status === 'in_progress') {
+                            // Start the game
+                            startBattle(battleId);
+                        }
+                    })
+                    .subscribe();
+                
+                // Set timeout for waiting (5 minutes)
+                expireTimer = setTimeout(async () => {
+                    console.log('[BATTLE] Matching timeout');
+                    await cancelMatching();
+                    alert('매칭 시간이 초과되었습니다. 다시 시도해 주세요.');
+                }, 5 * 60 * 1000); // 5 minutes
+                
+            } catch (error) {
+                console.error('[BATTLE] 대기 중 오류 발생:', error);
+                throw error;
             }
         }
-        
-        // 페이지 언로드 시 정리
-        window.addEventListener('beforeunload', () => {
-            if (battleSubscription) {
-                battleSubscription.unsubscribe();
+
+        // Start the battle
+        function startBattle(battleId) {
+            console.log('[BATTLE] Starting battle:', battleId);
+            
+            // Clear timeout if set
+            if (expireTimer) {
+                clearTimeout(expireTimer);
+                expireTimer = null;
             }
-        });
-        
-        // 매칭 취소 시 화면 전환
-        function cancelMatching() {
+            
+            // Unsubscribe from updates
             if (battleSubscription) {
                 battleSubscription.unsubscribe();
                 battleSubscription = null;
             }
             
-            // AI 배틀 모드인 경우
-            if (isAIBattle) {
-                window.location.href = 'battle.html';
-                return;
-            }
-            
-            // 친선전 모드인 경우
+            // Redirect to battle game
+            window.location.href = `battle-game.html?battleId=${battleId}`;
+        }
+
+        // Cancel matching
+        async function cancelMatching() {
             try {
                 if (battleId) {
-                    // 배틀 상태 확인
-                    supabase.from('battles')
-                        .select('status, player2_id')
-                        .eq('id', battleId)
-                        .single()
-                        .then(({ data: battle, error }) => {
-                            // 대기 중인 배틀이고 아직 상대가 없으면 삭제
-                            if (!error && battle && battle.status === 'waiting' && !battle.player2_id) {
-                                supabase
-                                    .from('battles')
-                                    .delete()
-                                    .eq('id', battleId);
-                            }
-                            window.location.href = 'battle.html';
-                        });
-                } else {
-                    window.location.href = 'battle.html';
+                    // Remove the battle from the database
+                    const { error } = await supabase
+                        .from('battles')
+                        .delete()
+                        .eq('id', battleId);
+                        
+                    if (error) throw error;
                 }
+                
+                // Unsubscribe from realtime updates
+                if (battleSubscription) {
+                    battleSubscription.unsubscribe();
+                    battleSubscription = null;
+                }
+                
+                // Reset state
+                battleId = null;
+                isAIBattle = false;
+                
+                // Reset UI
+                resetUI();
+                
             } catch (error) {
-                console.error('매칭 취소 오류:', error);
-                window.location.href = 'battle.html';
+                console.error('[BATTLE] 매칭 취소 중 오류 발생:', error);
+                alert('매칭을 취소하는 중 오류가 발생했습니다: ' + error.message);
             }
         }
+
+        // Update status message
+        function updateStatus(title, message, count) {
+            if (statusDesc) statusDesc.textContent = title;
+            if (waitingMessage) {
+                waitingMessage.textContent = message;
+                waitingMessage.parentElement.style.display = 'block';
+            }
+            if (count !== undefined && playerCount) {
+                playerCount.textContent = `현재 대기 중인 플레이어: ${count}명`;
+            }
+        }
+
+        // Reset UI to initial state
+        function resetUI() {
+            if (modeSelection) modeSelection.style.display = 'block';
+            if (matchingScreen) matchingScreen.style.display = 'none';
+            if (statusDesc) statusDesc.textContent = '플레이어를 찾고 있습니다...';
+            if (waitingMessage) {
+                waitingMessage.textContent = '';
+                waitingMessage.parentElement.style.display = 'none';
+            }
+            if (playerCount) playerCount.textContent = '';
+        }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', async () => {
+            if (battleSubscription) {
+                battleSubscription.unsubscribe();
+            }
+            
+            if (battleId && !isAIBattle) {
+                try {
+                    await supabase
+                        .from('battles')
+                        .delete()
+                        .eq('id', battleId);
+                } catch (error) {
+                    console.error('[BATTLE] Cleanup error:', error);
+                }
+            }
+        });
+
+        // Initialize
+        console.log('[BATTLE] Initializing battle system...');
         
-        // 초기화 실행
-        document.addEventListener('DOMContentLoaded', initBattle);
+        // Set up event listeners for mode selection
+        if (aiModeButton) {
+            aiModeButton.addEventListener('click', startAIBattle);
+        }
+        
+        if (onlineModeButton) {
+            onlineModeButton.addEventListener('click', startOnlineBattle);
+        }
+        
+        // Initialize mode buttons
+        if (aiModeButton) aiModeButton.disabled = false;
+        if (onlineModeButton) onlineModeButton.disabled = false;
+        
+        // Set initial button states
+        updateModeButtonStates(false);
+        
+        // Show initial mode selection
+        if (modeSelection) modeSelection.style.display = 'block';
+        if (matchingScreen) matchingScreen.style.display = 'none';
+        if (statusContainer) statusContainer.style.display = 'none';
+        if (statusDesc) statusDesc.textContent = '플레이어를 찾고 있습니다...';
+        if (statusTitle) statusTitle.textContent = '매칭 중';
     </script>
 </body>
-</html>
+</html>     
