@@ -139,9 +139,25 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Initialize Supabase client
-        const supabaseClient = (() => {
+        async function initializeSupabase() {
+            if (!window.supabase) {
+                await new Promise(resolve => {
+                    const checkSupabase = setInterval(() => {
+                        if (window.supabase) {
+                            clearInterval(checkSupabase);
+                            resolve();
+                        }
+                    }, 100);
+                    
+                    setTimeout(() => {
+                        clearInterval(checkSupabase);
+                        resolve();
+                    }, 5000);
+                });
+            }
+            
             if (window.supabase) {
-                return window.supabase.createClient(
+                supabase = window.supabase.createClient(
                     'https://utfrjzcnefsbuadnkdud.supabase.co',
                     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc',
                     { 
@@ -152,31 +168,9 @@
                         }
                     }
                 );
+                return true;
             }
-            return null;
-        })();
-        // Wait for Supabase to be loaded
-        function waitForSupabase() {
-            return new Promise((resolve) => {
-                if (window.supabase) {
-                    resolve(window.supabase);
-                    return;
-                }
-                
-                const checkInterval = setInterval(() => {
-                    if (window.supabase) {
-                        clearInterval(checkInterval);
-                        resolve(window.supabase);
-                    }
-                }, 100);
-                
-                // Timeout after 5 seconds
-                setTimeout(() => {
-                    clearInterval(checkInterval);
-                    console.error('Supabase failed to load');
-                    resolve(null);
-                }, 5000);
-            });
+            return false;
         }
 
         // Global variables
@@ -198,21 +192,12 @@
         const waitingMessage = document.getElementById('waiting-message');
         const playerCount = document.getElementById('player-count');
 
-        // Initialize Supabase
-        let supabase;
-        (async () => {
+        // Initialize Supabase when DOM is ready
+        document.addEventListener('DOMContentLoaded', async () => {
             try {
-                const supabaseModule = await waitForSupabase();
-                if (!supabaseModule) {
-                    throw new Error('Failed to load Supabase');
-                }
-                
-                // Use the initialized Supabase client
-                supabase = supabaseClient;
-                if (!supabase) {
-                    console.error('Failed to initialize Supabase');
-                    alert('서비스 초기화에 실패했습니다. 페이지를 새로고침 해주세요.');
-                    return;
+                const isInitialized = await initializeSupabase();
+                if (!isInitialized) {
+                    throw new Error('Failed to initialize Supabase');
                 }
                 
                 // Initialize battle after Supabase is ready
@@ -225,7 +210,7 @@
                 console.error('Failed to initialize Supabase:', error);
                 alert('서비스 초기화에 실패했습니다. 페이지를 새로고침 해주세요.');
             }
-        })();
+        });
 
         // Event listeners
         function setupEventListeners() {
@@ -237,11 +222,17 @@
             }
 
             if (friendlyBattleBtn) {
-                friendlyBattleBtn.addEventListener('click', () => {
+                friendlyBattleBtn.addEventListener('click', async () => {
                     isAIBattle = false;
                     modeSelection.style.display = 'none';
                     matchingScreen.style.display = 'block';
-                    // initBattle will be called after Supabase is initialized
+                    
+                    try {
+                        await initBattle();
+                    } catch (error) {
+                        console.error('Failed to initialize battle:', error);
+                        resetUI();
+                    }
                 });
             }
             
@@ -255,11 +246,17 @@
             }
         }
         
-        // Setup event listeners when DOM is ready
+        // Initialize everything when DOM is ready
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', setupEventListeners);
+            document.addEventListener('DOMContentLoaded', async () => {
+                await initializeSupabase();
+                setupEventListeners();
+            });
         } else {
-            setupEventListeners();
+            (async () => {
+                await initializeSupabase();
+                setupEventListeners();
+            })();
         }
 
         // Start AI Battle

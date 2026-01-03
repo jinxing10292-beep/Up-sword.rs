@@ -1,4 +1,4 @@
--- Create the battles table
+-- Create the battles table with all necessary fields
 CREATE TABLE IF NOT EXISTS public.battles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     player1_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -9,13 +9,19 @@ CREATE TABLE IF NOT EXISTS public.battles (
     current_turn TEXT,
     winner_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '5 minutes'),
+    battle_data JSONB DEFAULT '{}'::jsonb
 );
 
--- Create index for faster lookups
+-- Create indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_battles_status ON public.battles(status);
 CREATE INDEX IF NOT EXISTS idx_battles_player1_id ON public.battles(player1_id);
 CREATE INDEX IF NOT EXISTS idx_battles_player2_id ON public.battles(player2_id);
+CREATE INDEX IF NOT EXISTS idx_battles_created_at ON public.battles(created_at);
+CREATE INDEX IF NOT EXISTS idx_battles_expires_at ON public.battles(expires_at) WHERE status = 'waiting';
+CREATE INDEX IF NOT EXISTS idx_battles_winner_id ON public.battles(winner_id);
+CREATE INDEX IF NOT EXISTS idx_battles_status_created ON public.battles(status, created_at);
 
 -- Create RPC function to check if table exists
 CREATE OR REPLACE FUNCTION public.check_battle_table_exists()
@@ -77,9 +83,9 @@ FOR INSERT
 WITH CHECK (auth.uid() = player1_id);
 
 -- Grant necessary permissions
-GRANT SELECT, INSERT, UPDATE ON public.battles TO authenticated;
-GRANT EXECUTE ON FUNCTION public.create_battle_table_if_not_exists() TO authenticated;
-GRANT EXECUTE ON FUNCTION public.create_battle_table_directly() TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.battles TO authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
 
 -- Add comments for documentation
 COMMENT ON TABLE public.battles IS 'Stores information about battles between players';
@@ -87,5 +93,53 @@ COMMENT ON COLUMN public.battles.status IS 'Current status of the battle: waitin
 COMMENT ON COLUMN public.battles.current_turn IS 'ID of the player whose turn it is';
 COMMENT ON COLUMN public.battles.winner_id IS 'ID of the winning player, if the battle is completed';
 
+-- Function to clean up expired battles
+CREATE OR REPLACE FUNCTION public.cleanup_expired_battles()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    UPDATE public.battles
+    SET status = 'cancelled',
+        updated_at = NOW()
+    WHERE status = 'waiting'
+    AND expires_at < NOW();
+    
+    RAISE NOTICE 'Cleaned up expired battles at %', NOW();
+END;
+$$;
+
+-- Create a cron job to clean up expired battles every minute
+SELECT cron.schedule(
+    'cleanup-expired-battles',
+    '* * * * *',
+    'SELECT public.cleanup_expired_battles()'
+);
+
+-- Function to get active battles count
+CREATE OR REPLACE FUNCTION public.get_user_active_battles_count(user_id UUID)
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    battle_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO battle_count
+    FROM public.battles
+    WHERE (player1_id = user_id OR player2_id = user_id)
+    AND status IN ('waiting', 'in_progress');
+    
+    RETURN battle_count;
+END;
+$$;
+
+-- Enable pg_cron extension if not exists
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Grant usage to postgres role for pg_cron
+GRANT USAGE ON SCHEMA cron TO postgres;
+
 -- Notify that the setup is complete
-NOTICE 'Battle system database setup completed successfully';
+NOTICE 'Battle system database setup completed successfully with all features';
