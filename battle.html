@@ -138,6 +138,23 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Initialize Supabase client
+        const supabaseClient = (() => {
+            if (window.supabase) {
+                return window.supabase.createClient(
+                    'https://utfrjzcnefsbuadnkdud.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc',
+                    { 
+                        auth: { 
+                            persistSession: false,
+                            autoRefreshToken: false,
+                            detectSessionInUrl: false
+                        }
+                    }
+                );
+            }
+            return null;
+        })();
         // Wait for Supabase to be loaded
         function waitForSupabase() {
             return new Promise((resolve) => {
@@ -190,18 +207,13 @@
                     throw new Error('Failed to load Supabase');
                 }
                 
-                supabase = supabaseModule.createClient(
-                    'https://utfrjzcnefsbuadnkdud.supabase.co',
-                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc',
-                    { 
-                        auth: { 
-                            persistSession: false,
-                            autoRefreshToken: false,
-                            detectSessionInUrl: false
-                        }
-                    }
-                );
-                window.supabase = supabase; // Store in window for other scripts
+                // Use the initialized Supabase client
+                supabase = supabaseClient;
+                if (!supabase) {
+                    console.error('Failed to initialize Supabase');
+                    alert('서비스 초기화에 실패했습니다. 페이지를 새로고침 해주세요.');
+                    return;
+                }
                 
                 // Initialize battle after Supabase is ready
                 if (document.readyState === 'loading') {
@@ -518,7 +530,7 @@
                 }
             }
             
-            if (battleId && !isAIBattle) {
+            if (battleId && !isAIBattle && supabase) {
                 try {
                     await supabase
                         .from('battles')
@@ -528,7 +540,7 @@
                     console.error('[BATTLE] Cleanup error:', error);
                 }
             }
-        }
+        };
 
         // Initialize
         console.log('[BATTLE] Initializing battle system...');
