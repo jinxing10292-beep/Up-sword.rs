@@ -57,6 +57,9 @@ create table if not exists public.user_swords (
   user_id uuid not null references auth.users(id) on delete cascade,
   sword_level int not null default 1,
   sword_name text not null,
+  weapon_type text check (weapon_type in ('normal','hidden')),
+  weapon_key text,
+  variant_id int,
   attack int not null default 10,
   rarity text not null default 'common' check (rarity in ('common','rare','epic','legendary')),
   created_at timestamptz not null default now()
@@ -326,3 +329,46 @@ on conflict (id) do update set
   target = excluded.target,
   badge = excluded.badge,
   active = excluded.active;
+
+-- Weapon variants: 33 weapons x 20 levels (0..19) = 660 unique IDs
+-- Base index mapping: normal_01..normal_30 => 1..30, hidden_01..hidden_03 => 31..33
+-- unique_id formula: level == 0 ? baseIndex : 33*level + baseIndex (so 34..660 for level >=1)
+create table if not exists public.weapon_variants (
+  unique_id int primary key,
+  weapon_key text not null references public.sword_catalog(weapon_key) on delete cascade,
+  level int not null check (level between 0 and 19),
+  name_ko text not null
+);
+
+create index if not exists idx_weapon_variants_key_level on public.weapon_variants(weapon_key, level);
+
+do $$
+declare i int; baseIndex int; key text;
+begin
+  -- normal 30 -> baseIndex 1..30
+  for i in 1..30 loop
+    key := format('normal_%02s', i);
+    for level in 0..19 loop
+      insert into public.weapon_variants(unique_id, weapon_key, level, name_ko)
+      values (
+        case when level = 0 then i else 33*level + i end,
+        key,
+        level,
+        format('일반검 %s +%s', i, level)
+      ) on conflict (unique_id) do nothing;
+    end loop;
+  end loop;
+  -- hidden 3 -> baseIndex 31..33
+  for i in 1..3 loop
+    key := format('hidden_%02s', i);
+    for level in 0..19 loop
+      insert into public.weapon_variants(unique_id, weapon_key, level, name_ko)
+      values (
+        case when level = 0 then 30 + i else 33*level + (30 + i) end,
+        key,
+        level,
+        format('히든검 %s +%s', i, level)
+      ) on conflict (unique_id) do nothing;
+    end loop;
+  end loop;
+end$$;

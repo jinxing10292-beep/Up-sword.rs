@@ -160,12 +160,33 @@
       const swordId = document.getElementById('swordSelect').value;
       if (!swordId) return alert('장착할 검을 선택해 주세요.');
 
+      // 1) 선택 검 정보 조회
+      const { data: sword, error: swordErr } = await supabaseClient
+        .from('user_swords')
+        .select('id, sword_name, sword_level, weapon_type, weapon_key, attack, rarity')
+        .eq('id', swordId)
+        .single();
+      if (swordErr || !sword) return alert('검 정보를 불러오지 못했습니다.');
+
+      // 2) 슬롯 장착 저장
       const { error } = await supabaseClient
         .from('user_inventory_slots')
         .upsert({ user_id: me.id, slot, sword_id: swordId });
-
       if (error) return alert('장착 실패: ' + error.message);
+
+      // 3) 현재 진행 중인 강화 상태를 선택 검으로 동기화
+      const { error: updErr } = await supabaseClient
+        .from('profiles')
+        .update({
+          current_sword_lvl: sword.sword_level,
+          current_weapon_type: sword.weapon_type || 'normal',
+          current_weapon_key: sword.weapon_key || 'normal_01'
+        })
+        .eq('id', me.id);
+      if (updErr) return alert('장착 반영 실패: ' + updErr.message);
+
       await loadSlots();
+      alert('장착 완료! 강화 페이지에서 이어서 진행할 수 있습니다.');
     }
 
     async function upsertUserAchievement(userId, achievementId, inc) {
