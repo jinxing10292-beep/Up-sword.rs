@@ -248,26 +248,33 @@
     </div>
 
     <script>
-        // Supabase 초기화
-        document.addEventListener('DOMContentLoaded', function() {
-
-        // 게임 상태
+        // Game state (moved to global scope)
         let currentBet = 100;
         let userCoins = 0;
         let isSpinning = false;
         let nextBetMultiplier = 1;
         let history = [];
         
-        // 룰렛 설정 (36칸 중 4개 성공, 6개 2배, 26개 실패)
+        // Roulette settings (moved to global scope)
         const ROULETTE_SECTIONS = 36;
         const SUCCESS_SECTIONS = 4;
         const DOUBLE_NEXT_SECTIONS = 6;
         const FAIL_SECTIONS = 26;
         
-            // 페이지 로드 시 초기화
+        // Initialize Supabase
+        const supabaseUrl = 'YOUR_SUPABASE_URL';
+        const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        
+        document.addEventListener('DOMContentLoaded', function() {
+        
+            // Initialize game on page load
             initGame().then(() => {
                 createRouletteWheel();
                 updateUI();
+                
+                // Add event listener for spin button
+                document.getElementById('spin-button').addEventListener('click', spinRoulette);
             });
         });
 
