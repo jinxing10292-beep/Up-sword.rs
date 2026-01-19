@@ -228,7 +228,7 @@
             </div>
         </div>
 
-        <button id="spin-button" class="spin-button" onclick="spinRoulette()">룰렛 돌리기</button>
+        <button id="spin-button" class="spin-button">룰렛 돌리기</button>
 
         <div class="history">
             <div class="history-title">최근 결과</div>
@@ -249,9 +249,7 @@
 
     <script>
         // Supabase 초기화
-        const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        document.addEventListener('DOMContentLoaded', function() {
 
         // 게임 상태
         let currentBet = 100;
@@ -266,11 +264,11 @@
         const DOUBLE_NEXT_SECTIONS = 6;
         const FAIL_SECTIONS = 26;
         
-        // 페이지 로드 시 초기화
-        document.addEventListener('DOMContentLoaded', async () => {
-            await initGame();
-            createRouletteWheel();
-            updateUI();
+            // 페이지 로드 시 초기화
+            initGame().then(() => {
+                createRouletteWheel();
+                updateUI();
+            });
         });
 
         // 게임 초기화
@@ -557,12 +555,28 @@
         }
         
         // 모달 외부 클릭 시 닫기
-        window.onclick = function(event) {
+        document.addEventListener('click', function(event) {
             const modal = document.getElementById('result-modal');
             if (event.target === modal) {
                 closeModal();
             }
-        };
+        });
+        
+        // 스핀 버튼 이벤트 리스너 추가
+        document.addEventListener('DOMContentLoaded', function() {
+            const spinButton = document.getElementById('spin-button');
+            if (spinButton) {
+                spinButton.addEventListener('click', spinRoulette);
+            }
+            
+            // 배팅 버튼들에 이벤트 리스너 추가
+            document.querySelectorAll('.bet-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const amount = parseInt(this.textContent.replace(/,/g, ''));
+                    changeBet(amount);
+                });
+            });
+        });
     </script>
 </body>
 </html>
