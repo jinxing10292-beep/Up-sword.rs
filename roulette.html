@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>룰렛 게임 - Up Sword</title>
+    <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 400px;
+            width: 100%;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .coin-display {
+            background: white;
+            border: 2px solid #000;
+            border-radius: 20px;
+            padding: 10px 20px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .roulette-container {
+            width: 100%;
+            aspect-ratio: 1;
+            position: relative;
+            margin: 20px 0;
+        }
+        .roulette-wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            border: 10px solid #8b4513;
+            background: #8b0000;
+            box-shadow: 0 0 0 5px #654321, 0 0 0 10px #8b4513;
+        }
+        .roulette-center {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: #fff;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            border: 5px solid #000;
+        }
+        .roulette-arrow {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #ff0;
+            z-index: 5;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+        }
+        .bet-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .bet-amount {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .bet-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .bet-button {
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .bet-button:hover {
+            transform: translateY(-2px);
+        }
+        .spin-button {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            background: #ff6b6b;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .spin-button:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+        }
+        .spin-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .history {
+            margin-top: 20px;
+            width: 100%;
+        }
+        .history-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .history-items {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+        .history-item {
+            min-width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+        .success { background: #4CAF50; }
+        .double-next { background: #2196F3; }
+        .fail { background: #f44336; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 80%;
+            width: 300px;
+        }
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .modal-message {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        .modal-button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button onclick="location.href='home.html'" style="background: none; border: none; font-size: 24px; cursor: pointer;">←</button>
+            <div class="coin-display">보유 코인: <span id="user-coins">0</span>c</div>
+        </div>
+
+        <div class="roulette-container">
+            <div class="roulette-arrow"></div>
+            <div class="roulette-wheel" id="roulette-wheel">
+                <!-- 룰렛 조각들은 자바스크립트로 생성 -->
+            </div>
+            <div class="roulette-center"></div>
+        </div>
+
+        <div class="bet-controls">
+            <div class="bet-amount">
+                <span>배팅 금액:</span>
+                <span id="bet-amount">100</span>c
+            </div>
+            <div class="bet-buttons">
+                <button class="bet-button" onclick="changeBet(100)">100</button>
+                <button class="bet-button" onclick="changeBet(500)">500</button>
+                <button class="bet-button" onclick="changeBet(1000)">1,000</button>
+                <button class="bet-button" onclick="changeBet(5000)">5,000</button>
+                <button class="bet-button" onclick="changeBet(10000)">10,000</button>
+                <button class="bet-button" onclick="changeBet(50000)">50,000</button>
+                <button class="bet-button" onclick="changeBet(100000)">100,000</button>
+                <button class="bet-button" onclick="changeBet(500000)">500,000</button>
+                <button class="bet-button" onclick="changeBet(1000000)">1,000,000</button>
+            </div>
+        </div>
+
+        <button id="spin-button" class="spin-button" onclick="spinRoulette()">룰렛 돌리기</button>
+
+        <div class="history">
+            <div class="history-title">최근 결과</div>
+            <div class="history-items" id="history-items">
+                <!-- 결과 기록은 자바스크립트로 추가 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 결과 모달 -->
+    <div id="result-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="result-title">결과</div>
+            <div class="modal-message" id="result-message"></div>
+            <button class="modal-button" onclick="closeModal()">확인</button>
+        </div>
+    </div>
+
+    <script>
+        // Supabase 초기화
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_KEY = 'YOUR_SUPABASE_KEY';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 게임 상태
+        let currentBet = 100;
+        let userCoins = 0;
+        let isSpinning = false;
+        let nextBetMultiplier = 1;
+        let history = [];
+        
+        // 룰렛 설정 (36칸 중 4개 성공, 6개 2배, 26개 실패)
+        const ROULETTE_SECTIONS = 36;
+        const SUCCESS_SECTIONS = 4;
+        const DOUBLE_NEXT_SECTIONS = 6;
+        const FAIL_SECTIONS = 26;
+        
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initGame();
+            createRouletteWheel();
+            updateUI();
+        });
+
+        // 게임 초기화
+        async function initGame() {
+            // 사용자 데이터 로드 (예: Supabase에서 사용자 코인 정보 가져오기)
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    // 여기서 사용자 코인 정보를 가져옵니다.
+                    // 임시로 10,000 코인으로 설정
+                    userCoins = 10000;
+                } else {
+                    // 로그인되지 않은 경우 로그인 페이지로 리다이렉트
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error('Error initializing game:', error);
+            }
+        }
+
+        // 룰렛 휠 생성
+        function createRouletteWheel() {
+            const wheel = document.getElementById('roulette-wheel');
+            wheel.innerHTML = '';
+            
+            // 룰렛 조각 생성
+            let successCount = 0;
+            let doubleNextCount = 0;
+            let failCount = 0;
+            
+            // 랜덤으로 섞인 배열 생성
+            const sections = [];
+            for (let i = 0; i < SUCCESS_SECTIONS; i++) sections.push('success');
+            for (let i = 0; i < DOUBLE_NEXT_SECTIONS; i++) sections.push('double_next');
+            for (let i = 0; i < FAIL_SECTIONS; i++) sections.push('fail');
+            
+            // 배열 섞기 (Fisher-Yates 알고리즘)
+            for (let i = sections.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [sections[i], sections[j]] = [sections[j], sections[i]];
+            }
+            
+            // 룰렛 조각 그리기
+            for (let i = 0; i < ROULETTE_SECTIONS; i++) {
+                const section = document.createElement('div');
+                const angle = (i / ROULETTE_SECTIONS) * 360;
+                const type = sections[i];
+                
+                section.style.position = 'absolute';
+                section.style.width = '50%';
+                section.style.height = '50%';
+                section.style.left = '50%';
+                section.style.top = '0';
+                section.style.transformOrigin = '0 100%';
+                section.style.transform = `rotate(${angle}deg)`;
+                
+                // 조각 색상 설정
+                if (type === 'success') {
+                    section.style.background = '#4CAF50'; // 초록색
+                } else if (type === 'double_next') {
+                    section.style.background = '#2196F3'; // 파란색
+                } else {
+                    section.style.background = '#f44336'; // 빨간색
+                }
+                
+                // 룰렛 휠에 조각 추가
+                wheel.appendChild(section);
+                
+                // 섹션 데이터 저장
+                sections[i] = {
+                    type: type,
+                    element: section,
+                    angle: angle
+                };
+            }
+            
+            // 전역 변수에 섹션 정보 저장
+            window.rouletteSections = sections;
+        }
+
+        // 배팅 금액 변경
+        function changeBet(amount) {
+            if (isSpinning) return;
+            
+            currentBet = amount * nextBetMultiplier;
+            if (currentBet > userCoins) {
+                currentBet = userCoins;
+            }
+            
+            updateUI();
+        }
+
+        // 룰렛 돌리기
+        async function spinRoulette() {
+            if (isSpinning) return;
+            
+            // 배팅 금액 확인
+            const betAmount = currentBet;
+            if (betAmount <= 0 || betAmount > userCoins) {
+                showResult('오류', '유효하지 않은 배팅 금액입니다.');
+                return;
+            }
+            
+            // 코인 차감
+            userCoins -= betAmount;
+            updateUI();
+            
+            // 룰렛 회전 애니메이션
+            isSpinning = true;
+            document.getElementById('spin-button').disabled = true;
+            
+            const wheel = document.getElementById('roulette-wheel');
+            const spinDuration = 3000; // 3초간 회전
+            const startTime = Date.now();
+            const startRotation = Math.random() * 360;
+            const targetSectionIndex = Math.floor(Math.random() * ROULETTE_SECTIONS);
+            const targetSection = window.rouletteSections[targetSectionIndex];
+            
+            // 목표 각도 계산 (해당 섹션의 중앙에 정확히 정지하도록)
+            const sectionAngle = 360 / ROULETTE_SECTIONS;
+            const targetAngle = 3600 - (targetSection.angle + sectionAngle / 2) + startRotation;
+            
+            // 애니메이션 함수
+            function animate() {
+                const currentTime = Date.now();
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / spinDuration, 1);
+                
+                // 부드러운 감속을 위한 이징 함수
+                const easeOut = function(t) {
+                    return 1 - Math.pow(1 - t, 3);
+                };
+                
+                // 현재 각도 계산
+                const currentRotation = startRotation + easeOut(progress) * targetAngle;
+                wheel.style.transform = `rotate(${currentRotation}deg)`;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    // 애니메이션 종료 후 처리
+                    setTimeout(() => {
+                        handleSpinResult(targetSection.type, betAmount);
+                        isSpinning = false;
+                        document.getElementById('spin-button').disabled = false;
+                    }, 500);
+                }
+            }
+            
+            // 애니메이션 시작
+            requestAnimationFrame(animate);
+        }
+        
+        // 룰렛 결과 처리
+        async function handleSpinResult(result, betAmount) {
+            let message = '';
+            let title = '';
+            let winAmount = 0;
+            
+            switch (result) {
+                case 'success':
+                    winAmount = betAmount * 2;
+                    userCoins += winAmount;
+                    title = '성공!';
+                    message = `축하합니다! ${winAmount.toLocaleString()}c를 획득하셨습니다!`;
+                    addToHistory('success', winAmount);
+                    nextBetMultiplier = 1;
+                    break;
+                    
+                case 'double_next':
+                    title = '다음에 2배!';
+                    message = `다음 배팅 금액이 2배가 됩니다!`;
+                    addToHistory('double_next', 0);
+                    nextBetMultiplier = 2;
+                    // 다음 배팅 금액 자동 조정
+                    currentBet = Math.min(currentBet * 2, userCoins);
+                    break;
+                    
+                case 'fail':
+                    title = '아쉽네요...';
+                    message = `다음 기회를 노려보세요!`;
+                    addToHistory('fail', -betAmount);
+                    nextBetMultiplier = 1;
+                    break;
+            }
+            
+            // UI 업데이트
+            updateUI();
+            
+            // 결과 표시
+            showResult(title, message);
+            
+            // 여기서 서버에 결과를 저장하거나 업데이트하는 로직을 추가할 수 있습니다.
+            try {
+                // 예: Supabase에 게임 결과 저장
+                // const { data, error } = await supabase
+                //     .from('game_history')
+                //     .insert([
+                //         { 
+                //             user_id: (await supabase.auth.getUser()).data.user.id,
+                //             game_type: 'roulette',
+                //             bet_amount: betAmount,
+                //             win_amount: winAmount,
+                //             result: result
+                //         },
+                //     ]);
+                
+                // 사용자 코인 업데이트
+                // await updateUserCoins();
+            } catch (error) {
+                console.error('Error saving game result:', error);
+            }
+        }
+        
+        // 결과 기록에 추가
+        function addToHistory(result, amount) {
+            const historyItem = document.createElement('div');
+            historyItem.className = `history-item ${result}`;
+            
+            let symbol = '';
+            if (result === 'success') {
+                symbol = '✓';
+            } else if (result === 'double_next') {
+                symbol = '2x';
+            } else {
+                symbol = '✗';
+            }
+            
+            historyItem.textContent = symbol;
+            
+            const historyContainer = document.getElementById('history-items');
+            historyContainer.insertBefore(historyItem, historyContainer.firstChild);
+            
+            // 최대 10개까지만 표시
+            if (historyContainer.children.length > 10) {
+                historyContainer.removeChild(historyContainer.lastChild);
+            }
+            
+            // 히스토리 배열에 추가
+            history.unshift({ result, amount, time: new Date() });
+        }
+        
+        // 결과 모달 표시
+        function showResult(title, message) {
+            document.getElementById('result-title').textContent = title;
+            document.getElementById('result-message').textContent = message;
+            document.getElementById('result-modal').style.display = 'flex';
+        }
+        
+        // 모달 닫기
+        function closeModal() {
+            document.getElementById('result-modal').style.display = 'none';
+        }
+        
+        // UI 업데이트
+        function updateUI() {
+            document.getElementById('user-coins').textContent = userCoins.toLocaleString();
+            document.getElementById('bet-amount').textContent = currentBet.toLocaleString();
+            
+            // 다음 배팅이 2배인 경우 버튼 강조
+            const spinButton = document.getElementById('spin-button');
+            if (nextBetMultiplier > 1) {
+                spinButton.textContent = `룰렛 돌리기 (${nextBetMultiplier}배 적용)`;
+                spinButton.style.background = '#ff9800';
+            } else {
+                spinButton.textContent = '룰렛 돌리기';
+                spinButton.style.background = '#ff6b6b';
+            }
+        }
+        
+        // Supabase 사용자 코인 업데이트 (예시 함수)
+        async function updateUserCoins() {
+            try {
+                // const { data, error } = await supabase
+                //     .from('user_profiles')
+                //     .update({ coins: userCoins })
+                //     .eq('user_id', (await supabase.auth.getUser()).data.user.id);
+                
+                // if (error) throw error;
+                console.log('User coins updated:', userCoins);
+            } catch (error) {
+                console.error('Error updating user coins:', error);
+            }
+        }
+        
+        // 모달 외부 클릭 시 닫기
+        window.onclick = function(event) {
+            const modal = document.getElementById('result-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+    </script>
+</body>
+</html>
