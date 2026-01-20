@@ -190,10 +190,18 @@
         if (lastCheck === today) return alert("이미 오늘 출석하셨습니다.");
         
         const currentGold = user.gold || 0;
-        const { error } = await supabaseClient.from('profiles').update({ gold: currentGold + 10000 }).eq('id', user.id);
+        const currentCredits = user.credits || 0;
+        const { error } = await supabaseClient
+            .from('profiles')
+            .update({ 
+                gold: currentGold + 10000,
+                credits: currentCredits + 5000
+            })
+            .eq('id', user.id);
+            
         if (!error) {
             localStorage.setItem(`daily_chk_${user.id}`, today);
-            alert("10,000G 지급 완료!");
+            alert("출석체크 완료!\n10,000G와 5,000크레딧이 지급되었습니다.");
             location.reload();
         }
     }
