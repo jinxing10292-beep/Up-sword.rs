@@ -2,318 +2,270 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>무기 도감</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>검 도감 - Up Sword</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f4f7f6; font-family: 'Pretendard', sans-serif; padding: 20px 10px; }
         
-        body {
-            font-family: 'Pretendard', sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f4f7f6;
-            color: #2d3748;
-        }
+        .container { width: 100%; max-width: 420px; margin: 0 auto; }
+        .header { background: #1a202c; color: white; padding: 16px 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 20px; font-weight: 800; }
+        .header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
         
-        h1 {
-            text-align: center;
-            color: #2d3748;
-            margin: 20px 0 30px;
-            font-size: 2.2em;
-            font-weight: 700;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
-        }
+        .filter-section { background: white; padding: 15px; border-radius: 0 0 20px 20px; margin-bottom: 20px; }
+        .filter-group { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+        .filter-btn { padding: 8px 12px; border: 2px solid #ddd; background: white; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s; }
+        .filter-btn.active { background: #2d3748; color: white; border-color: #2d3748; }
         
-        .back-button {
-            display: inline-block;
-            margin-bottom: 20px;
-            padding: 8px 16px;
-            background: #4a5568;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            transition: background 0.3s;
-        }
+        .search-box { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 12px; font-size: 14px; }
         
-        .back-button:hover {
-            background: #2d3748;
-        }
+        .sword-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .sword-card { background: white; border-radius: 12px; padding: 12px; cursor: pointer; transition: 0.2s; border: 2px solid #eee; }
+        .sword-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .sword-card.owned { border-color: #48bb78; background: #f0fff4; }
+        .sword-card.hidden { border-color: #9f7aea; background: #faf5ff; }
         
-        .weapon-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
-            padding: 20px 0;
-        }
+        .sword-name { font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sword-level { font-size: 11px; color: #718096; margin-bottom: 4px; }
+        .sword-rarity { display: inline-block; padding: 2px 6px; border-radius: 6px; font-size: 10px; font-weight: 600; }
         
-        .weapon-card {
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-            border: 1px solid #e2e8f0;
-            position: relative;
-            overflow: hidden;
-        }
+        .rarity-common { background: #e2e8f0; color: #2d3748; }
+        .rarity-uncommon { background: #c6f6d5; color: #22543d; }
+        .rarity-rare { background: #bee3f8; color: #2c5282; }
+        .rarity-epic { background: #d6bcfa; color: #553399; }
+        .rarity-legendary { background: #fed7aa; color: #7c2d12; }
+        .rarity-mythic { background: #fbcfe8; color: #831843; }
+        .rarity-transcendent { background: #fca5a5; color: #7f1d1d; }
         
-        .weapon-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-        }
+        .stats { font-size: 11px; color: #718096; margin-top: 6px; }
+        .pagination { display: flex; justify-content: center; gap: 5px; margin-bottom: 20px; }
+        .page-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .page-btn.active { background: #2d3748; color: white; border-color: #2d3748; }
         
-        .weapon-image {
-            width: 140px;
-            height: 140px;
-            margin: 0 auto 15px;
-            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-            border: 1px solid #e2e8f0;
-        }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 90%; max-width: 350px; border-radius: 20px; padding: 25px; position: relative; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; }
         
-        .weapon-image img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            transition: transform 0.3s;
-        }
+        .sword-detail { text-align: center; }
+        .sword-detail-name { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
+        .sword-detail-info { background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: left; }
+        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+        .info-row:last-child { border-bottom: none; }
         
-        .weapon-card:hover .weapon-image img {
-            transform: scale(1.1);
-        }
-        
-        .weapon-name {
-            font-weight: 700;
-            margin: 10px 0 5px;
-            color: #2d3748;
-            font-size: 1.1em;
-        }
-        
-        .weapon-name-en {
-            font-size: 0.8em;
-            color: #718096;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-        
-        .hidden-item {
-            border: 2px solid #e53e3e;
-            position: relative;
-            background: linear-gradient(135deg, #fff5f5 0%, #fff 100%);
-        }
-        
-        .hidden-item::after {
-            content: 'HIDDEN';
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: #e53e3e;
-            color: white;
-            font-size: 10px;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-weight: 600;
-            letter-spacing: 1px;
-        }
-        
-        .section-title {
-            grid-column: 1 / -1;
-            font-size: 1.5em;
-            margin: 30px 0 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #4a5568;
-            color: #2d3748;
-            font-weight: 700;
-            position: relative;
-            padding-left: 15px;
-        }
-        
-        .section-title::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 6px;
-            height: 60%;
-            background: #4a5568;
-            border-radius: 3px;
-        }
-        
-        .placeholder-img {
-            width: 80%;
-            height: 80%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #a0aec0;
-            font-size: 0.8em;
-            text-align: center;
-            line-height: 1.4;
-        }
-        
-        @media (max-width: 768px) {
-            .weapon-container {
-                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-                gap: 15px;
-                padding: 15px 0;
-            }
-            
-            .weapon-image {
-                width: 120px;
-                height: 120px;
-            }
-            
-            h1 {
-                font-size: 1.8em;
-                margin: 15px 0 25px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .weapon-container {
-                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-                gap: 12px;
-            }
-            
-            .weapon-image {
-                width: 100px;
-                height: 100px;
-            }
-            
-            .weapon-name {
-                font-size: 1em;
-            }
-            
-            .weapon-name-en {
-                font-size: 0.75em;
-            }
-        }
+        .loading { text-align: center; padding: 40px 20px; }
+        .spinner { border: 4px solid #f3f4f6; border-top: 4px solid #2d3748; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <a href="index.html" class="back-button">
-        <i class="fas fa-arrow-left"></i> 뒤로 가기
-    </a>
+
+<div class="container">
+    <div class="header">
+        <h1>🗡️ 검 도감</h1>
+        <button onclick="location.href='index.html'" title="홈으로"><i class="fa-solid fa-house"></i></button>
+    </div>
     
-    <h1>무기 도감</h1>
-    <div class="weapon-container" id="weaponContainer"></div>
-
-    <div id="detailModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
-      <div style="background:#fff; border-radius:12px; max-width:900px; width:95%; max-height:90vh; overflow:auto; padding:16px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 id="modalTitle" style="margin:0;">상세</h3>
-          <button onclick="closeModal()" style="border:none; background:#2d3748; color:#fff; padding:6px 10px; border-radius:8px; cursor:pointer;">닫기</button>
+    <div class="filter-section">
+        <div class="filter-group">
+            <button class="filter-btn active" onclick="filterByType('all')">전체</button>
+            <button class="filter-btn" onclick="filterByType('normal')">일반</button>
+            <button class="filter-btn" onclick="filterByType('hidden')">히든</button>
         </div>
-        <div id="levelsGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:10px;"></div>
-      </div>
+        <div class="filter-group">
+            <button class="filter-btn" onclick="filterByRarity('common')">일반</button>
+            <button class="filter-btn" onclick="filterByRarity('uncommon')">언커먼</button>
+            <button class="filter-btn" onclick="filterByRarity('rare')">레어</button>
+            <button class="filter-btn" onclick="filterByRarity('epic')">에픽</button>
+            <button class="filter-btn" onclick="filterByRarity('legendary')">레전더리</button>
+        </div>
+        <input type="text" class="search-box" id="searchBox" placeholder="검 이름 검색..." onkeyup="handleSearch()">
     </div>
+    
+    <div id="loadingDiv" class="loading">
+        <div class="spinner"></div>
+        <p>검 도감을 불러오는 중...</p>
+    </div>
+    
+    <div id="contentDiv" style="display: none;">
+        <div class="sword-grid" id="swordGrid"></div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+</div>
 
-    <script>
-      const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
-      const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<div id="detailModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <div class="sword-detail" id="detailContent"></div>
+    </div>
+</div>
 
-      let discoveries = {};
-
-      function replaceLvl(pattern, lvl) {
-        return (pattern || '').replace('{lvl}', String(lvl));
-      }
-
-      function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
-
-      async function openDetail(weapon) {
-        document.getElementById('modalTitle').innerText = `${weapon.name_ko} (0~20강)`;
-        const grid = document.getElementById('levelsGrid');
-        grid.innerHTML = '';
-        const key = weapon.weapon_key;
-        const maxLv = discoveries[key] ?? 0;
-        for (let lv = 0; lv <= 20; lv++) {
-          const cell = document.createElement('div');
-          cell.style.border = '1px solid #e2e8f0';
-          cell.style.borderRadius = '8px';
-          cell.style.padding = '8px';
-          cell.style.textAlign = 'center';
-          const img = document.createElement('img');
-          img.style.width = '100%';
-          img.style.height = '100px';
-          img.style.objectFit = 'contain';
-          if (lv <= maxLv) {
-            img.src = replaceLvl(weapon.image_pattern, lv);
-          } else {
-            img.alt = '미발견';
-          }
-          const cap = document.createElement('div');
-          cap.style.marginTop = '6px';
-          cap.style.fontWeight = '700';
-          cap.innerText = `+${lv}`;
-          cell.appendChild(img);
-          cell.appendChild(cap);
-          grid.appendChild(cell);
+<script>
+    const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    let allSwords = [];
+    let filteredSwords = [];
+    let currentPage = 1;
+    const itemsPerPage = 20;
+    let currentTypeFilter = 'all';
+    let currentRarityFilter = null;
+    let user = null;
+    let ownedSwordIds = new Set();
+    
+    async function init() {
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { location.href = "login.html"; return; }
+            
+            const { data: p } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
+            user = p;
+            
+            // 검 데이터 로드
+            const swordData = await fetch('sword_names.json').then(r => r.json());
+            allSwords = swordData.swords;
+            
+            // 사용자가 소유한 검 로드
+            const { data: ownedSwords } = await supabaseClient
+                .from('user_swords')
+                .select('sword_id')
+                .eq('user_id', user.id);
+            
+            ownedSwords?.forEach(s => ownedSwordIds.add(s.sword_id));
+            
+            filteredSwords = allSwords;
+            document.getElementById('loadingDiv').style.display = 'none';
+            document.getElementById('contentDiv').style.display = 'block';
+            renderPage();
+        } catch (e) {
+            console.error(e);
+            document.getElementById('loadingDiv').innerHTML = '<p>오류가 발생했습니다.</p>';
         }
-        document.getElementById('detailModal').style.display = 'flex';
-      }
-
-      function cardEl(weapon, discoveredMax) {
-        const wrap = document.createElement('div');
-        wrap.className = `weapon-card ${weapon.weapon_type === 'hidden' ? 'hidden-item' : ''}`;
-        wrap.innerHTML = `
-          <div class="weapon-image">
-            ${weapon.image_pattern ? `<img src="${replaceLvl(weapon.image_pattern, Math.min(1, discoveredMax))}" alt="${weapon.name_ko}">` : '<div class="placeholder-img">이미지 없음</div>'}
-          </div>
-          <div class="weapon-name">${weapon.name_ko}</div>
-          <div class="weapon-name-en">${weapon.weapon_type.toUpperCase()} · 발견: ${discoveredMax}/20</div>
+    }
+    
+    function filterByType(type) {
+        currentTypeFilter = type;
+        currentPage = 1;
+        applyFilters();
+        updateFilterButtons();
+    }
+    
+    function filterByRarity(rarity) {
+        currentRarityFilter = currentRarityFilter === rarity ? null : rarity;
+        currentPage = 1;
+        applyFilters();
+    }
+    
+    function applyFilters() {
+        filteredSwords = allSwords.filter(sword => {
+            const typeMatch = currentTypeFilter === 'all' || sword.type === currentTypeFilter;
+            const rarityMatch = !currentRarityFilter || sword.rarity === currentRarityFilter;
+            return typeMatch && rarityMatch;
+        });
+        renderPage();
+    }
+    
+    function handleSearch() {
+        const query = document.getElementById('searchBox').value.toLowerCase();
+        filteredSwords = allSwords.filter(sword => {
+            const typeMatch = currentTypeFilter === 'all' || sword.type === currentTypeFilter;
+            const rarityMatch = !currentRarityFilter || sword.rarity === currentRarityFilter;
+            const nameMatch = sword.name.toLowerCase().includes(query);
+            return typeMatch && rarityMatch && nameMatch;
+        });
+        currentPage = 1;
+        renderPage();
+    }
+    
+    function renderPage() {
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageItems = filteredSwords.slice(start, end);
+        
+        const grid = document.getElementById('swordGrid');
+        grid.innerHTML = pageItems.map(sword => `
+            <div class="sword-card ${ownedSwordIds.has(sword.id) ? 'owned' : ''} ${sword.type === 'hidden' ? 'hidden' : ''}" onclick="showDetail(${sword.id})">
+                <div class="sword-name">${sword.name}</div>
+                <div class="sword-level">Lv. ${sword.level}</div>
+                <div class="sword-rarity rarity-${sword.rarity}">${sword.rarity.toUpperCase()}</div>
+                <div class="stats">ID: ${sword.id}</div>
+            </div>
+        `).join('');
+        
+        renderPagination();
+    }
+    
+    function renderPagination() {
+        const totalPages = Math.ceil(filteredSwords.length / itemsPerPage);
+        const pagination = document.getElementById('pagination');
+        
+        let html = '';
+        for (let i = 1; i <= totalPages; i++) {
+            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+        }
+        pagination.innerHTML = html;
+    }
+    
+    function goToPage(page) {
+        currentPage = page;
+        renderPage();
+        window.scrollTo(0, 0);
+    }
+    
+    function showDetail(swordId) {
+        const sword = allSwords.find(s => s.id === swordId);
+        if (!sword) return;
+        
+        const owned = ownedSwordIds.has(swordId);
+        const detailContent = document.getElementById('detailContent');
+        detailContent.innerHTML = `
+            <div class="sword-detail-name">${sword.name}</div>
+            <div class="sword-detail-info">
+                <div class="info-row">
+                    <span>ID</span>
+                    <strong>${sword.id}</strong>
+                </div>
+                <div class="info-row">
+                    <span>타입</span>
+                    <strong>${sword.type === 'normal' ? '일반' : '히든'}</strong>
+                </div>
+                <div class="info-row">
+                    <span>기본 검</span>
+                    <strong>${sword.baseType}</strong>
+                </div>
+                <div class="info-row">
+                    <span>강화 레벨</span>
+                    <strong>${sword.level}</strong>
+                </div>
+                <div class="info-row">
+                    <span>등급</span>
+                    <strong>${sword.rarity.toUpperCase()}</strong>
+                </div>
+                <div class="info-row">
+                    <span>소유 여부</span>
+                    <strong>${owned ? '✅ 소유중' : '❌ 미소유'}</strong>
+                </div>
+            </div>
         `;
-        wrap.addEventListener('click', () => openDetail(weapon));
-        return wrap;
-      }
-
-      async function init() {
-        const { data: { session } } = await sb.auth.getSession();
-        if (!session) { location.href = 'login.html'; return; }
-        const uid = session.user.id;
-
-        const { data: catalog } = await sb.from('sword_catalog').select('*').order('weapon_type').order('weapon_key');
-
-        const { data: disc } = await sb
-          .from('user_weapon_discoveries')
-          .select('weapon_key, max_discovered_level')
-          .eq('user_id', uid);
-        discoveries = Object.fromEntries((disc || []).map(d => [d.weapon_key, d.max_discovered_level]));
-
-        const container = document.getElementById('weaponContainer');
-        container.innerHTML = '';
-
-        const normalTitle = document.createElement('div');
-        normalTitle.className = 'section-title';
-        normalTitle.textContent = '일반 검 (30개)';
-        container.appendChild(normalTitle);
-
-        (catalog || []).filter(w => w.weapon_type === 'normal').forEach(w => {
-          container.appendChild(cardEl(w, discoveries[w.weapon_key] ?? 0));
+        document.getElementById('detailModal').style.display = 'flex';
+    }
+    
+    function closeModal() {
+        document.getElementById('detailModal').style.display = 'none';
+    }
+    
+    function updateFilterButtons() {
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
         });
-
-        const hiddenTitle = document.createElement('div');
-        hiddenTitle.className = 'section-title';
-        hiddenTitle.textContent = '히든 검 (3개)';
-        container.appendChild(hiddenTitle);
-
-        (catalog || []).filter(w => w.weapon_type === 'hidden').forEach(w => {
-          container.appendChild(cardEl(w, discoveries[w.weapon_key] ?? 0));
-        });
-      }
-
-      init().catch(e => alert('도감 로드 오류: ' + (e?.message || e)));
-    </script>
-    </div>
+        document.querySelectorAll('.filter-btn')[currentTypeFilter === 'all' ? 0 : (currentTypeFilter === 'normal' ? 1 : 2)].classList.add('active');
+    }
+    
+    init();
+</script>
 </body>
 </html>

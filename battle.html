@@ -1,196 +1,272 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Up Sword - 배틀</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-    body { background:#1a1a2e; color:#fff; font-family:'Pretendard',sans-serif; margin:0; padding:20px; }
-    .wrap { max-width:420px; margin:0 auto; }
-    .card { background: rgba(26,32,44,0.9); border:2px solid #4a5568; border-radius:18px; padding:18px; }
-    h1 { margin:0 0 10px 0; font-size:22px; color:#ecc94b; }
-    .row { margin-top:12px; text-align:left; }
-    label { display:block; font-size:12px; color:#cbd5e0; margin-bottom:6px; }
-    select, input { width:100%; padding:12px; border-radius:12px; border:1px solid #4a5568; background:#0f172a; color:#fff; box-sizing:border-box; }
-    .btns { display:flex; gap:10px; margin-top:14px; }
-    button { flex:1; padding:12px; border:none; border-radius:12px; font-weight:900; cursor:pointer; }
-    .btn-main { background:#4299e1; color:#fff; }
-    .btn-sub { background:#4a5568; color:#fff; }
-    .list { margin-top:14px; }
-    .item { padding:12px; border:1px solid #334155; border-radius:12px; margin-top:10px; background:rgba(0,0,0,0.25); }
-    .item b { color:#ecc94b; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>배틀 - Up Sword</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f4f7f6; font-family: 'Pretendard', sans-serif; padding: 20px 10px; }
+        
+        .container { width: 100%; max-width: 420px; margin: 0 auto; }
+        .header { background: #1a202c; color: white; padding: 16px 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 20px; font-weight: 800; }
+        .header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        
+        .content { background: white; padding: 20px; border-radius: 0 0 20px 20px; }
+        
+        .battle-setup { display: flex; flex-direction: column; gap: 15px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-label { font-size: 14px; font-weight: 700; color: #2d3748; }
+        .form-select { padding: 10px; border: 2px solid #ddd; border-radius: 10px; font-size: 14px; }
+        
+        .btn-start { width: 100%; padding: 15px; background: #2d3748; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.2s; }
+        .btn-start:hover { background: #1a202c; }
+        .btn-start:disabled { background: #cbd5e0; cursor: not-allowed; }
+        
+        .battle-log { background: #f8fafc; border-radius: 12px; padding: 15px; margin-top: 20px; max-height: 400px; overflow-y: auto; }
+        .log-title { font-size: 14px; font-weight: 700; color: #2d3748; margin-bottom: 10px; }
+        .log-entry { font-size: 12px; color: #4a5568; padding: 8px; border-bottom: 1px solid #e2e8f0; line-height: 1.5; }
+        .log-entry:last-child { border-bottom: none; }
+        .log-entry.player1 { color: #2d3748; font-weight: 600; }
+        .log-entry.player2 { color: #718096; }
+        .log-entry.result { background: #edf2f7; padding: 10px; border-radius: 8px; margin-top: 10px; font-weight: 700; text-align: center; }
+        
+        .battle-result { background: #f0fff4; border: 2px solid #48bb78; border-radius: 12px; padding: 15px; margin-top: 20px; text-align: center; }
+        .result-title { font-size: 18px; font-weight: 800; color: #22543d; margin-bottom: 10px; }
+        .result-detail { font-size: 14px; color: #22543d; margin-bottom: 5px; }
+        
+        .loading { text-align: center; padding: 20px; }
+        .spinner { border: 4px solid #f3f4f6; border-top: 4px solid #2d3748; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .empty-state { text-align: center; padding: 30px 20px; color: #718096; }
+        .empty-icon { font-size: 40px; margin-bottom: 10px; }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>⚔️ 유저 배틀</h1>
-      <div class="row">
-        <label>상대 선택</label>
-        <select id="opponent"></select>
-      </div>
-      <div class="btns">
-        <button class="btn-sub" onclick="location.href='index.html'">뒤로</button>
-        <button class="btn-main" id="createBtn">배틀 생성</button>
-      </div>
-    </div>
 
-    <div class="card list" style="margin-top:16px;">
-      <h1 style="font-size:18px;">진행 중인 배틀</h1>
-      <div id="battleList"></div>
+<div class="container">
+    <div class="header">
+        <h1>⚔️ 배틀</h1>
+        <button onclick="location.href='index.html'" title="홈으로"><i class="fa-solid fa-house"></i></button>
     </div>
-  </div>
+    
+    <div class="content">
+        <div id="setupDiv" class="battle-setup">
+            <div class="form-group">
+                <label class="form-label">내 검 선택</label>
+                <select id="mySwordSelect" class="form-select">
+                    <option value="">검을 선택하세요</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">상대 플레이어 선택</label>
+                <select id="opponentSelect" class="form-select">
+                    <option value="">플레이어를 선택하세요</option>
+                </select>
+            </div>
+            
+            <button class="btn-start" id="startBtn" onclick="startBattle()" disabled>배틀 시작</button>
+        </div>
+        
+        <div id="battleDiv" style="display: none;">
+            <div class="battle-log">
+                <div class="log-title">⚔️ 배틀 로그</div>
+                <div id="logContent"></div>
+            </div>
+            
+            <div id="resultDiv" style="display: none;" class="battle-result">
+                <div class="result-title" id="resultTitle"></div>
+                <div class="result-detail" id="resultDetail"></div>
+            </div>
+            
+            <button class="btn-start" onclick="location.reload()" style="margin-top: 20px;">다시 배틀하기</button>
+        </div>
+        
+        <div id="loadingDiv" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>데이터를 불러오는 중...</p>
+        </div>
+    </div>
+</div>
 
-  <script>
+<script>
     const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let me = null;
-    let myProfile = null;
-
-    function statFromLevel(level) {
-      const lvl = Math.max(1, parseInt(level || 1, 10));
-      return {
-        level: lvl,
-        maxHp: 80 + lvl * 10,
-        hp: 80 + lvl * 10,
-        attack: 8 + lvl * 3
-      };
-    }
-
-    async function requireSession() {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) { location.href = 'login.html'; return null; }
-      me = session.user;
-      return session;
-    }
-
-    async function loadMyProfile() {
-      const { data, error } = await supabaseClient
-        .from('profiles')
-        .select('id, nickname, current_sword_lvl')
-        .eq('id', me.id)
-        .single();
-      if (error) throw error;
-      myProfile = data;
-    }
-
-    async function loadOpponents() {
-      const sel = document.getElementById('opponent');
-      sel.innerHTML = '';
-
-      const { data, error } = await supabaseClient
-        .from('profiles')
-        .select('id, nickname, current_sword_lvl')
-        .neq('id', me.id)
-        .order('nickname', { ascending: true });
-
-      if (error) throw error;
-
-      (data || []).forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        const nick = (p.nickname && p.nickname.trim()) ? p.nickname : p.id.slice(0,6);
-        opt.textContent = `${nick} (검 Lv.${p.current_sword_lvl || 1})`;
-        sel.appendChild(opt);
-      });
-
-      if (!sel.value && sel.options.length > 0) sel.selectedIndex = 0;
-    }
-
-    async function createBattle() {
-      const opponentId = document.getElementById('opponent').value;
-      if (!opponentId) return alert('상대를 선택해 주세요.');
-
-      const { data: opp, error: oppErr } = await supabaseClient
-        .from('profiles')
-        .select('id, nickname, current_sword_lvl')
-        .eq('id', opponentId)
-        .single();
-      if (oppErr) throw oppErr;
-
-      const p1 = {
-        id: me.id,
-        name: (myProfile.nickname && myProfile.nickname.trim()) ? myProfile.nickname : '플레이어',
-        ...statFromLevel(myProfile.current_sword_lvl)
-      };
-      const p2 = {
-        id: opp.id,
-        name: (opp.nickname && opp.nickname.trim()) ? opp.nickname : '상대',
-        ...statFromLevel(opp.current_sword_lvl)
-      };
-
-      const initState = {
-        log: [`배틀 시작: ${p1.name} vs ${p2.name}`],
-        p1,
-        p2
-      };
-
-      const { data: battle, error } = await supabaseClient
-        .from('battles')
-        .insert([{ player1_id: p1.id, player2_id: p2.id, status: 'in_progress', current_turn: p1.id, state: initState }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      location.href = `battle-game.html?battleId=${battle.id}`;
-    }
-
-    async function loadMyBattles() {
-      const box = document.getElementById('battleList');
-      box.innerHTML = '불러오는 중...';
-
-      const { data, error } = await supabaseClient
-        .from('battles')
-        .select('id, status, current_turn, winner_id, updated_at, state')
-        .or(`player1_id.eq.${me.id},player2_id.eq.${me.id}`)
-        .order('updated_at', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        box.innerHTML = '';
-        return;
-      }
-
-      const rows = data || [];
-      if (rows.length === 0) {
-        box.innerHTML = '<div class="item">진행 중인 배틀이 없습니다.</div>';
-        return;
-      }
-
-      box.innerHTML = rows.map(b => {
-        const s = b.state || {};
-        const p1Name = s.p1?.name || 'P1';
-        const p2Name = s.p2?.name || 'P2';
-        const turn = (b.current_turn === me.id) ? '내 턴' : '상대 턴';
-        const status = b.status;
-        return `
-          <div class="item" onclick="location.href='battle-game.html?battleId=${b.id}'" style="cursor:pointer;">
-            <div><b>${p1Name}</b> vs <b>${p2Name}</b></div>
-            <div style="margin-top:6px; font-size:12px; color:#cbd5e0;">${status} / ${turn}</div>
-          </div>
-        `;
-      }).join('');
-    }
-
+    
+    let user = null;
+    let userSwords = [];
+    let allUsers = [];
+    let swordDataMap = {};
+    
     async function init() {
-      await requireSession();
-      await loadMyProfile();
-      await loadOpponents();
-      await loadMyBattles();
-
-      document.getElementById('createBtn').addEventListener('click', async () => {
-        try { await createBattle(); }
-        catch (e) { alert('배틀 생성 실패: ' + (e?.message || e)); }
-      });
-
-      setInterval(() => loadMyBattles(), 4000);
+        try {
+            document.getElementById('loadingDiv').style.display = 'block';
+            
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { location.href = "login.html"; return; }
+            
+            const { data: p } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
+            user = p;
+            
+            // 검 데이터 로드
+            const swordData = await fetch('sword_names.json').then(r => r.json());
+            swordData.swords.forEach(s => swordDataMap[s.id] = s);
+            
+            // 사용자 검 로드
+            const { data: swords } = await supabaseClient
+                .from('user_swords')
+                .select('*')
+                .eq('user_id', user.id);
+            
+            userSwords = swords || [];
+            
+            // 다른 플레이어 로드
+            const { data: users } = await supabaseClient
+                .from('profiles')
+                .select('id, nickname')
+                .neq('id', user.id)
+                .limit(20);
+            
+            allUsers = users || [];
+            
+            document.getElementById('loadingDiv').style.display = 'none';
+            populateSelects();
+        } catch (e) {
+            console.error(e);
+            document.getElementById('loadingDiv').innerHTML = '<p>오류가 발생했습니다.</p>';
+        }
     }
-
-    init().catch(e => alert('초기화 오류: ' + (e?.message || e)));
-  </script>
+    
+    function populateSelects() {
+        // 내 검 선택
+        const mySwordSelect = document.getElementById('mySwordSelect');
+        mySwordSelect.innerHTML = '<option value="">검을 선택하세요</option>' + userSwords.map(s => 
+            `<option value="${s.id}">${s.sword_name} (Lv. ${s.sword_level})</option>`
+        ).join('');
+        
+        // 상대 플레이어 선택
+        const opponentSelect = document.getElementById('opponentSelect');
+        opponentSelect.innerHTML = '<option value="">플레이어를 선택하세요</option>' + allUsers.map(u => 
+            `<option value="${u.id}">${u.nickname || '익명'}</option>`
+        ).join('');
+        
+        // 선택 이벤트
+        mySwordSelect.addEventListener('change', updateStartBtn);
+        opponentSelect.addEventListener('change', updateStartBtn);
+    }
+    
+    function updateStartBtn() {
+        const mySword = document.getElementById('mySwordSelect').value;
+        const opponent = document.getElementById('opponentSelect').value;
+        document.getElementById('startBtn').disabled = !mySword || !opponent;
+    }
+    
+    async function startBattle() {
+        const mySwordId = parseInt(document.getElementById('mySwordSelect').value);
+        const opponentId = document.getElementById('opponentSelect').value;
+        
+        const mySword = userSwords.find(s => s.id === mySwordId);
+        if (!mySword) return alert('검을 선택하세요');
+        
+        // 상대 검 랜덤 선택
+        const { data: opponentSwords } = await supabaseClient
+            .from('user_swords')
+            .select('*')
+            .eq('user_id', opponentId)
+            .limit(1);
+        
+        if (!opponentSwords || opponentSwords.length === 0) {
+            return alert('상대 플레이어가 검을 보유하지 않았습니다.');
+        }
+        
+        const opponentSword = opponentSwords[0];
+        
+        // 배틀 시뮬레이션
+        document.getElementById('setupDiv').style.display = 'none';
+        document.getElementById('battleDiv').style.display = 'block';
+        
+        const battleLog = generateBattleLog(mySword, opponentSword);
+        displayBattleLog(battleLog);
+    }
+    
+    function generateBattleLog(sword1, sword2) {
+        const log = [];
+        const actions = [
+            '강력한 베기',
+            '재빠른 찌르기',
+            '회전 베기',
+            '내려찍기',
+            '옆 베기',
+            '연속 공격',
+            '필살기 발동'
+        ];
+        
+        let hp1 = 100 + sword1.sword_level * 10;
+        let hp2 = 100 + sword2.sword_level * 10;
+        let turn = 0;
+        
+        log.push(`⚔️ ${sword1.sword_name} (Lv. ${sword1.sword_level}) vs ${sword2.sword_name} (Lv. ${sword2.sword_level})`);
+        log.push(`HP: ${hp1} vs ${hp2}`);
+        log.push('---');
+        
+        while (hp1 > 0 && hp2 > 0 && turn < 20) {
+            // 플레이어 1 공격
+            const action1 = actions[Math.floor(Math.random() * actions.length)];
+            const damage1 = Math.floor(Math.random() * 20) + 10 + sword1.sword_level * 2;
+            hp2 -= damage1;
+            log.push(`[턴 ${turn + 1}] ${sword1.sword_name}: ${action1}! (${damage1} 데미지)`);
+            log.push(`${sword2.sword_name} HP: ${Math.max(0, hp2)}`);
+            
+            if (hp2 <= 0) break;
+            
+            // 플레이어 2 공격
+            const action2 = actions[Math.floor(Math.random() * actions.length)];
+            const damage2 = Math.floor(Math.random() * 20) + 10 + sword2.sword_level * 2;
+            hp1 -= damage2;
+            log.push(`[턴 ${turn + 1}] ${sword2.sword_name}: ${action2}! (${damage2} 데미지)`);
+            log.push(`${sword1.sword_name} HP: ${Math.max(0, hp1)}`);
+            
+            turn++;
+        }
+        
+        log.push('---');
+        if (hp1 > 0) {
+            log.push(`🎉 ${sword1.sword_name} 승리!`);
+        } else {
+            log.push(`🎉 ${sword2.sword_name} 승리!`);
+        }
+        
+        return log;
+    }
+    
+    function displayBattleLog(log) {
+        const logContent = document.getElementById('logContent');
+        logContent.innerHTML = log.map((entry, idx) => {
+            let className = '';
+            if (entry.includes('vs')) className = 'log-entry';
+            else if (entry.includes('턴')) className = 'log-entry player1';
+            else if (entry.includes('HP:')) className = 'log-entry player2';
+            else if (entry.includes('승리')) className = 'log-entry result';
+            else className = 'log-entry';
+            
+            return `<div class="${className}">${entry}</div>`;
+        }).join('');
+        
+        // 결과 표시
+        const winner = log[log.length - 1];
+        document.getElementById('resultTitle').innerText = winner;
+        document.getElementById('resultDetail').innerText = '배틀이 완료되었습니다!';
+        document.getElementById('resultDiv').style.display = 'block';
+    }
+    
+    init();
+</script>
 </body>
 </html>

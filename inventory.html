@@ -1,244 +1,265 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UpSword - 인벤토리</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-    body { background:#0b1220; color:#fff; font-family:'Pretendard',sans-serif; margin:0; padding:20px; }
-    .wrap { max-width:520px; margin:0 auto; }
-    .card { background: rgba(26,32,44,0.9); border:2px solid #334155; border-radius:18px; padding:16px; }
-    h1 { margin:0; font-size:20px; color:#ecc94b; }
-    .row { margin-top:12px; }
-    .slots { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-top:12px; }
-    .slot { background:rgba(0,0,0,0.25); border:1px solid #334155; border-radius:14px; padding:10px; min-height:70px; }
-    .slot b { color:#ecc94b; }
-    .btns { display:flex; gap:10px; margin-top:12px; }
-    button { padding:12px; border:none; border-radius:12px; font-weight:900; cursor:pointer; }
-    .btn-main { background:#4299e1; color:#fff; }
-    .btn-sub { background:#4a5568; color:#fff; }
-    .list { margin-top:14px; }
-    .item { padding:12px; border:1px solid #334155; border-radius:14px; background:rgba(0,0,0,0.25); margin-top:10px; }
-    select { width:100%; padding:10px; border-radius:12px; border:1px solid #334155; background:#0f172a; color:#fff; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>인벤토리 - Up Sword</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f4f7f6; font-family: 'Pretendard', sans-serif; padding: 20px 10px; }
+        
+        .container { width: 100%; max-width: 420px; margin: 0 auto; }
+        .header { background: #1a202c; color: white; padding: 16px 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 20px; font-weight: 800; }
+        .header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        
+        .stats-section { background: white; padding: 15px; border-radius: 0 0 20px 20px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-box { background: #f8fafc; padding: 10px; border-radius: 12px; text-align: center; }
+        .stat-label { font-size: 12px; color: #718096; font-weight: 600; }
+        .stat-value { font-size: 18px; font-weight: 800; color: #2d3748; }
+        
+        .filter-section { background: white; padding: 15px; border-radius: 20px; margin-bottom: 20px; }
+        .filter-group { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+        .filter-btn { padding: 8px 12px; border: 2px solid #ddd; background: white; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s; }
+        .filter-btn.active { background: #2d3748; color: white; border-color: #2d3748; }
+        
+        .sword-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .sword-item { background: white; border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; border: 2px solid #eee; cursor: pointer; transition: 0.2s; }
+        .sword-item:hover { transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .sword-item.hidden { border-color: #9f7aea; background: #faf5ff; }
+        
+        .sword-info { flex: 1; }
+        .sword-name { font-size: 14px; font-weight: 700; color: #2d3748; margin-bottom: 4px; }
+        .sword-meta { font-size: 12px; color: #718096; }
+        
+        .sword-rarity { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+        .rarity-common { background: #e2e8f0; color: #2d3748; }
+        .rarity-uncommon { background: #c6f6d5; color: #22543d; }
+        .rarity-rare { background: #bee3f8; color: #2c5282; }
+        .rarity-epic { background: #d6bcfa; color: #553399; }
+        .rarity-legendary { background: #fed7aa; color: #7c2d12; }
+        .rarity-mythic { background: #fbcfe8; color: #831843; }
+        .rarity-transcendent { background: #fca5a5; color: #7f1d1d; }
+        
+        .sword-actions { display: flex; gap: 8px; }
+        .action-btn { padding: 6px 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s; }
+        .btn-use { background: #48bb78; color: white; }
+        .btn-use:hover { background: #38a169; }
+        .btn-delete { background: #f56565; color: white; }
+        .btn-delete:hover { background: #e53e3e; }
+        
+        .empty-state { text-align: center; padding: 40px 20px; color: #718096; }
+        .empty-icon { font-size: 48px; margin-bottom: 10px; }
+        
+        .loading { text-align: center; padding: 40px 20px; }
+        .spinner { border: 4px solid #f3f4f6; border-top: 4px solid #2d3748; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 90%; max-width: 350px; border-radius: 20px; padding: 25px; position: relative; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; }
+        .modal-btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .btn-confirm { background: #2d3748; color: white; }
+        .btn-cancel { background: #e2e8f0; color: #2d3748; }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>🧳 인벤토리 (최대 3개 장착)</h1>
-      <div class="btns">
-        <button class="btn-sub" onclick="location.href='index.html'">뒤로</button>
-        <button class="btn-main" id="getSwordBtn">랜덤 검 획득</button>
-      </div>
 
-      <div class="row" style="margin-top:16px;">
-        <div style="font-size:12px; color:#cbd5e0;">장착 슬롯</div>
-        <div class="slots">
-          <div class="slot"><div><b>슬롯 1</b></div><div id="slot1">-</div></div>
-          <div class="slot"><div><b>슬롯 2</b></div><div id="slot2">-</div></div>
-          <div class="slot"><div><b>슬롯 3</b></div><div id="slot3">-</div></div>
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:16px;">
-        <div style="font-size:12px; color:#cbd5e0; margin-bottom:6px;">선택한 검을 슬롯에 장착</div>
-        <select id="swordSelect"></select>
-        <div class="btns" style="margin-top:10px;">
-          <button class="btn-sub" onclick="equipTo(1)">슬롯1 장착</button>
-          <button class="btn-sub" onclick="equipTo(2)">슬롯2 장착</button>
-          <button class="btn-sub" onclick="equipTo(3)">슬롯3 장착</button>
-        </div>
-      </div>
+<div class="container">
+    <div class="header">
+        <h1>🎒 인벤토리</h1>
+        <button onclick="location.href='index.html'" title="홈으로"><i class="fa-solid fa-house"></i></button>
     </div>
-
-    <div class="card list" style="margin-top:16px;">
-      <h1 style="font-size:18px;">보유한 검</h1>
-      <div id="swords"></div>
+    
+    <div class="stats-section">
+        <div class="stat-box">
+            <div class="stat-label">보유 검</div>
+            <div class="stat-value" id="swordCount">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">최대 용량</div>
+            <div class="stat-value">100</div>
+        </div>
     </div>
-  </div>
+    
+    <div class="filter-section">
+        <div class="filter-group">
+            <button class="filter-btn active" onclick="filterByType('all')">전체</button>
+            <button class="filter-btn" onclick="filterByType('normal')">일반</button>
+            <button class="filter-btn" onclick="filterByType('hidden')">히든</button>
+        </div>
+        <div class="filter-group">
+            <button class="filter-btn" onclick="sortBy('level')">레벨순</button>
+            <button class="filter-btn" onclick="sortBy('recent')">최신순</button>
+        </div>
+    </div>
+    
+    <div id="loadingDiv" class="loading">
+        <div class="spinner"></div>
+        <p>인벤토리를 불러오는 중...</p>
+    </div>
+    
+    <div id="contentDiv" style="display: none;">
+        <div class="sword-list" id="swordList"></div>
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">🗡️</div>
+            <p>보유한 검이 없습니다.</p>
+        </div>
+    </div>
+</div>
 
-  <script>
+<div id="confirmModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h2 style="text-align: center; margin-bottom: 15px;">검 삭제</h2>
+        <p id="confirmText" style="text-align: center; color: #718096; margin-bottom: 20px;"></p>
+        <button class="modal-btn btn-confirm" onclick="confirmDelete()">삭제</button>
+        <button class="modal-btn btn-cancel" onclick="closeModal()">취소</button>
+    </div>
+</div>
+
+<script>
     const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let me = null;
-
-    function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-
-    function randomSword() {
-      const rarities = ['common','common','common','rare','rare','epic','legendary'];
-      const rarity = rarities[randInt(0, rarities.length - 1)];
-      const base = { common: 10, rare: 16, epic: 24, legendary: 35 }[rarity];
-      const lvl = randInt(1, 10);
-      return {
-        sword_level: lvl,
-        sword_name: `${rarity.toUpperCase()} Sword +${lvl}`,
-        attack: base + lvl * 2,
-        rarity
-      };
-    }
-
-    async function requireSession() {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) { location.href = 'login.html'; return null; }
-      me = session.user;
-      return session;
-    }
-
-    async function loadSwords() {
-      const { data } = await supabaseClient
-        .from('user_swords')
-        .select('*')
-        .eq('user_id', me.id)
-        .order('created_at', { ascending: false });
-
-      const swords = data || [];
-
-      const list = document.getElementById('swords');
-      const sel = document.getElementById('swordSelect');
-      sel.innerHTML = '';
-
-      if (swords.length === 0) {
-        list.innerHTML = '<div class="item">보유한 검이 없습니다. 위에서 랜덤 검 획득을 눌러보세요.</div>';
-        return;
-      }
-
-      list.innerHTML = swords.map(s => `
-        <div class="item">
-          <div style="font-weight:900;">${s.sword_name}</div>
-          <div style="margin-top:6px; font-size:12px; color:#cbd5e0;">Lv.${s.sword_level} / ATK ${s.attack} / ${s.rarity}</div>
-        </div>
-      `).join('');
-
-      swords.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.id;
-        opt.textContent = `${s.sword_name} (ATK ${s.attack})`;
-        sel.appendChild(opt);
-      });
-    }
-
-    async function loadSlots() {
-      const { data } = await supabaseClient
-        .from('user_inventory_slots')
-        .select('slot, sword_id, user_swords(id, sword_name, sword_level, attack, rarity)')
-        .eq('user_id', me.id);
-
-      const map = { 1: '-', 2: '-', 3: '-' };
-      (data || []).forEach(r => {
-        if (r.user_swords) {
-          map[r.slot] = `${r.user_swords.sword_name} (ATK ${r.user_swords.attack})`;
-        } else {
-          map[r.slot] = '-';
-        }
-      });
-
-      document.getElementById('slot1').textContent = map[1];
-      document.getElementById('slot2').textContent = map[2];
-      document.getElementById('slot3').textContent = map[3];
-    }
-
-    async function giveRandomSword() {
-      const sword = randomSword();
-      const { error } = await supabaseClient
-        .from('user_swords')
-        .insert([{ user_id: me.id, ...sword }]);
-      if (error) throw error;
-
-      await loadSwords();
-      await loadSlots();
-
-      try {
-        await bumpCollectAchievement();
-      } catch (_) {}
-    }
-
-    async function equipTo(slot) {
-      const swordId = document.getElementById('swordSelect').value;
-      if (!swordId) return alert('장착할 검을 선택해 주세요.');
-
-      // 1) 선택 검 정보 조회
-      const { data: sword, error: swordErr } = await supabaseClient
-        .from('user_swords')
-        .select('id, sword_name, sword_level, weapon_type, weapon_key, attack, rarity')
-        .eq('id', swordId)
-        .single();
-      if (swordErr || !sword) return alert('검 정보를 불러오지 못했습니다.');
-
-      // 2) 슬롯 장착 저장
-      const { error } = await supabaseClient
-        .from('user_inventory_slots')
-        .upsert({ user_id: me.id, slot, sword_id: swordId });
-      if (error) return alert('장착 실패: ' + error.message);
-
-      // 3) 현재 진행 중인 강화 상태를 선택 검으로 동기화
-      const { error: updErr } = await supabaseClient
-        .from('profiles')
-        .update({
-          current_sword_lvl: sword.sword_level,
-          current_weapon_type: sword.weapon_type || 'normal',
-          current_weapon_key: sword.weapon_key || 'normal_01'
-        })
-        .eq('id', me.id);
-      if (updErr) return alert('장착 반영 실패: ' + updErr.message);
-
-      await loadSlots();
-      alert('장착 완료! 강화 페이지에서 이어서 진행할 수 있습니다.');
-    }
-
-    async function upsertUserAchievement(userId, achievementId, inc) {
-      const { data: row } = await supabaseClient
-        .from('user_achievements')
-        .select('progress, unlocked')
-        .eq('user_id', userId)
-        .eq('achievement_id', achievementId)
-        .maybeSingle();
-
-      const progress = (row?.progress || 0) + inc;
-
-      const { data: def } = await supabaseClient
-        .from('achievements')
-        .select('target')
-        .eq('id', achievementId)
-        .maybeSingle();
-
-      const target = def?.target || 1;
-      const unlocked = progress >= target;
-
-      await supabaseClient
-        .from('user_achievements')
-        .upsert({ user_id: userId, achievement_id: achievementId, progress, unlocked, unlocked_at: unlocked ? new Date().toISOString() : null });
-    }
-
-    async function bumpCollectAchievement() {
-      const { data } = await supabaseClient
-        .from('user_swords')
-        .select('id', { count: 'exact' })
-        .eq('user_id', me.id);
-
-      const count = (data || []).length;
-      await supabaseClient
-        .from('user_achievements')
-        .upsert({ user_id: me.id, achievement_id: 'collect_3', progress: count, unlocked: count >= 3, unlocked_at: (count >= 3) ? new Date().toISOString() : null });
-    }
-
+    
+    let allSwords = [];
+    let userSwords = [];
+    let filteredSwords = [];
+    let currentTypeFilter = 'all';
+    let currentSort = 'level';
+    let user = null;
+    let selectedSwordId = null;
+    let swordDataMap = {};
+    
     async function init() {
-      await requireSession();
-      await loadSwords();
-      await loadSlots();
-
-      document.getElementById('getSwordBtn').addEventListener('click', async () => {
-        try { await giveRandomSword(); }
-        catch (e) { alert('검 획득 실패: ' + (e?.message || e)); }
-      });
-
-      window.equipTo = equipTo;
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { location.href = "login.html"; return; }
+            
+            const { data: p } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
+            user = p;
+            
+            // 검 데이터 로드
+            const swordData = await fetch('sword_names.json').then(r => r.json());
+            allSwords = swordData.swords;
+            allSwords.forEach(s => swordDataMap[s.id] = s);
+            
+            // 사용자 검 로드
+            const { data: swords } = await supabaseClient
+                .from('user_swords')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+            
+            userSwords = swords || [];
+            filteredSwords = userSwords;
+            
+            document.getElementById('loadingDiv').style.display = 'none';
+            document.getElementById('contentDiv').style.display = 'block';
+            updateUI();
+        } catch (e) {
+            console.error(e);
+            document.getElementById('loadingDiv').innerHTML = '<p>오류가 발생했습니다.</p>';
+        }
     }
-
-    init().catch(e => alert('초기화 오류: ' + (e?.message || e)));
-  </script>
+    
+    function updateUI() {
+        document.getElementById('swordCount').innerText = userSwords.length;
+        applyFilters();
+    }
+    
+    function filterByType(type) {
+        currentTypeFilter = type;
+        applyFilters();
+    }
+    
+    function sortBy(sort) {
+        currentSort = sort;
+        applyFilters();
+    }
+    
+    function applyFilters() {
+        filteredSwords = userSwords.filter(sword => {
+            const typeMatch = currentTypeFilter === 'all' || sword.weapon_type === currentTypeFilter;
+            return typeMatch;
+        });
+        
+        if (currentSort === 'level') {
+            filteredSwords.sort((a, b) => b.sword_level - a.sword_level);
+        } else if (currentSort === 'recent') {
+            filteredSwords.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        }
+        
+        renderList();
+    }
+    
+    function renderList() {
+        const list = document.getElementById('swordList');
+        const empty = document.getElementById('emptyState');
+        
+        if (filteredSwords.length === 0) {
+            list.innerHTML = '';
+            empty.style.display = 'block';
+            return;
+        }
+        
+        empty.style.display = 'none';
+        list.innerHTML = filteredSwords.map(sword => {
+            const swordData = swordDataMap[sword.sword_id];
+            const rarity = swordData?.rarity || 'common';
+            return `
+                <div class="sword-item ${sword.weapon_type === 'hidden' ? 'hidden' : ''}">
+                    <div class="sword-info">
+                        <div class="sword-name">${sword.sword_name}</div>
+                        <div class="sword-meta">
+                            Lv. ${sword.sword_level} • ID: ${sword.sword_id}
+                        </div>
+                    </div>
+                    <div class="sword-rarity rarity-${rarity}">${rarity.toUpperCase()}</div>
+                    <div class="sword-actions">
+                        <button class="action-btn btn-delete" onclick="showDeleteConfirm(${sword.id}, '${sword.sword_name}')">삭제</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function showDeleteConfirm(swordId, swordName) {
+        selectedSwordId = swordId;
+        document.getElementById('confirmText').innerText = `"${swordName}"을(를) 정말 삭제하시겠습니까?`;
+        document.getElementById('confirmModal').style.display = 'flex';
+    }
+    
+    async function confirmDelete() {
+        if (!selectedSwordId) return;
+        
+        try {
+            const { error } = await supabaseClient
+                .from('user_swords')
+                .delete()
+                .eq('id', selectedSwordId);
+            
+            if (error) throw error;
+            
+            userSwords = userSwords.filter(s => s.id !== selectedSwordId);
+            closeModal();
+            updateUI();
+            alert('검이 삭제되었습니다.');
+        } catch (e) {
+            alert('삭제 중 오류가 발생했습니다: ' + e.message);
+        }
+    }
+    
+    function closeModal() {
+        document.getElementById('confirmModal').style.display = 'none';
+        selectedSwordId = null;
+    }
+    
+    init();
+</script>
 </body>
 </html>

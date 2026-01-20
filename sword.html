@@ -354,6 +354,19 @@
 
         const type = getWeaponType();
         const key = user.current_weapon_key || 'normal_01';
+        
+        // 검 이름 데이터에서 sword_id 찾기
+        let swordId = null;
+        try {
+            const swordData = await fetch('sword_names.json').then(r => r.json());
+            const matchingSword = swordData.swords.find(s => 
+                s.type === type && s.level === level && s.baseType.includes(key.split('_')[0])
+            );
+            swordId = matchingSword?.id || (type === 'normal' ? 1 : 841);
+        } catch (e) {
+            swordId = type === 'normal' ? 1 : 841;
+        }
+        
         const name = `${type === 'hidden' ? '[HIDDEN] ' : ''}${key}`;
         const attack = 10 + level * 5;
         const rarity = type === 'hidden' ? 'legendary' : (level >= 15 ? 'epic' : level >= 10 ? 'rare' : 'common');
@@ -361,11 +374,11 @@
         try {
             const { error: insErr } = await supabaseClient.from('user_swords').insert({
                 user_id: user.id,
+                sword_id: swordId,
                 sword_level: level,
                 sword_name: name,
                 weapon_type: type,
                 weapon_key: key,
-                variant_id: variantId,
                 attack: attack,
                 rarity: rarity
             });
