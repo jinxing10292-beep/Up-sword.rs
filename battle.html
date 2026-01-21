@@ -52,7 +52,10 @@
 <div class="container">
     <div class="header">
         <h1>⚔️ 배틀</h1>
-        <button onclick="location.href='index.html'" title="홈으로"><i class="fa-solid fa-house"></i></button>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="location.href='battle_history.html'" title="배틀 기록"><i class="fa-solid fa-history"></i></button>
+            <button onclick="location.href='index.html'" title="홈으로"><i class="fa-solid fa-house"></i></button>
+        </div>
     </div>
     
     <div class="content">
@@ -192,8 +195,9 @@
         document.getElementById('setupDiv').style.display = 'none';
         document.getElementById('battleDiv').style.display = 'block';
         
-        const battleLog = generateBattleLog(mySword, opponentSword);
-        displayBattleLog(battleLog);
+        const battleResult = generateBattleLog(mySword, opponentSword);
+        await saveBattleResult(mySword, opponentSword, opponentId, battleResult);
+        displayBattleLog(battleResult.log, battleResult.winner);
     }
     
     function generateBattleLog(sword1, sword2) {
@@ -211,6 +215,7 @@
         let hp1 = 100 + sword1.sword_level * 10;
         let hp2 = 100 + sword2.sword_level * 10;
         let turn = 0;
+        let winner = null;
         
         log.push(`⚔️ ${sword1.sword_name} (Lv. ${sword1.sword_level}) vs ${sword2.sword_name} (Lv. ${sword2.sword_level})`);
         log.push(`HP: ${hp1} vs ${hp2}`);
@@ -224,7 +229,10 @@
             log.push(`[턴 ${turn + 1}] ${sword1.sword_name}: ${action1}! (${damage1} 데미지)`);
             log.push(`${sword2.sword_name} HP: ${Math.max(0, hp2)}`);
             
-            if (hp2 <= 0) break;
+            if (hp2 <= 0) {
+                winner = 'player1';
+                break;
+            }
             
             // 플레이어 2 공격
             const action2 = actions[Math.floor(Math.random() * actions.length)];
@@ -233,36 +241,98 @@
             log.push(`[턴 ${turn + 1}] ${sword2.sword_name}: ${action2}! (${damage2} 데미지)`);
             log.push(`${sword1.sword_name} HP: ${Math.max(0, hp1)}`);
             
+            if (hp1 <= 0) {
+                winner = 'player2';
+                break;
+            }
+            
             turn++;
         }
         
         log.push('---');
-        if (hp1 > 0) {
+        if (winner === 'player1') {
             log.push(`🎉 ${sword1.sword_name} 승리!`);
-        } else {
+        } else if (winner === 'player2') {
             log.push(`🎉 ${sword2.sword_name} 승리!`);
+        } else {
+            log.push('⏰ 무승부! (시간 초과)');
         }
         
-        return log;
+        return { log, winner, finalHp1: Math.max(0, hp1), finalHp2: Math.max(0, hp2) };
     }
     
-    function displayBattleLog(log) {
+    async function saveBattleResult(mySword, opponentSword, opponentId, battleResult) {
+        try {
+            const winnerId = battleResult.winner === 'player1' ? user.id : 
+                           battleResult.winner === 'player2' ? opponentId : null;
+            
+            // 배틀 기록 저장
+            const { data: battle, error: battleError } = await supabaseClient
+                .from('battles')
+                .insert({
+                    player1_id: user.id,
+                    player2_id: opponentId,
+                    player1_sword_id: mySword.id,
+                    player2_sword_id: opponentSword.id,
+                    winner_id: winnerId,
+                    battle_log: JSON.stringify(battleResult.log)
+                })
+                .select()
+                .single();
+            
+            if (battleError) throw battleError;
+            
+            // 배틀 로그 상세 저장
+            const logEntries = battleResult.log.map((entry, index) => ({
+                battle_id: battle.id,
+                step: index,
+                action: entry,
+                damage: 0, // 데미지 파싱 로직 추가 가능
+                result: index === battleResult.log.length - 1 ? battleResult.winner : null
+            }));
+            
+            const { error: logError } = await supabaseClient
+                .from('battle_logs')
+                .insert(logEntries);
+            
+            if (logError) throw logError;
+            
+            console.log('배틀 결과가 저장되었습니다.');
+        } catch (e) {
+            console.error('배틀 저장 오류:', e);
+        }
+    }
+    
+    function displayBattleLog(log, winner) {
         const logContent = document.getElementById('logContent');
         logContent.innerHTML = log.map((entry, idx) => {
             let className = '';
             if (entry.includes('vs')) className = 'log-entry';
             else if (entry.includes('턴')) className = 'log-entry player1';
             else if (entry.includes('HP:')) className = 'log-entry player2';
-            else if (entry.includes('승리')) className = 'log-entry result';
+            else if (entry.includes('승리') || entry.includes('무승부')) className = 'log-entry result';
             else className = 'log-entry';
             
             return `<div class="${className}">${entry}</div>`;
         }).join('');
         
         // 결과 표시
-        const winner = log[log.length - 1];
-        document.getElementById('resultTitle').innerText = winner;
-        document.getElementById('resultDetail').innerText = '배틀이 완료되었습니다!';
+        const winnerText = log[log.length - 1];
+        const resultTitle = document.getElementById('resultTitle');
+        const resultDetail = document.getElementById('resultDetail');
+        
+        resultTitle.innerText = winnerText;
+        if (winner === 'player1') {
+            resultDetail.innerText = '🎉 승리했습니다!';
+            resultTitle.style.color = '#22543d';
+        } else if (winner === 'player2') {
+            resultDetail.innerText = '😢 패배했습니다...';
+            resultTitle.style.color = '#e53e3e';
+        } else {
+            resultDetail.innerText = '⏰ 무승부입니다.';
+            resultTitle.style.color = '#718096';
+        }
+        
         document.getElementById('resultDiv').style.display = 'block';
     }
     

@@ -355,19 +355,27 @@
         const type = getWeaponType();
         const key = user.current_weapon_key || 'normal_01';
         
-        // 검 이름 데이터에서 sword_id 찾기
+        // 검 이름 데이터에서 sword_id와 실제 이름 찾기
         let swordId = null;
+        let actualName = `${type === 'hidden' ? '[HIDDEN] ' : ''}${key}`;
+        
         try {
             const swordData = await fetch('sword_names.json').then(r => r.json());
             const matchingSword = swordData.swords.find(s => 
-                s.type === type && s.level === level && s.baseType.includes(key.split('_')[0])
+                s.type === type && s.level === level
             );
-            swordId = matchingSword?.id || (type === 'normal' ? 1 : 841);
+            
+            if (matchingSword) {
+                swordId = matchingSword.id;
+                actualName = matchingSword.name;
+            } else {
+                // 기본값 설정
+                swordId = type === 'normal' ? (level + 1) : (841 + level);
+            }
         } catch (e) {
-            swordId = type === 'normal' ? 1 : 841;
+            swordId = type === 'normal' ? (level + 1) : (841 + level);
         }
         
-        const name = `${type === 'hidden' ? '[HIDDEN] ' : ''}${key}`;
         const attack = 10 + level * 5;
         const rarity = type === 'hidden' ? 'legendary' : (level >= 15 ? 'epic' : level >= 10 ? 'rare' : 'common');
 
@@ -376,7 +384,7 @@
                 user_id: user.id,
                 sword_id: swordId,
                 sword_level: level,
-                sword_name: name,
+                sword_name: actualName,
                 weapon_type: type,
                 weapon_key: key,
                 attack: attack,
