@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>아이템 - Up Sword</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f4f7f6; font-family: 'Pretendard', sans-serif; padding: 20px 10px; }
+        
+        .container { width: 100%; max-width: 420px; margin: 0 auto; }
+        .header { background: #1a202c; color: white; padding: 16px 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 20px; font-weight: 800; }
+        .header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        
+        .content { background: white; padding: 20px; border-radius: 0 0 20px 20px; }
+        
+        .category-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: 2px solid #e2e8f0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; text-align: center; transition: 0.2s; }
+        .tab-btn.active { background: #2d3748; color: white; border-color: #2d3748; }
+        
+        .item-list { display: flex; flex-direction: column; gap: 10px; }
+        .item-card { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .item-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .item-icon { font-size: 24px; }
+        .item-details { flex: 1; }
+        .item-name { font-size: 14px; font-weight: 700; color: #2d3748; }
+        .item-description { font-size: 12px; color: #718096; margin-top: 2px; }
+        
+        .item-quantity { background: #2d3748; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        
+        .empty-state { text-align: center; padding: 40px 20px; color: #718096; }
+        .empty-icon { font-size: 48px; margin-bottom: 10px; }
+        
+        .loading { text-align: center; padding: 40px 20px; }
+        .spinner { border: 4px solid #f3f4f6; border-top: 4px solid #2d3748; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>📦 아이템</h1>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="location.href='shop.html'" title="상점"><i class="fa-solid fa-shopping-cart"></i></button>
+            <button onclick="location.href='index.html'" title="홈으로"><i class="fa-solid fa-house"></i></button>
+        </div>
+    </div>
+    
+    <div class="content">
+        <div class="category-tabs">
+            <button class="tab-btn active" onclick="switchCategory('enhancement')">강화 아이템</button>
+            <button class="tab-btn" onclick="switchCategory('protection')">보호 아이템</button>
+        </div>
+        
+        <div id="loadingDiv" class="loading">
+            <div class="spinner"></div>
+            <p>아이템을 불러오는 중...</p>
+        </div>
+        
+        <div id="contentDiv" style="display: none;">
+            <div class="item-list" id="itemList"></div>
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">📦</div>
+                <p>보유한 아이템이 없습니다.</p>
+                <button onclick="location.href='shop.html'" style="margin-top: 15px; padding: 10px 20px; background: #2d3748; color: white; border: none; border-radius: 10px; cursor: pointer;">상점에서 구매하기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    let user = null;
+    let userItems = [];
+    let currentCategory = 'enhancement';
+    
+    // 아이템 정보 매핑
+    const ITEM_INFO = {
+        'enhance_scroll_1': { icon: '📜', name: '확정 강화권 (1~5강)', description: '1~5강 구간 100% 성공' },
+        'enhance_scroll_2': { icon: '📜', name: '확정 강화권 (6~10강)', description: '6~10강 구간 100% 성공' },
+        'enhance_scroll_3': { icon: '📜', name: '확정 강화권 (11~15강)', description: '11~15강 구간 100% 성공' },
+        'enhance_scroll_4': { icon: '📜', name: '확정 강화권 (16~20강)', description: '16~20강 구간 100% 성공' },
+        'protect_scroll_1': { icon: '🛡️', name: '파괴 방지권 (1~10강)', description: '1~10강 구간 파괴 방지' },
+        'protect_scroll_2': { icon: '🛡️', name: '파괴 방지권 (11~15강)', description: '11~15강 구간 파괴 방지' },
+        'protect_scroll_3': { icon: '🛡️', name: '파괴 방지권 (16~20강)', description: '16~20강 구간 파괴 방지' },
+        'maintain_scroll_1': { icon: '⚡', name: '레벨 유지권 (11~15강)', description: '11~15강 구간 하락/파괴 방지' },
+        'maintain_scroll_2': { icon: '⚡', name: '레벨 유지권 (16~20강)', description: '16~20강 구간 하락/파괴 방지' }
+    };
+    
+    async function init() {
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { location.href = "login.html"; return; }
+            
+            const { data: p } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
+            user = p;
+            
+            await loadUserItems();
+            
+            document.getElementById('loadingDiv').style.display = 'none';
+            document.getElementById('contentDiv').style.display = 'block';
+            renderItems();
+        } catch (e) {
+            console.error(e);
+            document.getElementById('loadingDiv').innerHTML = '<p>오류가 발생했습니다.</p>';
+        }
+    }
+    
+    async function loadUserItems() {
+        try {
+            const { data } = await supabaseClient
+                .from('user_items')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+            
+            userItems = data || [];
+        } catch (e) {
+            console.log('user_items 테이블이 없습니다. 빈 배열로 설정합니다.');
+            userItems = [];
+        }
+    }
+    
+    function switchCategory(category) {
+        currentCategory = category;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        renderItems();
+    }
+    
+    function renderItems() {
+        const filteredItems = userItems.filter(item => item.item_type === currentCategory);
+        const list = document.getElementById('itemList');
+        const empty = document.getElementById('emptyState');
+        
+        if (filteredItems.length === 0) {
+            list.innerHTML = '';
+            empty.style.display = 'block';
+            return;
+        }
+        
+        empty.style.display = 'none';
+        list.innerHTML = filteredItems.map(item => {
+            const info = ITEM_INFO[item.item_id] || { icon: '❓', name: item.item_name, description: '알 수 없는 아이템' };
+            
+            return `
+                <div class="item-card">
+                    <div class="item-info">
+                        <div class="item-icon">${info.icon}</div>
+                        <div class="item-details">
+                            <div class="item-name">${info.name}</div>
+                            <div class="item-description">${info.description}</div>
+                        </div>
+                    </div>
+                    <div class="item-quantity">${item.quantity}개</div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    init();
+</script>
+</body>
+</html>

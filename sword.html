@@ -31,6 +31,8 @@
         .btn-main { flex: 2; padding: 18px; border-radius: 16px; border: none; background: #2d3748; color: white; font-weight: 800; font-size: 18px; cursor: pointer; box-shadow: 0 4px 0 #1a202c; }
         .btn-main:active { transform: translateY(2px); box-shadow: 0 2px 0 #1a202c; }
         .btn-sub { flex: 1; padding: 18px; border-radius: 16px; border: 2px solid #e2e8f0; background: white; color: #4a5568; font-weight: 700; cursor: pointer; }
+        .btn-items { padding: 12px; border-radius: 12px; border: 2px solid #9f7aea; background: #faf5ff; color: #553c9a; font-weight: 700; cursor: pointer; margin-bottom: 12px; }
+        .btn-items:hover { background: #f3e8ff; }
     .gold-wrap { display: flex; align-items: center; gap: 10px; }
     .code-btn { padding: 5px 12px; border-radius: 12px; border: none; font-weight: bold; background: #f1f2f6; cursor: pointer; }
     .money-float { position: absolute; animation: floatUp 1s forwards; font-weight: bold; font-size: 14px; pointer-events: none; }
@@ -77,6 +79,10 @@
         </div>
     </div>
 
+    <div class="btn-group">
+        <button class="btn-items" onclick="location.href='items.html'">📦 아이템 사용</button>
+    </div>
+    
     <div class="btn-group">
         <button class="btn-sub" onclick="handleSell()">판매</button>
         <button class="btn-sub" onclick="handleStore()">보관하기</button>

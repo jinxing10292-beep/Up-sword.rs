@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>룰렛 - Up Sword</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0f172a; font-family: 'Pretendard', sans-serif; padding: 20px 10px; color: white; }
+        
+        .container { width: 100%; max-width: 420px; margin: 0 auto; }
+        .header { background: #1e293b; color: white; padding: 16px 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; border: 2px solid #fbbf24; }
+        .header h1 { font-size: 20px; font-weight: 800; color: #fbbf24; }
+        .header button { background: none; border: none; color: #fbbf24; font-size: 20px; cursor: pointer; }
+        
+        .user-stats { background: #1e293b; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-left: 2px solid #fbbf24; border-right: 2px solid #fbbf24; }
+        .stat-item { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+        .stat-gold { color: #fbbf24; }
+        .stat-money { color: #a855f7; }
+        
+        .roulette-container { background: #1e293b; padding: 20px; border-radius: 0 0 20px 20px; border: 2px solid #fbbf24; border-top: none; }
+        
+        .roulette-wheel { width: 280px; height: 280px; margin: 0 auto 20px; position: relative; border-radius: 50%; background: conic-gradient(from 0deg, #dc2626 0deg 9.73deg, #000000 9.73deg 19.46deg, #dc2626 19.46deg 29.19deg, #000000 29.19deg 38.92deg, #dc2626 38.92deg 48.65deg, #000000 48.65deg 58.38deg, #dc2626 58.38deg 68.11deg, #000000 68.11deg 77.84deg, #dc2626 77.84deg 87.57deg, #000000 87.57deg 97.3deg, #dc2626 97.3deg 107.03deg, #000000 107.03deg 116.76deg, #dc2626 116.76deg 126.49deg, #000000 126.49deg 136.22deg, #dc2626 136.22deg 145.95deg, #000000 145.95deg 155.68deg, #dc2626 155.68deg 165.41deg, #000000 165.41deg 175.14deg, #dc2626 175.14deg 184.87deg, #000000 184.87deg 194.6deg, #dc2626 194.6deg 204.33deg, #000000 204.33deg 214.06deg, #dc2626 214.06deg 223.79deg, #000000 223.79deg 233.52deg, #dc2626 233.52deg 243.25deg, #000000 243.25deg 252.98deg, #dc2626 252.98deg 262.71deg, #000000 262.71deg 272.44deg, #dc2626 272.44deg 282.17deg, #000000 282.17deg 291.9deg, #dc2626 291.9deg 301.63deg, #000000 301.63deg 311.36deg, #dc2626 311.36deg 321.09deg, #000000 321.09deg 330.82deg, #dc2626 330.82deg 340.55deg, #000000 340.55deg 350.28deg, #22c55e 350.28deg 360deg); border: 4px solid #fbbf24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1); }
+        
+        .roulette-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; background: #fbbf24; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #000; z-index: 10; }
+        
+        .roulette-pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 20px solid #fbbf24; z-index: 5; }
+        
+        .betting-area { margin-bottom: 20px; }
+        .betting-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; color: #fbbf24; }
+        
+        .number-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 15px; }
+        .number-btn { aspect-ratio: 1; border: 2px solid #374151; background: #1f2937; color: white; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 12px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        .number-btn.red { background: #dc2626; border-color: #dc2626; }
+        .number-btn.black { background: #000000; border-color: #000000; }
+        .number-btn.green { background: #22c55e; border-color: #22c55e; }
+        .number-btn.selected { box-shadow: 0 0 10px #fbbf24; border-color: #fbbf24; }
+        .number-btn:hover { transform: scale(1.1); }
+        
+        .special-bets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        .special-btn { padding: 8px; border: 2px solid #374151; background: #1f2937; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; transition: 0.2s; text-align: center; }
+        .special-btn.selected { background: #fbbf24; color: #000; border-color: #fbbf24; }
+        .special-btn:hover { background: #374151; }
+        
+        .bet-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
+        .bet-amount { flex: 1; padding: 10px; border: 2px solid #374151; background: #1f2937; color: white; border-radius: 8px; text-align: center; font-weight: 700; }
+        .bet-btn { padding: 8px 12px; border: 2px solid #fbbf24; background: #fbbf24; color: #000; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 12px; }
+        .bet-btn:hover { background: #f59e0b; border-color: #f59e0b; }
+        
+        .action-buttons { display: flex; gap: 10px; }
+        .action-btn { flex: 1; padding: 15px; border: none; border-radius: 12px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.2s; }
+        .btn-spin { background: #dc2626; color: white; }
+        .btn-spin:hover { background: #b91c1c; }
+        .btn-spin:disabled { background: #374151; cursor: not-allowed; }
+        .btn-clear { background: #6b7280; color: white; }
+        .btn-clear:hover { background: #4b5563; }
+        
+        .result-display { background: #1f2937; border: 2px solid #fbbf24; border-radius: 12px; padding: 15px; margin-top: 20px; text-align: center; display: none; }
+        .result-number { font-size: 48px; font-weight: 900; margin-bottom: 10px; }
+        .result-number.red { color: #dc2626; }
+        .result-number.black { color: #ffffff; }
+        .result-number.green { color: #22c55e; }
+        .result-text { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+        .result-win { color: #22c55e; }
+        .result-lose { color: #dc2626; }
+        
+        .loading { text-align: center; padding: 40px 20px; }
+        .spinner { border: 4px solid #374151; border-top: 4px solid #fbbf24; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .spinning { animation: roulette-spin 3s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
+        @keyframes roulette-spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(1800deg); } 
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>🎰 룰렛</h1>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="location.href='roulette_history.html'" title="룰렛 기록"><i class="fa-solid fa-chart-line"></i></button>
+            <button onclick="location.href='index.html'" title="홈으로"><i class="fa-solid fa-house"></i></button>
+        </div>
+    </div>
+    
+    <div class="user-stats">
+        <div class="stat-item stat-gold">
+            <i class="fa-solid fa-coins"></i>
+            <span id="userGold">0</span>G
+        </div>
+        <div class="stat-item stat-money">
+            <i class="fa-solid fa-gem"></i>
+            <span id="userMoney">0</span>M
+        </div>
+    </div>
+    
+    <div class="roulette-container">
+        <div id="loadingDiv" class="loading">
+            <div class="spinner"></div>
+            <p>룰렛을 불러오는 중...</p>
+        </div>
+        
+        <div id="gameDiv" style="display: none;">
+            <div class="roulette-wheel" id="rouletteWheel">
+                <div class="roulette-pointer"></div>
+                <div class="roulette-center">🎯</div>
+            </div>
+            
+            <div class="betting-area">
+                <div class="betting-title">번호 선택 (배당: 35배)</div>
+                <div class="number-grid" id="numberGrid"></div>
+                
+                <div class="betting-title">특수 베팅</div>
+                <div class="special-bets">
+                    <button class="special-btn" data-bet="red">빨간색 (2배)</button>
+                    <button class="special-btn" data-bet="black">검은색 (2배)</button>
+                    <button class="special-btn" data-bet="even">짝수 (2배)</button>
+                    <button class="special-btn" data-bet="odd">홀수 (2배)</button>
+                    <button class="special-btn" data-bet="low">1-18 (2배)</button>
+                    <button class="special-btn" data-bet="high">19-36 (2배)</button>
+                </div>
+                
+                <div class="bet-controls">
+                    <input type="number" class="bet-amount" id="betAmount" placeholder="베팅 금액" min="100" max="1000000" value="1000">
+                    <button class="bet-btn" onclick="setBetAmount(1000)">1K</button>
+                    <button class="bet-btn" onclick="setBetAmount(10000)">10K</button>
+                    <button class="bet-btn" onclick="setBetAmount(100000)">100K</button>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="action-btn btn-clear" onclick="clearBets()">베팅 초기화</button>
+                    <button class="action-btn btn-spin" id="spinBtn" onclick="spinRoulette()">룰렛 돌리기</button>
+                </div>
+            </div>
+            
+            <div class="result-display" id="resultDisplay">
+                <div class="result-number" id="resultNumber">0</div>
+                <div class="result-text" id="resultText">결과</div>
+                <div id="winAmount"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    let user = null;
+    let selectedBets = [];
+    let isSpinning = false;
+    
+    // 룰렛 번호와 색상 정의 (유럽식 룰렛)
+    const ROULETTE_NUMBERS = {
+        0: 'green',
+        1: 'red', 2: 'black', 3: 'red', 4: 'black', 5: 'red', 6: 'black', 7: 'red', 8: 'black', 9: 'red', 10: 'black',
+        11: 'black', 12: 'red', 13: 'black', 14: 'red', 15: 'black', 16: 'red', 17: 'black', 18: 'red',
+        19: 'red', 20: 'black', 21: 'red', 22: 'black', 23: 'red', 24: 'black', 25: 'red', 26: 'black', 27: 'red', 28: 'black',
+        29: 'black', 30: 'red', 31: 'black', 32: 'red', 33: 'black', 34: 'red', 35: 'black', 36: 'red'
+    };
+    
+    async function init() {
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { location.href = "login.html"; return; }
+            
+            const { data: p } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
+            user = p;
+            
+            updateStats();
+            createNumberGrid();
+            setupEventListeners();
+            
+            document.getElementById('loadingDiv').style.display = 'none';
+            document.getElementById('gameDiv').style.display = 'block';
+        } catch (e) {
+            console.error(e);
+            document.getElementById('loadingDiv').innerHTML = '<p>오류가 발생했습니다.</p>';
+        }
+    }
+    
+    function updateStats() {
+        document.getElementById('userGold').innerText = (user.gold || 0).toLocaleString();
+        document.getElementById('userMoney').innerText = (user.money || 0).toLocaleString();
+    }
+    
+    function createNumberGrid() {
+        const grid = document.getElementById('numberGrid');
+        for (let i = 0; i <= 36; i++) {
+            const btn = document.createElement('button');
+            btn.className = `number-btn ${ROULETTE_NUMBERS[i]}`;
+            btn.textContent = i;
+            btn.dataset.number = i;
+            btn.onclick = () => toggleNumberBet(i);
+            grid.appendChild(btn);
+        }
+    }
+    
+    function setupEventListeners() {
+        document.querySelectorAll('.special-btn').forEach(btn => {
+            btn.onclick = () => toggleSpecialBet(btn.dataset.bet);
+        });
+    }
+    
+    function toggleNumberBet(number) {
+        const btn = document.querySelector(`[data-number="${number}"]`);
+        const betIndex = selectedBets.findIndex(bet => bet.type === 'number' && bet.value === number);
+        
+        if (betIndex >= 0) {
+            selectedBets.splice(betIndex, 1);
+            btn.classList.remove('selected');
+        } else {
+            selectedBets.push({ type: 'number', value: number, payout: 35 });
+            btn.classList.add('selected');
+        }
+    }
+    
+    function toggleSpecialBet(betType) {
+        const btn = document.querySelector(`[data-bet="${betType}"]`);
+        const betIndex = selectedBets.findIndex(bet => bet.type === betType);
+        
+        if (betIndex >= 0) {
+            selectedBets.splice(betIndex, 1);
+            btn.classList.remove('selected');
+        } else {
+            selectedBets.push({ type: betType, payout: 2 });
+            btn.classList.add('selected');
+        }
+    }
+    
+    function setBetAmount(amount) {
+        document.getElementById('betAmount').value = amount;
+    }
+    
+    function clearBets() {
+        selectedBets = [];
+        document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
+        document.getElementById('resultDisplay').style.display = 'none';
+    }
+    
+    async function spinRoulette() {
+        if (isSpinning) return;
+        if (selectedBets.length === 0) return alert('베팅을 선택하세요.');
+        
+        const betAmount = parseInt(document.getElementById('betAmount').value) || 0;
+        if (betAmount < 100) return alert('최소 베팅 금액은 100G입니다.');
+        if (betAmount > user.gold) return alert('골드가 부족합니다.');
+        
+        const totalBet = betAmount * selectedBets.length;
+        if (totalBet > user.gold) return alert('총 베팅 금액이 보유 골드를 초과합니다.');
+        
+        isSpinning = true;
+        document.getElementById('spinBtn').disabled = true;
+        document.getElementById('resultDisplay').style.display = 'none';
+        
+        // 골드 차감
+        user.gold -= totalBet;
+        updateStats();
+        
+        // 룰렛 돌리기 애니메이션
+        const wheel = document.getElementById('rouletteWheel');
+        const winningNumber = Math.floor(Math.random() * 37); // 0-36
+        
+        wheel.classList.add('spinning');
+        
+        setTimeout(async () => {
+            wheel.classList.remove('spinning');
+            await showResult(winningNumber, betAmount);
+            isSpinning = false;
+            document.getElementById('spinBtn').disabled = false;
+        }, 3000);
+    }
+    
+    async function showResult(winningNumber, betAmount) {
+        const winningColor = ROULETTE_NUMBERS[winningNumber];
+        let totalWin = 0;
+        let winningBets = [];
+        
+        // 베팅 결과 계산
+        selectedBets.forEach(bet => {
+            let isWin = false;
+            
+            switch (bet.type) {
+                case 'number':
+                    isWin = bet.value === winningNumber;
+                    break;
+                case 'red':
+                    isWin = winningColor === 'red';
+                    break;
+                case 'black':
+                    isWin = winningColor === 'black';
+                    break;
+                case 'even':
+                    isWin = winningNumber > 0 && winningNumber % 2 === 0;
+                    break;
+                case 'odd':
+                    isWin = winningNumber > 0 && winningNumber % 2 === 1;
+                    break;
+                case 'low':
+                    isWin = winningNumber >= 1 && winningNumber <= 18;
+                    break;
+                case 'high':
+                    isWin = winningNumber >= 19 && winningNumber <= 36;
+                    break;
+            }
+            
+            if (isWin) {
+                const winAmount = betAmount * bet.payout;
+                totalWin += winAmount;
+                winningBets.push({ ...bet, winAmount });
+            }
+        });
+        
+        // 결과 표시
+        const resultNumber = document.getElementById('resultNumber');
+        const resultText = document.getElementById('resultText');
+        const winAmountDiv = document.getElementById('winAmount');
+        
+        resultNumber.textContent = winningNumber;
+        resultNumber.className = `result-number ${winningColor}`;
+        
+        if (totalWin > 0) {
+            resultText.textContent = '🎉 당첨!';
+            resultText.className = 'result-text result-win';
+            winAmountDiv.innerHTML = `<div style="color: #22c55e; font-weight: 700; font-size: 18px;">+${totalWin.toLocaleString()}G</div>`;
+            
+            // 골드 지급
+            user.gold += totalWin;
+        } else {
+            resultText.textContent = '😢 꽝!';
+            resultText.className = 'result-text result-lose';
+            winAmountDiv.innerHTML = `<div style="color: #dc2626; font-weight: 700; font-size: 18px;">-${(betAmount * selectedBets.length).toLocaleString()}G</div>`;
+        }
+        
+        // 데이터베이스 업데이트 및 게임 기록 저장
+        try {
+            const netResult = totalWin - (betAmount * selectedBets.length);
+            
+            // 골드 업데이트
+            const { error: goldError } = await supabaseClient
+                .from('profiles')
+                .update({ gold: user.gold })
+                .eq('id', user.id);
+            
+            if (goldError) throw goldError;
+            
+            // 룰렛 게임 기록 저장
+            const { error: gameError } = await supabaseClient
+                .from('roulette_games')
+                .insert({
+                    user_id: user.id,
+                    winning_number: winningNumber,
+                    total_bet_amount: betAmount * selectedBets.length,
+                    total_win_amount: totalWin,
+                    net_result: netResult,
+                    bets_placed: selectedBets
+                });
+            
+            if (gameError) {
+                console.log('룰렛 게임 기록 저장 실패:', gameError);
+            }
+        } catch (e) {
+            console.error('데이터베이스 업데이트 오류:', e);
+        }
+        
+        updateStats();
+        document.getElementById('resultDisplay').style.display = 'block';
+        
+        // 베팅 초기화
+        setTimeout(() => {
+            clearBets();
+        }, 5000);
+    }
+    
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>룰렛 기록 - Up Sword</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0f172a; font-family: 'Pretendard', sans-serif; padding: 20px 10px; color: white; }
+        
+        .container { width: 100%; max-width: 420px; margin: 0 auto; }
+        .header { background: #1e293b; color: white; padding: 16px 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; border: 2px solid #fbbf24; }
+        .header h1 { font-size: 20px; font-weight: 800; color: #fbbf24; }
+        .header button { background: none; border: none; color: #fbbf24; font-size: 20px; cursor: pointer; }
+        
+        .stats-summary { background: #1e293b; padding: 15px 20px; border-left: 2px solid #fbbf24; border-right: 2px solid #fbbf24; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center; }
+        .stat-box { background: #0f172a; padding: 10px; border-radius: 8px; }
+        .stat-label { font-size: 12px; color: #9ca3af; }
+        .stat-value { font-size: 16px; font-weight: 700; }
+        .stat-positive { color: #22c55e; }
+        .stat-negative { color: #dc2626; }
+        .stat-neutral { color: #fbbf24; }
+        
+        .content { background: #1e293b; padding: 20px; border-radius: 0 0 20px 20px; border: 2px solid #fbbf24; border-top: none; }
+        
+        .game-list { display: flex; flex-direction: column; gap: 10px; }
+        .game-item { background: #0f172a; border: 2px solid #374151; border-radius: 12px; padding: 15px; }
+        .game-item.win { border-color: #22c55e; }
+        .game-item.lose { border-color: #dc2626; }
+        
+        .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .winning-number { font-size: 24px; font-weight: 900; padding: 8px 12px; border-radius: 50%; min-width: 48px; text-align: center; }
+        .number-red { background: #dc2626; color: white; }
+        .number-black { background: #000000; color: white; border: 2px solid #374151; }
+        .number-green { background: #22c55e; color: white; }
+        
+        .game-result { text-align: right; }
+        .result-amount { font-size: 18px; font-weight: 700; }
+        .result-positive { color: #22c55e; }
+        .result-negative { color: #dc2626; }
+        .game-date { font-size: 12px; color: #9ca3af; }
+        
+        .game-details { font-size: 13px; color: #d1d5db; }
+        .bet-info { margin-top: 8px; }
+        .bet-tag { display: inline-block; background: #374151; padding: 2px 6px; border-radius: 4px; margin-right: 4px; margin-bottom: 4px; font-size: 11px; }
+        
+        .loading { text-align: center; padding: 40px 20px; }
+        .spinner { border: 4px solid #374151; border-top: 4px solid #fbbf24; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .empty-state { text-align: center; padding: 40px 20px; color: #9ca3af; }
+        .empty-icon { font-size: 48px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>📊 룰렛 기록</h1>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="location.href='roulette.html'" title="룰렛 게임"><i class="fa-solid fa-dice"></i></button>
+            <button onclick="location.href='index.html'" title="홈으로"><i class="fa-solid fa-house"></i></button>
+        </div>
+    </div>
+    
+    <div class="stats-summary" id="statsSummary">
+        <div class="stat-box">
+            <div class="stat-label">총 게임</div>
+            <div class="stat-value stat-neutral" id="totalGames">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">승률</div>
+            <div class="stat-value stat-neutral" id="winRate">0%</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">순손익</div>
+            <div class="stat-value stat-neutral" id="netProfit">0G</div>
+        </div>
+    </div>
+    
+    <div class="content">
+        <div id="loadingDiv" class="loading">
+            <div class="spinner"></div>
+            <p>기록을 불러오는 중...</p>
+        </div>
+        
+        <div id="contentDiv" style="display: none;">
+            <div class="game-list" id="gameList"></div>
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">🎰</div>
+                <p>룰렛 게임 기록이 없습니다.</p>
+                <button onclick="location.href='roulette.html'" style="margin-top: 15px; padding: 10px 20px; background: #fbbf24; color: #000; border: none; border-radius: 10px; cursor: pointer; font-weight: 700;">첫 게임 시작하기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    let user = null;
+    let games = [];
+    
+    // 룰렛 번호와 색상 정의
+    const ROULETTE_COLORS = {
+        0: 'green',
+        1: 'red', 2: 'black', 3: 'red', 4: 'black', 5: 'red', 6: 'black', 7: 'red', 8: 'black', 9: 'red', 10: 'black',
+        11: 'black', 12: 'red', 13: 'black', 14: 'red', 15: 'black', 16: 'red', 17: 'black', 18: 'red',
+        19: 'red', 20: 'black', 21: 'red', 22: 'black', 23: 'red', 24: 'black', 25: 'red', 26: 'black', 27: 'red', 28: 'black',
+        29: 'black', 30: 'red', 31: 'black', 32: 'red', 33: 'black', 34: 'red', 35: 'black', 36: 'red'
+    };
+    
+    async function init() {
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { location.href = "login.html"; return; }
+            
+            const { data: p } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
+            user = p;
+            
+            await loadGames();
+            
+            document.getElementById('loadingDiv').style.display = 'none';
+            document.getElementById('contentDiv').style.display = 'block';
+            renderGames();
+            updateStats();
+        } catch (e) {
+            console.error(e);
+            document.getElementById('loadingDiv').innerHTML = '<p>오류가 발생했습니다.</p>';
+        }
+    }
+    
+    async function loadGames() {
+        try {
+            const { data } = await supabaseClient
+                .from('roulette_games')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(50);
+            
+            games = data || [];
+        } catch (e) {
+            console.log('룰렛 게임 기록을 불러올 수 없습니다.');
+            games = [];
+        }
+    }
+    
+    function updateStats() {
+        const totalGames = games.length;
+        const winningGames = games.filter(g => g.net_result > 0).length;
+        const winRate = totalGames > 0 ? Math.round((winningGames / totalGames) * 100) : 0;
+        const netProfit = games.reduce((sum, g) => sum + g.net_result, 0);
+        
+        document.getElementById('totalGames').textContent = totalGames;
+        document.getElementById('winRate').textContent = winRate + '%';
+        
+        const netProfitEl = document.getElementById('netProfit');
+        netProfitEl.textContent = (netProfit >= 0 ? '+' : '') + netProfit.toLocaleString() + 'G';
+        netProfitEl.className = `stat-value ${netProfit > 0 ? 'stat-positive' : netProfit < 0 ? 'stat-negative' : 'stat-neutral'}`;
+    }
+    
+    function renderGames() {
+        const list = document.getElementById('gameList');
+        const empty = document.getElementById('emptyState');
+        
+        if (games.length === 0) {
+            list.innerHTML = '';
+            empty.style.display = 'block';
+            return;
+        }
+        
+        empty.style.display = 'none';
+        list.innerHTML = games.map(game => {
+            const color = ROULETTE_COLORS[game.winning_number];
+            const isWin = game.net_result > 0;
+            const date = new Date(game.created_at).toLocaleString('ko-KR', {
+                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            
+            const bets = game.bets_placed || [];
+            const betTags = bets.map(bet => {
+                if (bet.type === 'number') return `번호 ${bet.value}`;
+                const betNames = {
+                    red: '빨간색', black: '검은색', even: '짝수', odd: '홀수',
+                    low: '1-18', high: '19-36'
+                };
+                return betNames[bet.type] || bet.type;
+            });
+            
+            return `
+                <div class="game-item ${isWin ? 'win' : 'lose'}">
+                    <div class="game-header">
+                        <div class="winning-number number-${color}">${game.winning_number}</div>
+                        <div class="game-result">
+                            <div class="result-amount ${game.net_result >= 0 ? 'result-positive' : 'result-negative'}">
+                                ${game.net_result >= 0 ? '+' : ''}${game.net_result.toLocaleString()}G
+                            </div>
+                            <div class="game-date">${date}</div>
+                        </div>
+                    </div>
+                    <div class="game-details">
+                        베팅: ${game.total_bet_amount.toLocaleString()}G → 
+                        당첨: ${game.total_win_amount.toLocaleString()}G
+                        <div class="bet-info">
+                            ${betTags.map(tag => `<span class="bet-tag">${tag}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    init();
+</script>
+</body>
+</html>

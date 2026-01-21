@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>상점 - Up Sword</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f4f7f6; font-family: 'Pretendard', sans-serif; padding: 20px 10px; }
+        
+        .container { width: 100%; max-width: 420px; margin: 0 auto; }
+        .header { background: #1a202c; color: white; padding: 16px 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 20px; font-weight: 800; }
+        .header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        
+        .user-currency { background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; }
+        .currency-item { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+        .currency-gold { color: #f39c12; }
+        .currency-money { color: #9b59b6; }
+        
+        .shop-content { background: white; padding: 20px; border-radius: 0 0 20px 20px; }
+        
+        .category-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: 2px solid #e2e8f0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; text-align: center; transition: 0.2s; }
+        .tab-btn.active { background: #2d3748; color: white; border-color: #2d3748; }
+        
+        .item-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .item-card { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 15px; transition: 0.2s; }
+        .item-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        
+        .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .item-name { font-size: 16px; font-weight: 700; color: #2d3748; }
+        .item-icon { font-size: 24px; }
+        
+        .item-description { font-size: 13px; color: #718096; margin-bottom: 12px; line-height: 1.4; }
+        
+        .item-price { display: flex; justify-content: space-between; align-items: center; }
+        .price-info { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+        .price-gold { color: #f39c12; }
+        .price-money { color: #9b59b6; }
+        
+        .buy-btn { padding: 8px 16px; background: #2d3748; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .buy-btn:hover { background: #1a202c; }
+        .buy-btn:disabled { background: #cbd5e0; cursor: not-allowed; }
+        
+        .quantity-selector { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .qty-btn { width: 30px; height: 30px; border: 1px solid #e2e8f0; background: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .qty-input { width: 60px; text-align: center; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px; }
+        
+        .loading { text-align: center; padding: 40px 20px; }
+        .spinner { border: 4px solid #f3f4f6; border-top: 4px solid #2d3748; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 90%; max-width: 350px; border-radius: 20px; padding: 25px; position: relative; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; }
+        .modal-btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .btn-confirm { background: #2d3748; color: white; }
+        .btn-cancel { background: #e2e8f0; color: #2d3748; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>🛒 상점</h1>
+        <button onclick="location.href='index.html'" title="홈으로"><i class="fa-solid fa-house"></i></button>
+    </div>
+    
+    <div class="user-currency">
+        <div class="currency-item currency-gold">
+            <i class="fa-solid fa-coins"></i>
+            <span id="userGold">0</span>G
+        </div>
+        <div class="currency-item currency-money">
+            <i class="fa-solid fa-gem"></i>
+            <span id="userMoney">0</span>M
+        </div>
+    </div>
+    
+    <div class="shop-content">
+        <div class="category-tabs">
+            <button class="tab-btn active" onclick="switchCategory('enhancement')">강화 아이템</button>
+            <button class="tab-btn" onclick="switchCategory('protection')">보호 아이템</button>
+        </div>
+        
+        <div id="loadingDiv" class="loading">
+            <div class="spinner"></div>
+            <p>상점을 불러오는 중...</p>
+        </div>
+        
+        <div id="contentDiv" style="display: none;">
+            <div class="item-grid" id="itemGrid"></div>
+        </div>
+    </div>
+</div>
+
+<div id="purchaseModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h2 style="text-align: center; margin-bottom: 15px;">아이템 구매</h2>
+        <div id="purchaseContent"></div>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    let user = null;
+    let currentCategory = 'enhancement';
+    let selectedItem = null;
+    let selectedQuantity = 1;
+    
+    // 상점 아이템 데이터 (확률 기반 가격 계산)
+    const SHOP_ITEMS = {
+        enhancement: [
+            {
+                id: 'enhance_scroll_1',
+                name: '확정 강화권 (1~5강)',
+                icon: '📜',
+                description: '1~5강 구간에서 100% 성공 보장. 실패 시에도 레벨이 유지됩니다.',
+                priceGold: 2000, // 평균 성공률 85% 역수의 80%
+                priceMoney: 0,
+                levels: [1, 2, 3, 4, 5]
+            },
+            {
+                id: 'enhance_scroll_2',
+                name: '확정 강화권 (6~10강)',
+                icon: '📜',
+                description: '6~10강 구간에서 100% 성공 보장. 실패 시에도 레벨이 유지됩니다.',
+                priceGold: 15000, // 평균 성공률 60% 역수의 80%
+                priceMoney: 0,
+                levels: [6, 7, 8, 9, 10]
+            },
+            {
+                id: 'enhance_scroll_3',
+                name: '확정 강화권 (11~15강)',
+                icon: '📜',
+                description: '11~15강 구간에서 100% 성공 보장. 실패 시에도 레벨이 유지됩니다.',
+                priceGold: 80000, // 평균 성공률 35% 역수의 80%
+                priceMoney: 0,
+                levels: [11, 12, 13, 14, 15]
+            },
+            {
+                id: 'enhance_scroll_4',
+                name: '확정 강화권 (16~20강)',
+                icon: '📜',
+                description: '16~20강 구간에서 100% 성공 보장. 실패 시에도 레벨이 유지됩니다.',
+                priceGold: 0,
+                priceMoney: 80, // 평균 성공률 10% 역수의 80%
+                levels: [16, 17, 18, 19, 20]
+            }
+        ],
+        protection: [
+            {
+                id: 'protect_scroll_1',
+                name: '파괴 방지권 (1~10강)',
+                icon: '🛡️',
+                description: '1~10강 구간에서 파괴를 방지합니다. 하락은 여전히 발생할 수 있습니다.',
+                priceGold: 500, // 파괴 확률 5% 역수의 60%
+                priceMoney: 0,
+                levels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            },
+            {
+                id: 'protect_scroll_2',
+                name: '파괴 방지권 (11~15강)',
+                icon: '🛡️',
+                description: '11~15강 구간에서 파괴를 방지합니다. 하락은 여전히 발생할 수 있습니다.',
+                priceGold: 8000, // 파괴 확률 25% 역수의 60%
+                priceMoney: 0,
+                levels: [11, 12, 13, 14, 15]
+            },
+            {
+                id: 'protect_scroll_3',
+                name: '파괴 방지권 (16~20강)',
+                icon: '🛡️',
+                description: '16~20강 구간에서 파괴를 방지합니다. 하락은 여전히 발생할 수 있습니다.',
+                priceGold: 0,
+                priceMoney: 12, // 파괴 확률 45% 역수의 60%
+                levels: [16, 17, 18, 19, 20]
+            },
+            {
+                id: 'maintain_scroll_1',
+                name: '레벨 유지권 (11~15강)',
+                icon: '⚡',
+                description: '11~15강 구간에서 하락과 파괴를 모두 방지합니다.',
+                priceGold: 25000, // 실패 확률 65% 역수의 70%
+                priceMoney: 0,
+                levels: [11, 12, 13, 14, 15]
+            },
+            {
+                id: 'maintain_scroll_2',
+                name: '레벨 유지권 (16~20강)',
+                icon: '⚡',
+                description: '16~20강 구간에서 하락과 파괴를 모두 방지합니다.',
+                priceGold: 0,
+                priceMoney: 63, // 실패 확률 90% 역수의 70%
+                levels: [16, 17, 18, 19, 20]
+            }
+        ]
+    };
+    
+    async function init() {
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { location.href = "login.html"; return; }
+            
+            const { data: p } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
+            user = p;
+            
+            updateCurrency();
+            document.getElementById('loadingDiv').style.display = 'none';
+            document.getElementById('contentDiv').style.display = 'block';
+            renderItems();
+        } catch (e) {
+            console.error(e);
+            document.getElementById('loadingDiv').innerHTML = '<p>오류가 발생했습니다.</p>';
+        }
+    }
+    
+    function updateCurrency() {
+        document.getElementById('userGold').innerText = (user.gold || 0).toLocaleString();
+        document.getElementById('userMoney').innerText = (user.money || 0).toLocaleString();
+    }
+    
+    function switchCategory(category) {
+        currentCategory = category;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        renderItems();
+    }
+    
+    function renderItems() {
+        const items = SHOP_ITEMS[currentCategory];
+        const grid = document.getElementById('itemGrid');
+        
+        grid.innerHTML = items.map(item => `
+            <div class="item-card">
+                <div class="item-header">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-icon">${item.icon}</div>
+                </div>
+                <div class="item-description">${item.description}</div>
+                <div class="item-price">
+                    <div class="price-info">
+                        ${item.priceGold > 0 ? `<span class="price-gold">${item.priceGold.toLocaleString()}G</span>` : ''}
+                        ${item.priceMoney > 0 ? `<span class="price-money">${item.priceMoney.toLocaleString()}M</span>` : ''}
+                    </div>
+                    <button class="buy-btn" onclick="showPurchaseModal('${item.id}')">구매</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function showPurchaseModal(itemId) {
+        const item = [...SHOP_ITEMS.enhancement, ...SHOP_ITEMS.protection].find(i => i.id === itemId);
+        if (!item) return;
+        
+        selectedItem = item;
+        selectedQuantity = 1;
+        
+        const content = document.getElementById('purchaseContent');
+        content.innerHTML = `
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 32px; margin-bottom: 10px;">${item.icon}</div>
+                <h3>${item.name}</h3>
+                <p style="color: #718096; font-size: 13px; margin: 10px 0;">${item.description}</p>
+            </div>
+            
+            <div class="quantity-selector">
+                <span style="font-weight: 600;">수량:</span>
+                <button class="qty-btn" onclick="changeQuantity(-1)">-</button>
+                <input type="number" class="qty-input" id="quantityInput" value="1" min="1" max="99" onchange="updateQuantity()">
+                <button class="qty-btn" onclick="changeQuantity(1)">+</button>
+            </div>
+            
+            <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span>단가:</span>
+                    <span>
+                        ${item.priceGold > 0 ? `<span class="price-gold">${item.priceGold.toLocaleString()}G</span>` : ''}
+                        ${item.priceMoney > 0 ? `<span class="price-money">${item.priceMoney.toLocaleString()}M</span>` : ''}
+                    </span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px;">
+                    <span>총 가격:</span>
+                    <span id="totalPrice">
+                        ${item.priceGold > 0 ? `<span class="price-gold">${item.priceGold.toLocaleString()}G</span>` : ''}
+                        ${item.priceMoney > 0 ? `<span class="price-money">${item.priceMoney.toLocaleString()}M</span>` : ''}
+                    </span>
+                </div>
+            </div>
+            
+            <button class="modal-btn btn-confirm" onclick="purchaseItem()">구매하기</button>
+            <button class="modal-btn btn-cancel" onclick="closeModal()">취소</button>
+        `;
+        
+        document.getElementById('purchaseModal').style.display = 'flex';
+    }
+    
+    function changeQuantity(delta) {
+        selectedQuantity = Math.max(1, Math.min(99, selectedQuantity + delta));
+        document.getElementById('quantityInput').value = selectedQuantity;
+        updateTotalPrice();
+    }
+    
+    function updateQuantity() {
+        selectedQuantity = Math.max(1, Math.min(99, parseInt(document.getElementById('quantityInput').value) || 1));
+        document.getElementById('quantityInput').value = selectedQuantity;
+        updateTotalPrice();
+    }
+    
+    function updateTotalPrice() {
+        if (!selectedItem) return;
+        
+        const totalGold = selectedItem.priceGold * selectedQuantity;
+        const totalMoney = selectedItem.priceMoney * selectedQuantity;
+        
+        document.getElementById('totalPrice').innerHTML = `
+            ${totalGold > 0 ? `<span class="price-gold">${totalGold.toLocaleString()}G</span>` : ''}
+            ${totalMoney > 0 ? `<span class="price-money">${totalMoney.toLocaleString()}M</span>` : ''}
+        `;
+    }
+    
+    async function purchaseItem() {
+        if (!selectedItem) return;
+        
+        const totalGold = selectedItem.priceGold * selectedQuantity;
+        const totalMoney = selectedItem.priceMoney * selectedQuantity;
+        
+        // 잔액 확인
+        if (user.gold < totalGold) {
+            return alert('골드가 부족합니다.');
+        }
+        if (user.money < totalMoney) {
+            return alert('머니가 부족합니다.');
+        }
+        
+        try {
+            // 화폐 차감
+            const newGold = user.gold - totalGold;
+            const newMoney = user.money - totalMoney;
+            
+            const { error: updateError } = await supabaseClient
+                .from('profiles')
+                .update({ gold: newGold, money: newMoney })
+                .eq('id', user.id);
+            
+            if (updateError) throw updateError;
+            
+            // 아이템을 인벤토리에 추가 (user_items 테이블이 필요)
+            const { error: itemError } = await supabaseClient
+                .from('user_items')
+                .insert({
+                    user_id: user.id,
+                    item_id: selectedItem.id,
+                    item_name: selectedItem.name,
+                    quantity: selectedQuantity,
+                    item_type: currentCategory
+                });
+            
+            if (itemError) {
+                // user_items 테이블이 없으면 생성 필요
+                console.log('user_items 테이블이 필요합니다.');
+            }
+            
+            user.gold = newGold;
+            user.money = newMoney;
+            updateCurrency();
+            closeModal();
+            
+            alert(`${selectedItem.name} ${selectedQuantity}개를 구매했습니다!`);
+        } catch (e) {
+            alert('구매 중 오류가 발생했습니다: ' + e.message);
+        }
+    }
+    
+    function closeModal() {
+        document.getElementById('purchaseModal').style.display = 'none';
+        selectedItem = null;
+        selectedQuantity = 1;
+    }
+    
+    init();
+</script>
+</body>
+</html>
