@@ -31,7 +31,11 @@
         .item-name { font-size: 14px; font-weight: 700; color: #2d3748; }
         .item-description { font-size: 12px; color: #718096; margin-top: 2px; }
         
+        .item-actions { display: flex; align-items: center; gap: 10px; }
         .item-quantity { background: #2d3748; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .use-btn { background: #48bb78; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .use-btn:hover { background: #38a169; }
+        .use-btn:disabled { background: #cbd5e0; cursor: not-allowed; }
         
         .empty-state { text-align: center; padding: 40px 20px; color: #718096; }
         .empty-icon { font-size: 48px; margin-bottom: 10px; }
@@ -161,10 +165,24 @@
                             <div class="item-description">${info.description}</div>
                         </div>
                     </div>
-                    <div class="item-quantity">${item.quantity}개</div>
+                    <div class="item-actions">
+                        <div class="item-quantity">${item.quantity}개</div>
+                        <button class="use-btn" onclick="useItem('${item.item_id}', ${item.id})">사용</button>
+                    </div>
                 </div>
             `;
         }).join('');
+    }
+    
+    async function useItem(itemId, userItemId) {
+        if (!confirm('이 아이템을 사용하시겠습니까?\n검 강화 페이지로 이동합니다.')) return;
+        
+        // 아이템 사용을 위해 세션 스토리지에 저장
+        sessionStorage.setItem('useItemId', itemId);
+        sessionStorage.setItem('userItemId', userItemId);
+        
+        // 검 강화 페이지로 이동
+        location.href = 'sword.html';
     }
     
     init();

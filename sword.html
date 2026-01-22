@@ -167,6 +167,9 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('game-ui').style.display = 'block';
             updateUI();
+            
+            // 아이템 사용 확인
+            checkForItemUsage();
         } catch (e) { alert("로그인이 만료되었거나 데이터 오류가 발생했습니다."); }
     }
 
@@ -194,6 +197,221 @@
         const newPrice = Math.floor((enhanceCost + basePrice) * probabilityMultiplier);
         
         return newPrice;
+    }
+
+    // 아이템 사용 관련 함수들
+    function checkForItemUsage() {
+        const useItemId = sessionStorage.getItem('useItemId');
+        const userItemId = sessionStorage.getItem('userItemId');
+        
+        if (useItemId && userItemId) {
+            // 세션 스토리지 클리어
+            sessionStorage.removeItem('useItemId');
+            sessionStorage.removeItem('userItemId');
+            
+            // 아이템 사용 확인
+            showItemUsageConfirm(useItemId, userItemId);
+        }
+    }
+    
+    function showItemUsageConfirm(itemId, userItemId) {
+        const itemNames = {
+            'enhance_scroll_1': '확정 강화권 (1~5강)',
+            'enhance_scroll_2': '확정 강화권 (6~10강)',
+            'enhance_scroll_3': '확정 강화권 (11~15강)',
+            'enhance_scroll_4': '확정 강화권 (16~20강)',
+            'protect_scroll_1': '파괴 방지권 (1~10강)',
+            'protect_scroll_2': '파괴 방지권 (11~15강)',
+            'protect_scroll_3': '파괴 방지권 (16~20강)',
+            'maintain_scroll_1': '레벨 유지권 (11~15강)',
+            'maintain_scroll_2': '레벨 유지권 (16~20강)'
+        };
+        
+        const itemName = itemNames[itemId] || '알 수 없는 아이템';
+        const currentLevel = user.current_sword_lvl;
+        
+        // 아이템 사용 가능 여부 확인
+        const canUse = checkItemUsability(itemId, currentLevel);
+        
+        if (!canUse.usable) {
+            alert(`이 아이템은 현재 레벨(${currentLevel}강)에서 사용할 수 없습니다.\n${canUse.reason}`);
+            return;
+        }
+        
+        if (confirm(`${itemName}을(를) 사용하시겠습니까?\n현재 검 레벨: ${currentLevel}강`)) {
+            useItemForEnhancement(itemId, userItemId);
+        }
+    }
+    
+    function checkItemUsability(itemId, currentLevel) {
+        const itemRanges = {
+            'enhance_scroll_1': { min: 1, max: 5 },
+            'enhance_scroll_2': { min: 6, max: 10 },
+            'enhance_scroll_3': { min: 11, max: 15 },
+            'enhance_scroll_4': { min: 16, max: 20 },
+            'protect_scroll_1': { min: 1, max: 10 },
+            'protect_scroll_2': { min: 11, max: 15 },
+            'protect_scroll_3': { min: 16, max: 20 },
+            'maintain_scroll_1': { min: 11, max: 15 },
+            'maintain_scroll_2': { min: 16, max: 20 }
+        };
+        
+        const range = itemRanges[itemId];
+        if (!range) {
+            return { usable: false, reason: '알 수 없는 아이템입니다.' };
+        }
+        
+        if (currentLevel < range.min || currentLevel > range.max) {
+            return { 
+                usable: false, 
+                reason: `이 아이템은 ${range.min}~${range.max}강에서만 사용 가능합니다.` 
+            };
+        }
+        
+        if (currentLevel >= 20) {
+            return { usable: false, reason: '이미 최대 강화 레벨에 도달했습니다.' };
+        }
+        
+        return { usable: true };
+    }
+    
+    async function useItemForEnhancement(itemId, userItemId) {
+        if (isUpgrading) return;
+        
+        try {
+            isUpgrading = true;
+            
+            // 아이템 수량 감소
+            const { data: item } = await supabaseClient
+                .from('user_items')
+                .select('*')
+                .eq('id', userItemId)
+                .single();
+            
+            if (!item) {
+                alert('아이템을 찾을 수 없습니다.');
+                isUpgrading = false;
+                return;
+            }
+            
+            if (item.quantity <= 0) {
+                alert('아이템이 부족합니다.');
+                isUpgrading = false;
+                return;
+            }
+            
+            // 아이템 효과 적용
+            const result = applyItemEffect(itemId);
+            
+            if (result.success) {
+                // 아이템 수량 감소 또는 삭제
+                if (item.quantity > 1) {
+                    await supabaseClient
+                        .from('user_items')
+                        .update({ quantity: item.quantity - 1 })
+                        .eq('id', userItemId);
+                } else {
+                    await supabaseClient
+                        .from('user_items')
+                        .delete()
+                        .eq('id', userItemId);
+                }
+                
+                // 사용자 데이터 업데이트
+                await supabaseClient
+                    .from('profiles')
+                    .update({ 
+                        current_sword_lvl: result.newLevel,
+                        current_weapon_type: result.weaponType || user.current_weapon_type,
+                        current_weapon_key: result.weaponKey || user.current_weapon_key
+                    })
+                    .eq('id', user.id);
+                
+                user.current_sword_lvl = result.newLevel;
+                if (result.weaponType) user.current_weapon_type = result.weaponType;
+                if (result.weaponKey) user.current_weapon_key = result.weaponKey;
+                
+                // UI 업데이트
+                updateUI();
+                
+                // 성공 메시지
+                alert(result.message);
+            } else {
+                alert(result.message);
+            }
+            
+        } catch (e) {
+            alert('아이템 사용 중 오류가 발생했습니다: ' + e.message);
+        } finally {
+            isUpgrading = false;
+        }
+    }
+    
+    function applyItemEffect(itemId) {
+        const currentLevel = user.current_sword_lvl;
+        
+        if (itemId.startsWith('enhance_scroll_')) {
+            // 확정 강화권 - 100% 성공
+            return {
+                success: true,
+                newLevel: currentLevel + 1,
+                message: `아이템 사용으로 강화 성공! [+${currentLevel + 1}레벨]`
+            };
+        } else if (itemId.startsWith('protect_scroll_') || itemId.startsWith('maintain_scroll_')) {
+            // 보호 아이템은 일반 강화와 함께 사용되어야 함
+            // 여기서는 단독 사용 시 일반 강화 진행
+            const rates = getEnhancementRates(currentLevel);
+            const result = determineEnhancementResult(rates);
+            
+            let newLevel = currentLevel;
+            let message = "";
+            let weaponType = null;
+            let weaponKey = null;
+            
+            switch(result) {
+                case 'success':
+                    newLevel = currentLevel + 1;
+                    message = `아이템 보호 하에 강화 성공! [+${newLevel}레벨]`;
+                    break;
+                case 'maintain':
+                    if (itemId.startsWith('maintain_scroll_')) {
+                        message = "아이템 보호로 레벨 유지!";
+                    } else {
+                        message = "강화 실패! (레벨 유지)";
+                    }
+                    break;
+                case 'destroy':
+                    if (itemId.startsWith('protect_scroll_') || itemId.startsWith('maintain_scroll_')) {
+                        message = "아이템 보호로 파괴 방지! (레벨 유지)";
+                    } else {
+                        // 이 경우는 발생하지 않아야 함
+                        newLevel = 0;
+                        weaponType = Math.random() < 0.01 ? 'hidden' : 'normal';
+                        if (weaponType === 'normal') {
+                            const n = Math.floor(Math.random() * 30) + 1;
+                            weaponKey = `normal_${String(n).padStart(2,'0')}`;
+                        } else {
+                            const n = Math.floor(Math.random() * 3) + 1;
+                            weaponKey = `hidden_${String(n).padStart(2,'0')}`;
+                        }
+                        message = "강화 실패! (검 파괴)";
+                    }
+                    break;
+            }
+            
+            return {
+                success: true,
+                newLevel,
+                weaponType,
+                weaponKey,
+                message
+            };
+        }
+        
+        return {
+            success: false,
+            message: '알 수 없는 아이템입니다.'
+        };
     }
 
     function updateUI() {
