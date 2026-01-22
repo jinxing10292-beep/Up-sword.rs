@@ -351,59 +351,34 @@
         const currentLevel = user.current_sword_lvl;
         
         if (itemId.startsWith('enhance_scroll_')) {
-            // 확정 강화권 - 100% 성공
+            // 확정 강화권 - 무조건 100% 성공
             return {
                 success: true,
                 newLevel: currentLevel + 1,
-                message: `아이템 사용으로 강화 성공! [+${currentLevel + 1}레벨]`
+                message: `확정 강화권 사용으로 강화 성공! [+${currentLevel + 1}레벨]`
             };
         } else if (itemId.startsWith('protect_scroll_') || itemId.startsWith('maintain_scroll_')) {
-            // 보호 아이템은 일반 강화와 함께 사용되어야 함
-            // 여기서는 단독 사용 시 일반 강화 진행
+            // 보호 아이템 - 파괴와 하락을 완전히 방지
             const rates = getEnhancementRates(currentLevel);
-            const result = determineEnhancementResult(rates);
+            const random = Math.random() * 100;
             
             let newLevel = currentLevel;
             let message = "";
-            let weaponType = null;
-            let weaponKey = null;
             
-            switch(result) {
-                case 'success':
-                    newLevel = currentLevel + 1;
-                    message = `아이템 보호 하에 강화 성공! [+${newLevel}레벨]`;
-                    break;
-                case 'maintain':
-                    if (itemId.startsWith('maintain_scroll_')) {
-                        message = "아이템 보호로 레벨 유지!";
-                    } else {
-                        message = "강화 실패! (레벨 유지)";
-                    }
-                    break;
-                case 'destroy':
-                    if (itemId.startsWith('protect_scroll_') || itemId.startsWith('maintain_scroll_')) {
-                        message = "아이템 보호로 파괴 방지! (레벨 유지)";
-                    } else {
-                        // 이 경우는 발생하지 않아야 함
-                        newLevel = 0;
-                        weaponType = Math.random() < 0.01 ? 'hidden' : 'normal';
-                        if (weaponType === 'normal') {
-                            const n = Math.floor(Math.random() * 30) + 1;
-                            weaponKey = `normal_${String(n).padStart(2,'0')}`;
-                        } else {
-                            const n = Math.floor(Math.random() * 3) + 1;
-                            weaponKey = `hidden_${String(n).padStart(2,'0')}`;
-                        }
-                        message = "강화 실패! (검 파괴)";
-                    }
-                    break;
+            // 성공 확률만 적용, 실패 시 레벨 유지 (파괴/하락 0%)
+            if (random <= rates.success) {
+                newLevel = currentLevel + 1;
+                message = `보호 아이템 사용으로 강화 성공! [+${newLevel}레벨]`;
+            } else {
+                // 실패해도 레벨 유지 (보호 효과)
+                message = "강화 실패했지만 보호 아이템으로 레벨 유지!";
             }
             
             return {
                 success: true,
                 newLevel,
-                weaponType,
-                weaponKey,
+                weaponType: null,
+                weaponKey: null,
                 message
             };
         }
