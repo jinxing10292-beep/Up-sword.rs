@@ -353,20 +353,38 @@
             
             if (updateError) throw updateError;
             
-            // 아이템을 인벤토리에 추가 (user_items 테이블이 필요)
-            const { error: itemError } = await supabaseClient
+            // 기존 아이템 확인
+            const { data: existingItem } = await supabaseClient
                 .from('user_items')
-                .insert({
-                    user_id: user.id,
-                    item_id: selectedItem.id,
-                    item_name: selectedItem.name,
-                    quantity: selectedQuantity,
-                    item_type: currentCategory
-                });
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('item_id', selectedItem.id)
+                .single();
             
-            if (itemError) {
-                // user_items 테이블이 없으면 생성 필요
-                console.log('user_items 테이블이 필요합니다.');
+            if (existingItem) {
+                // 기존 아이템이 있으면 수량 증가
+                const { error: itemError } = await supabaseClient
+                    .from('user_items')
+                    .update({ 
+                        quantity: existingItem.quantity + selectedQuantity,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', existingItem.id);
+                
+                if (itemError) throw itemError;
+            } else {
+                // 새 아이템 추가
+                const { error: itemError } = await supabaseClient
+                    .from('user_items')
+                    .insert({
+                        user_id: user.id,
+                        item_id: selectedItem.id,
+                        item_name: selectedItem.name,
+                        quantity: selectedQuantity,
+                        item_type: currentCategory
+                    });
+                
+                if (itemError) throw itemError;
             }
             
             user.gold = newGold;

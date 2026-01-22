@@ -290,12 +290,20 @@
                     
                 if (error) throw error;
                 
-                // Close modal
-                document.querySelector('div[style*="position:fixed"]')?.remove();
+                // Close modal - 더 확실한 방법으로 모달 제거
+                const modal = document.querySelector('div[style*="position:fixed"]');
+                if (modal) {
+                    modal.remove();
+                }
                 
                 showNotification(`${userName}이(가) ${banStatus ? '정지' : '해제'}되었습니다.`, 'success');
                 await loadUsers();
             } catch (error) {
+                // 오류 발생 시에도 모달 닫기
+                const modal = document.querySelector('div[style*="position:fixed"]');
+                if (modal) {
+                    modal.remove();
+                }
                 showNotification('처리 실패: ' + error.message, 'error');
             }
         }
