@@ -36,6 +36,8 @@
         .use-btn { background: #48bb78; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
         .use-btn:hover { background: #38a169; }
         .use-btn:disabled { background: #cbd5e0; cursor: not-allowed; }
+        .refund-btn { background: #f56565; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .refund-btn:hover { background: #e53e3e; }
         
         .empty-state { text-align: center; padding: 40px 20px; color: #718096; }
         .empty-icon { font-size: 48px; margin-bottom: 10px; }
@@ -168,6 +170,7 @@
                     <div class="item-actions">
                         <div class="item-quantity">${item.quantity}개</div>
                         <button class="use-btn" onclick="useItem('${item.item_id}', ${item.id})">사용</button>
+                        <button class="refund-btn" onclick="refundItem('${item.item_id}', ${item.id}, '${info.name}')">환불</button>
                     </div>
                 </div>
             `;
@@ -183,6 +186,89 @@
         
         // 검 강화 페이지로 이동
         location.href = 'sword.html';
+    }
+    
+    async function refundItem(itemId, userItemId, itemName) {
+        if (!confirm(`${itemName}을(를) 환불하시겠습니까?\n구매 가격의 80%가 환불됩니다.`)) return;
+        
+        try {
+            // 아이템 정보 가져오기
+            const { data: item } = await supabaseClient
+                .from('user_items')
+                .select('*')
+                .eq('id', userItemId)
+                .single();
+            
+            if (!item) {
+                alert('아이템을 찾을 수 없습니다.');
+                return;
+            }
+            
+            // 환불 가격 계산 (상점 가격의 80%)
+            const refundPrice = getRefundPrice(itemId);
+            if (refundPrice.gold === 0 && refundPrice.money === 0) {
+                alert('환불할 수 없는 아이템입니다.');
+                return;
+            }
+            
+            // 환불 처리
+            const totalRefundGold = refundPrice.gold * item.quantity;
+            const totalRefundMoney = refundPrice.money * item.quantity;
+            
+            // 골드/머니 지급
+            const { error: updateError } = await supabaseClient
+                .from('profiles')
+                .update({ 
+                    gold: user.gold + totalRefundGold,
+                    money: user.money + totalRefundMoney
+                })
+                .eq('id', user.id);
+            
+            if (updateError) throw updateError;
+            
+            // 아이템 삭제
+            const { error: deleteError } = await supabaseClient
+                .from('user_items')
+                .delete()
+                .eq('id', userItemId);
+            
+            if (deleteError) throw deleteError;
+            
+            // UI 업데이트
+            user.gold += totalRefundGold;
+            user.money += totalRefundMoney;
+            
+            alert(`환불 완료!\n${totalRefundGold > 0 ? `+${totalRefundGold.toLocaleString()}G` : ''}${totalRefundMoney > 0 ? ` +${totalRefundMoney.toLocaleString()}M` : ''}`);
+            
+            // 페이지 새로고침
+            location.reload();
+            
+        } catch (e) {
+            alert('환불 중 오류가 발생했습니다: ' + e.message);
+        }
+    }
+    
+    function getRefundPrice(itemId) {
+        // 상점 가격의 80% 환불
+        const shopPrices = {
+            'enhance_scroll_1': { gold: 100000, money: 0 },
+            'enhance_scroll_2': { gold: 750000, money: 0 },
+            'enhance_scroll_3': { gold: 4000000, money: 0 },
+            'enhance_scroll_4': { gold: 0, money: 4000 },
+            'protect_scroll_1': { gold: 25000, money: 0 },
+            'protect_scroll_2': { gold: 400000, money: 0 },
+            'protect_scroll_3': { gold: 0, money: 600 },
+            'maintain_scroll_1': { gold: 1250000, money: 0 },
+            'maintain_scroll_2': { gold: 0, money: 3150 }
+        };
+        
+        const price = shopPrices[itemId];
+        if (!price) return { gold: 0, money: 0 };
+        
+        return {
+            gold: Math.floor(price.gold * 0.8),
+            money: Math.floor(price.money * 0.8)
+        };
     }
     
     init();

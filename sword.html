@@ -318,6 +318,12 @@
                 }
                 
                 // 사용자 데이터 업데이트
+                // 안전장치: 레벨 하락 방지
+                if (result.newLevel < user.current_sword_lvl && !result.weaponType) {
+                    console.warn('아이템 사용 시 레벨 하락 방지');
+                    result.newLevel = user.current_sword_lvl;
+                }
+                
                 await supabaseClient
                     .from('profiles')
                     .update({ 
@@ -526,9 +532,19 @@
                 }
                 message = "강화 실패! (검 파괴)";
                 break;
+            default:
+                // 예상치 못한 결과는 유지로 처리
+                message = "강화 실패!";
+                break;
         }
         
         // Update user data
+        // 안전장치: newLevel이 현재 레벨보다 낮아지는 것을 방지 (파괴 제외)
+        if (result !== 'destroy' && newLevel < currentLevel) {
+            console.warn('레벨 하락 방지: newLevel을 currentLevel로 설정');
+            newLevel = currentLevel;
+        }
+        
         const { error } = await supabaseClient
             .from('profiles')
             .update({ 
@@ -665,14 +681,24 @@
         const rand = Math.random() * 100;
         let cumulative = 0;
         
-        for (const [result, probability] of Object.entries(rates)) {
-            cumulative += probability;
-            if (rand < cumulative) {
-                return result;
-            }
+        // 명시적으로 순서대로 처리하여 예상치 못한 결과 방지
+        cumulative += rates.success;
+        if (rand < cumulative) {
+            return 'success';
         }
         
-        return 'maintain'; // Default fallback
+        cumulative += rates.maintain;
+        if (rand < cumulative) {
+            return 'maintain';
+        }
+        
+        cumulative += rates.destroy;
+        if (rand < cumulative) {
+            return 'destroy';
+        }
+        
+        // 기본값은 유지 (하락 없음)
+        return 'maintain';
     }
 
     async function handleSell() {
