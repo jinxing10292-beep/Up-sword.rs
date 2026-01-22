@@ -113,17 +113,17 @@
             </div>
             
             <div class="betting-area">
-                <div class="betting-title">번호 선택 (배당: 45배)</div>
+                <div class="betting-title">번호 선택 (배당: 100배)</div>
                 <div class="number-grid" id="numberGrid"></div>
                 
                 <div class="betting-title">특수 베팅</div>
                 <div class="special-bets">
-                    <button class="special-btn" data-bet="red">빨간색 (1.5배)</button>
-                    <button class="special-btn" data-bet="black">검은색 (1.5배)</button>
-                    <button class="special-btn" data-bet="even">짝수 (1.5배)</button>
-                    <button class="special-btn" data-bet="odd">홀수 (1.5배)</button>
-                    <button class="special-btn" data-bet="low">1-18 (1.5배)</button>
-                    <button class="special-btn" data-bet="high">19-36 (1.5배)</button>
+                    <button class="special-btn" data-bet="red">빨간색 (2배)</button>
+                    <button class="special-btn" data-bet="black">검은색 (2배)</button>
+                    <button class="special-btn" data-bet="even">짝수 (2배)</button>
+                    <button class="special-btn" data-bet="odd">홀수 (2배)</button>
+                    <button class="special-btn" data-bet="low">1-18 (2배)</button>
+                    <button class="special-btn" data-bet="high">19-36 (2배)</button>
                 </div>
                 
                 <div class="bet-controls">
@@ -217,7 +217,11 @@
             selectedBets.splice(betIndex, 1);
             btn.classList.remove('selected');
         } else {
-            selectedBets.push({ type: 'number', value: number, payout: 45 });
+            // 중복 선택 방지: 기존 번호 베팅 제거
+            selectedBets = selectedBets.filter(bet => bet.type !== 'number');
+            document.querySelectorAll('.number-btn.selected').forEach(b => b.classList.remove('selected'));
+            
+            selectedBets.push({ type: 'number', value: number, payout: 100 });
             btn.classList.add('selected');
         }
     }
@@ -230,7 +234,11 @@
             selectedBets.splice(betIndex, 1);
             btn.classList.remove('selected');
         } else {
-            selectedBets.push({ type: betType, payout: 1.5 });
+            // 중복 선택 방지: 기존 특수 베팅 제거
+            selectedBets = selectedBets.filter(bet => bet.type === 'number');
+            document.querySelectorAll('.special-btn.selected').forEach(b => b.classList.remove('selected'));
+            
+            selectedBets.push({ type: betType, payout: 2 });
             btn.classList.add('selected');
         }
     }
