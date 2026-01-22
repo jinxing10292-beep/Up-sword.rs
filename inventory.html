@@ -221,6 +221,7 @@
                     </div>
                     <div class="sword-rarity rarity-${rarity}">${rarity.toUpperCase()}</div>
                     <div class="sword-actions">
+                        <button class="action-btn btn-use" onclick="equipSword(${sword.id})">장착</button>
                         <button class="action-btn btn-delete" onclick="showDeleteConfirm(${sword.id}, '${sword.sword_name}')">삭제</button>
                     </div>
                 </div>
@@ -232,6 +233,40 @@
         selectedSwordId = swordId;
         document.getElementById('confirmText').innerText = `"${swordName}"을(를) 정말 삭제하시겠습니까?`;
         document.getElementById('confirmModal').style.display = 'flex';
+    }
+    
+    async function equipSword(swordId) {
+        const sword = userSwords.find(s => s.id === swordId);
+        if (!sword) return;
+        
+        if (!confirm(`"${sword.sword_name}"을(를) 장착하시겠습니까? 현재 검은 0강으로 초기화됩니다.`)) return;
+        
+        try {
+            // 현재 검 상태를 선택한 검으로 변경
+            const { error: updateError } = await supabaseClient
+                .from('profiles')
+                .update({
+                    current_sword_lvl: sword.sword_level,
+                    current_weapon_type: sword.weapon_type,
+                    current_weapon_key: sword.weapon_key
+                })
+                .eq('id', user.id);
+            
+            if (updateError) throw updateError;
+            
+            // 인벤토리에서 검 제거
+            const { error: deleteError } = await supabaseClient
+                .from('user_swords')
+                .delete()
+                .eq('id', swordId);
+            
+            if (deleteError) throw deleteError;
+            
+            alert('검이 장착되었습니다! 검 강화 페이지에서 확인하세요.');
+            location.reload();
+        } catch (e) {
+            alert('장착 중 오류가 발생했습니다: ' + e.message);
+        }
     }
     
     async function confirmDelete() {

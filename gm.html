@@ -120,7 +120,7 @@
                     </div>
                     <div style="margin-left:auto; display:flex; gap:5px;">
                         <button class="btn btn-save" onclick="updateUser('${u.id}')">저장</button>
-                        <button class="btn btn-ban" onclick="toggleBan('${u.id}', ${!u.is_banned})">
+                        <button class="btn btn-ban" onclick="showBanModal('${u.id}', ${!u.is_banned}, '${u.nickname || '이름없음'}')">
                             ${u.is_banned ? '해제' : '정지'}
                         </button>
                     </div>
@@ -225,18 +225,78 @@
             }
         }
 
-        async function toggleBan(id, status) {
-            if(!confirm(status ? '정지하시겠습니까?' : '해제하시겠습니까?')) return;
+        function showBanModal(userId, banStatus, userName) {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;justify-content:center;align-items:center;z-index:1001;';
+            
+            const action = banStatus ? '정지' : '해제';
+            const currentUser = allUsers.find(u => u.id === userId);
+            const currentReason = currentUser?.ban_reason || '';
+            
+            modal.innerHTML = `
+                <div style="background:white;padding:25px;border-radius:15px;width:90%;max-width:400px;">
+                    <h3 style="margin-bottom:15px;text-align:center;">${userName} ${action}</h3>
+                    ${banStatus ? `
+                        <div style="margin-bottom:15px;">
+                            <label style="display:block;margin-bottom:8px;font-weight:600;">정지 사유:</label>
+                            <textarea id="banReasonInput" placeholder="정지 사유를 입력하세요..." style="width:100%;height:80px;padding:10px;border:1px solid #ddd;border-radius:8px;resize:vertical;">${currentReason}</textarea>
+                        </div>
+                    ` : `
+                        <p style="text-align:center;margin-bottom:20px;color:#666;">정말로 ${userName}의 정지를 해제하시겠습니까?</p>
+                        ${currentReason ? `<div style="background:#f8f9fa;padding:10px;border-radius:8px;margin-bottom:15px;"><strong>기존 정지 사유:</strong><br>${currentReason}</div>` : ''}
+                    `}
+                    <div style="display:flex;gap:10px;margin-top:20px;">
+                        <button onclick="executeBan('${userId}', ${banStatus}, '${userName}')" style="flex:1;padding:12px;background:#dc3545;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">${action}</button>
+                        <button onclick="this.closest('div[style*=\"position:fixed\"]').remove()" style="flex:1;padding:12px;background:#6c757d;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">취소</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Focus on textarea if banning
+            if (banStatus) {
+                setTimeout(() => document.getElementById('banReasonInput')?.focus(), 100);
+            }
+        }
+
+        async function executeBan(userId, banStatus, userName) {
             try {
+                let banReason = '';
+                if (banStatus) {
+                    const reasonInput = document.getElementById('banReasonInput');
+                    banReason = reasonInput?.value?.trim() || '';
+                    if (!banReason) {
+                        showNotification('정지 사유를 입력해주세요.', 'error');
+                        return;
+                    }
+                }
+
+                const updateData = {
+                    is_banned: banStatus,
+                    updated_at: new Date().toISOString()
+                };
+                
+                if (banStatus) {
+                    updateData.ban_reason = banReason;
+                } else {
+                    updateData.ban_reason = null; // Clear ban reason when unbanning
+                }
+
                 const { error } = await client
                     .from('profiles')
-                    .update({ is_banned: status, updated_at: new Date().toISOString() })
-                    .eq('id', id);
+                    .update(updateData)
+                    .eq('id', userId);
+                    
                 if (error) throw error;
-                showNotification('상태가 변경되었습니다.', 'success');
+                
+                // Close modal
+                document.querySelector('div[style*="position:fixed"]')?.remove();
+                
+                showNotification(`${userName}이(가) ${banStatus ? '정지' : '해제'}되었습니다.`, 'success');
                 await loadUsers();
             } catch (error) {
-                showNotification('처리 실패', 'error');
+                showNotification('처리 실패: ' + error.message, 'error');
             }
         }
 

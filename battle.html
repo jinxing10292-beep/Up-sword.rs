@@ -182,14 +182,13 @@
         const { data: opponentSwords } = await supabaseClient
             .from('user_swords')
             .select('*')
-            .eq('user_id', opponentId)
-            .limit(1);
+            .eq('user_id', opponentId);
         
         if (!opponentSwords || opponentSwords.length === 0) {
             return alert('상대 플레이어가 검을 보유하지 않았습니다.');
         }
         
-        const opponentSword = opponentSwords[0];
+        const opponentSword = opponentSwords[Math.floor(Math.random() * opponentSwords.length)];
         
         // 배틀 시뮬레이션
         document.getElementById('setupDiv').style.display = 'none';
