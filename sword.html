@@ -174,7 +174,7 @@
     }
 
     function getSellPrice(level) {
-        // 새로운 판매가 공식: (강화비용 + 기존판매비용) × 강화확률역수
+        // 새로운 판매가 공식: (강화비용 + 기존판매비용) × 강화확률역수 × 0.93 (7% 감소)
         const enhanceCost = getEnhancementCost(level);
         const successRate = getSuccessRate(level);
         
@@ -192,9 +192,9 @@
             }
         }
         
-        // 강화 확률의 역수를 곱함 (성공률이 낮을수록 높은 가격)
-        const probabilityMultiplier = successRate > 0 ? Math.floor(100 / successRate) : 1;
-        const newPrice = Math.floor((enhanceCost + basePrice) * probabilityMultiplier);
+        // 새로운 공식: (강화비용 + 기존판매가) × 성공확률역수 × 0.93
+        const probabilityMultiplier = successRate > 0 ? (100 / successRate) : 1;
+        const newPrice = Math.floor((enhanceCost + basePrice) * probabilityMultiplier * 0.93);
         
         return newPrice;
     }
@@ -424,26 +424,26 @@
     
     function getSuccessRate(level) {
         const rates = [
-            95,  // 0 → 1
-            90,  // 1 → 2
-            85,  // 2 → 3
-            80,  // 3 → 4
-            75,  // 4 → 5
-            70,  // 5 → 6
-            65,  // 6 → 7
-            60,  // 7 → 8
-            55,  // 8 → 9
-            50,  // 9 → 10
-            45,  // 10 → 11
-            40,  // 11 → 12
-            35,  // 12 → 13
-            30,  // 13 → 14
-            25,  // 14 → 15
-            20,  // 15 → 16
-            15,  // 16 → 17
-            10,  // 17 → 18
-            5,   // 18 → 19
-            1    // 19 → 20
+            80,  // 0 → 1 (95→80)
+            75,  // 1 → 2 (90→75)
+            70,  // 2 → 3 (85→70)
+            65,  // 3 → 4 (80→65)
+            60,  // 4 → 5 (75→60)
+            55,  // 5 → 6 (70→55)
+            50,  // 6 → 7 (65→50)
+            45,  // 7 → 8 (60→45)
+            40,  // 8 → 9 (55→40)
+            35,  // 9 → 10 (50→35)
+            30,  // 10 → 11 (45→30)
+            25,  // 11 → 12 (40→25)
+            20,  // 12 → 13 (35→20)
+            15,  // 13 → 14 (30→15)
+            12,  // 14 → 15 (25→12)
+            10,  // 15 → 16 (20→10)
+            8,   // 16 → 17 (15→8)
+            5,   // 17 → 18 (10→5)
+            3,   // 18 → 19 (5→3)
+            1    // 19 → 20 (1→1)
         ];
         return rates[level] || 0;
     }
@@ -634,28 +634,28 @@
     }
     
     function getEnhancementRates(level) {
-        // Format: { success: %, maintain: %, destroy: % } - 하락 제거
+        // Format: { success: %, maintain: %, destroy: % } - 성공률 낮추고, 유지율 대폭 올리고, 파괴율 낮춤
         const rates = [
-            { success: 95, maintain: 5, destroy: 0 },    // 0 → 1
-            { success: 90, maintain: 10, destroy: 0 },   // 1 → 2
-            { success: 85, maintain: 15, destroy: 0 },   // 2 → 3
-            { success: 80, maintain: 20, destroy: 0 },   // 3 → 4
-            { success: 75, maintain: 25, destroy: 0 },   // 4 → 5
-            { success: 70, maintain: 25, destroy: 5 },   // 5 → 6
-            { success: 65, maintain: 25, destroy: 10 },  // 6 → 7
-            { success: 60, maintain: 25, destroy: 15 },  // 7 → 8
-            { success: 55, maintain: 25, destroy: 20 },  // 8 → 9
-            { success: 50, maintain: 25, destroy: 25 },  // 9 → 10
-            { success: 45, maintain: 30, destroy: 25 },  // 10 → 11
-            { success: 40, maintain: 35, destroy: 25 },  // 11 → 12
-            { success: 35, maintain: 40, destroy: 25 },  // 12 → 13
-            { success: 30, maintain: 45, destroy: 25 },  // 13 → 14
-            { success: 25, maintain: 45, destroy: 30 },  // 14 → 15
-            { success: 20, maintain: 45, destroy: 35 },  // 15 → 16
-            { success: 15, maintain: 45, destroy: 40 },  // 16 → 17
-            { success: 10, maintain: 45, destroy: 45 },  // 17 → 18
-            { success: 5, maintain: 45, destroy: 50 },   // 18 → 19
-            { success: 1, maintain: 49, destroy: 50 }    // 19 → 20
+            { success: 80, maintain: 20, destroy: 0 },   // 0 → 1
+            { success: 75, maintain: 25, destroy: 0 },   // 1 → 2
+            { success: 70, maintain: 30, destroy: 0 },   // 2 → 3
+            { success: 65, maintain: 35, destroy: 0 },   // 3 → 4
+            { success: 60, maintain: 40, destroy: 0 },   // 4 → 5
+            { success: 55, maintain: 43, destroy: 2 },   // 5 → 6
+            { success: 50, maintain: 46, destroy: 4 },   // 6 → 7
+            { success: 45, maintain: 49, destroy: 6 },   // 7 → 8
+            { success: 40, maintain: 52, destroy: 8 },   // 8 → 9
+            { success: 35, maintain: 55, destroy: 10 },  // 9 → 10
+            { success: 30, maintain: 60, destroy: 10 },  // 10 → 11
+            { success: 25, maintain: 65, destroy: 10 },  // 11 → 12
+            { success: 20, maintain: 70, destroy: 10 },  // 12 → 13
+            { success: 15, maintain: 75, destroy: 10 },  // 13 → 14
+            { success: 12, maintain: 78, destroy: 10 },  // 14 → 15
+            { success: 10, maintain: 80, destroy: 10 },  // 15 → 16
+            { success: 8, maintain: 82, destroy: 10 },   // 16 → 17
+            { success: 5, maintain: 85, destroy: 10 },   // 17 → 18
+            { success: 3, maintain: 87, destroy: 10 },   // 18 → 19
+            { success: 1, maintain: 89, destroy: 10 }    // 19 → 20
         ];
         
         return rates[level] || { success: 0, maintain: 0, destroy: 0 };
