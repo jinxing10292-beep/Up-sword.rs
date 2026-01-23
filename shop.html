@@ -85,6 +85,7 @@
         <div class="category-tabs">
             <button class="tab-btn active" onclick="switchCategory('enhancement')">강화 아이템</button>
             <button class="tab-btn" onclick="switchCategory('protection')">보호 아이템</button>
+            <button class="tab-btn" onclick="switchCategory('macro')">매크로</button>
         </div>
         
         <div id="loadingDiv" class="loading">
@@ -202,6 +203,17 @@
                 priceMoney: 8031, // 2677 * 3
                 levels: [16, 17, 18, 19, 20]
             }
+        ],
+        macro: [
+            {
+                id: 'auto_macro',
+                name: '자동 강화 매크로',
+                icon: '🤖',
+                description: '목표 레벨까지 자동으로 강화를 진행합니다. 강화 로그를 실시간으로 확인할 수 있습니다.',
+                priceGold: 10000000000, // 100억 골드
+                priceMoney: 0,
+                levels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+            }
         ]
     };
     
@@ -258,7 +270,7 @@
     }
     
     function showPurchaseModal(itemId) {
-        const item = [...SHOP_ITEMS.enhancement, ...SHOP_ITEMS.protection].find(i => i.id === itemId);
+        const item = [...SHOP_ITEMS.enhancement, ...SHOP_ITEMS.protection, ...SHOP_ITEMS.macro].find(i => i.id === itemId);
         if (!item) return;
         
         selectedItem = item;

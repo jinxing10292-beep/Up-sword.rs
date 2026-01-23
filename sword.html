@@ -44,6 +44,49 @@
         .hammering { animation: shake 0.15s infinite; }
         @keyframes shake { 0% { transform: rotate(0); } 50% { transform: rotate(3deg); } 100% { transform: rotate(0); } }
         #full-effect { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; color: white; font-size: 40px; font-weight: 900; pointer-events: none; text-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        
+        /* 매크로 패널 스타일 */
+        .macro-panel { background: #f8fafc; border-radius: 16px; margin: 0 20px 20px; padding: 15px; border: 2px solid #e2e8f0; }
+        .macro-header h3 { margin: 0 0 15px 0; color: #2d3748; font-size: 16px; }
+        .macro-controls { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
+        .macro-input-group { display: flex; align-items: center; gap: 10px; }
+        .macro-input-group label { font-weight: 600; font-size: 14px; }
+        .macro-input-group input { width: 60px; padding: 6px 8px; border: 1px solid #e2e8f0; border-radius: 6px; text-align: center; }
+        .macro-buttons { display: flex; gap: 8px; }
+        .macro-btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
+        .macro-btn.start { background: #48bb78; color: white; }
+        .macro-btn.stop { background: #f56565; color: white; }
+        .macro-btn:disabled { background: #cbd5e0; cursor: not-allowed; }
+        .macro-log { border-top: 1px solid #e2e8f0; padding-top: 12px; }
+        .log-header { font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #2d3748; }
+        .log-content { max-height: 200px; overflow-y: auto; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; font-size: 12px; }
+        .log-entry { margin-bottom: 4px; padding: 2px 0; }
+        .log-success { color: #48bb78; }
+        .log-fail { color: #f56565; }
+        .log-destroy { color: #e53e3e; font-weight: 600; }
+        
+        /* 매크로 패널 스타일 */
+        .macro-panel { background: white; margin: 20px; border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .macro-header h3 { margin: 0 0 15px 0; color: #2d3748; text-align: center; }
+        .macro-controls { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+        .macro-input-group { display: flex; align-items: center; gap: 10px; }
+        .macro-input-group label { font-weight: 600; color: #4a5568; min-width: 80px; }
+        .macro-input-group input { flex: 1; padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; }
+        .macro-buttons { display: flex; gap: 10px; }
+        .macro-btn { flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.2s; }
+        .macro-btn.start { background: #48bb78; color: white; }
+        .macro-btn.start:hover { background: #38a169; }
+        .macro-btn.stop { background: #f56565; color: white; }
+        .macro-btn.stop:hover { background: #e53e3e; }
+        .macro-btn:disabled { background: #cbd5e0; color: #a0aec0; cursor: not-allowed; }
+        .macro-log { border: 2px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+        .log-header { background: #f7fafc; padding: 10px 15px; font-weight: 600; color: #2d3748; border-bottom: 1px solid #e2e8f0; }
+        .log-content { max-height: 200px; overflow-y: auto; padding: 10px; font-family: monospace; font-size: 12px; line-height: 1.4; }
+        .log-entry { margin-bottom: 5px; }
+        .log-success { color: #38a169; }
+        .log-fail { color: #e53e3e; }
+        .log-destroy { color: #d69e2e; font-weight: bold; }
+        .log-info { color: #3182ce; }
     </style>
 </head>
 <body>
@@ -85,6 +128,27 @@
         <button class="btn-items" onclick="location.href='items.html'">📦 아이템 사용</button>
     </div>
     
+    <!-- 매크로 컨트롤 패널 -->
+    <div class="macro-panel" id="macroPanel" style="display:none;">
+        <div class="macro-header">
+            <h3>🤖 자동 강화 매크로</h3>
+        </div>
+        <div class="macro-controls">
+            <div class="macro-input-group">
+                <label>목표 레벨:</label>
+                <input type="number" id="targetLevel" min="1" max="20" value="10">
+            </div>
+            <div class="macro-buttons">
+                <button id="startMacroBtn" class="macro-btn start" onclick="startMacro()">시작</button>
+                <button id="stopMacroBtn" class="macro-btn stop" onclick="stopMacro()" disabled>중지</button>
+            </div>
+        </div>
+        <div class="macro-log">
+            <div class="log-header">강화 로그</div>
+            <div class="log-content" id="macroLog"></div>
+        </div>
+    </div>
+    
     <div class="btn-group">
         <button class="btn-sub" onclick="handleSell()">판매</button>
         <button class="btn-sub" onclick="handleStore()">보관하기</button>
@@ -103,6 +167,20 @@
     let allUsers = [];
     let isUpgrading = false; // Flag to track if an upgrade is in progress
     const variantNameCache = new Map(); // key: `${weapon_key}:${level}` => name
+    
+    // 매크로 관련 변수들
+    let macroActive = false;
+    let macroTargetLevel = 10;
+    let macroLog = [];
+    let macroInterval = null;
+    let hasMacro = false; // 매크로 구매 여부
+    
+    // 매크로 관련 변수
+    let macroActive = false;
+    let macroInterval = null;
+    let macroTargetLevel = 10;
+    let macroLog = [];
+    let hasMacro = false;
 
     async function getVariantName(weaponKey, level) {
         const cl = Math.max(0, Math.min(20, parseInt(level || 0, 10)));
@@ -199,7 +277,30 @@
             
             // 아이템 사용 확인
             checkForItemUsage();
+            
+            // 매크로 보유 확인
+            checkMacroOwnership();
         } catch (e) { alert("로그인이 만료되었거나 데이터 오류가 발생했습니다."); }
+    }
+    
+    // 매크로 보유 확인
+    async function checkMacroOwnership() {
+        try {
+            const { data: macroItem } = await supabaseClient
+                .from('user_items')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('item_id', 'auto_macro')
+                .maybeSingle();
+            
+            hasMacro = macroItem && macroItem.quantity > 0;
+            
+            if (hasMacro) {
+                document.getElementById('macroPanel').style.display = 'block';
+            }
+        } catch (e) {
+            console.error('매크로 확인 오류:', e);
+        }
     }
 
     function getSellPrice(level) {
@@ -451,6 +552,7 @@
 
         const weaponType = getWeaponType();
         const weaponKey = user.current_weapon_key || 'sword_01';
+        const isHidden = weaponType === 'hidden';
         
         document.getElementById('u-nick').innerText = ((user.nickname && user.nickname.trim()) ? user.nickname : '플레이어') + '님';
         document.getElementById('u-gold').innerText = (user.gold || 0).toLocaleString() + "G";
@@ -462,9 +564,17 @@
             document.getElementById('s-name').innerText = `[+${currentLevel}] ${weaponType === 'hidden' ? '[HIDDEN] ' : ''}검`;
         });
         document.getElementById('s-desc').innerText = item.description;
-        document.getElementById('stat-cost').innerText = upgradeCost.toLocaleString();
-        document.getElementById('stat-sell').innerText = sellPrice.toLocaleString();
-        document.getElementById('stat-rate').innerText = successRate;
+        
+        // 히든 검은 머니로 비용 표시
+        if (isHidden) {
+            const costInMoney = Math.ceil(upgradeCost / 1000);
+            document.getElementById('stat-cost').innerText = costInMoney.toLocaleString() + "M";
+        } else {
+            document.getElementById('stat-cost').innerText = upgradeCost.toLocaleString() + "G";
+        }
+        
+        document.getElementById('stat-sell').innerText = sellPrice.toLocaleString() + "G";
+        document.getElementById('stat-rate').innerText = successRate + "%";
         document.getElementById('s-img').src = item.image_url;
     }
 
@@ -537,22 +647,34 @@
         
         const currentLevel = user.current_sword_lvl;
         const currentSword = swords[currentLevel];
+        const isHidden = user.current_weapon_type === 'hidden';
         
         // Get enhancement rates and cost based on current level
         const rates = getEnhancementRates(currentLevel);
         const upgradeCost = getEnhancementCost(currentLevel);
+        const costInMoney = Math.ceil(upgradeCost / 1000); // 1000G = 1M
         
         if (upgradeCost <= 0) return alert("이미 최대 강화 레벨에 도달했습니다!");
-        if (user.gold < upgradeCost) return alert("골드가 부족합니다!");
         if (currentLevel >= 20) return alert("최대 강화 레벨(20)에 도달했습니다!");
+        
+        // 히든 검은 머니로, 일반 검은 골드로 강화
+        if (isHidden) {
+            if (user.money < costInMoney) return alert(`머니가 부족합니다! (필요: ${costInMoney}M)`);
+        } else {
+            if (user.gold < upgradeCost) return alert("골드가 부족합니다!");
+        }
         
         isUpgrading = true; // Set upgrading flag
 
         const img = document.getElementById('s-img');
         img.classList.add('hammering');
         
-        // Deduct gold first
-        user.gold -= upgradeCost;
+        // 비용 차감
+        if (isHidden) {
+            user.money -= costInMoney;
+        } else {
+            user.gold -= upgradeCost;
+        }
         
         // Determine enhancement result
         const result = determineEnhancementResult(rates);
@@ -560,6 +682,7 @@
         let message = "";
         let nextWeaponType = getWeaponType();
         let nextWeaponKey = user.current_weapon_key || 'sword_01';
+        let hiddenSwordBonus = false;
         
         switch(result) {
             case 'success':
@@ -573,16 +696,20 @@
                 break;
             case 'destroy':
                 newLevel = 0;
-                nextWeaponType = Math.random() < 0.01 ? 'hidden' : 'normal';
-                // Generate a simple weapon key
-                if (nextWeaponType === 'normal') {
-                    const n = Math.floor(Math.random() * 30) + 1;
-                    nextWeaponKey = `sword_${String(n).padStart(2,'0')}`;
-                } else {
+                // 히든 검 확률 체크 (1%)
+                if (Math.random() < 0.01) {
+                    nextWeaponType = 'hidden';
                     const n = Math.floor(Math.random() * 3) + 1;
                     nextWeaponKey = `hidden_sword_${String(n).padStart(2,'0')}`;
+                    user.money += 100; // 100머니 지급
+                    message = "강화 실패! (검 파괴) - 히든 검 획득! (+100M)";
+                    hiddenSwordBonus = true;
+                } else {
+                    nextWeaponType = 'normal';
+                    const n = Math.floor(Math.random() * 30) + 1;
+                    nextWeaponKey = `sword_${String(n).padStart(2,'0')}`;
+                    message = "강화 실패! (검 파괴)";
                 }
-                message = "강화 실패! (검 파괴)";
                 // 파괴 시에도 플래그 초기화
                 user.used_enhance_scroll = false;
                 break;
@@ -603,7 +730,8 @@
         const { error } = await supabaseClient
             .from('profiles')
             .update({ 
-                gold: user.gold, 
+                gold: user.gold,
+                money: user.money,
                 current_sword_lvl: newLevel,
                 current_weapon_type: nextWeaponType,
                 current_weapon_key: nextWeaponKey
@@ -720,6 +848,9 @@
             updateUI();
 
             alert('현재 검을 인벤토리에 보관했습니다.');
+            
+            // 보관 후 히든 검 확률 체크
+            setTimeout(() => checkForHiddenSword(), 500);
         } catch (e) {
             alert('보관 중 오류: ' + (e?.message || e));
         }
@@ -821,8 +952,14 @@
         user.current_sword_lvl = 0;
         user.used_enhance_scroll = false;
         
+        // 판매 후 히든 검 확률 체크
+        checkForHiddenSword();
+        
         updateUI();
         alert(`${sellPrice.toLocaleString()}G에 판매되었습니다!`);
+        
+        // 판매 후 히든 검 확률 체크
+        setTimeout(() => checkForHiddenSword(), 500);
     }
 
     function showEffect(win, message) {
@@ -950,6 +1087,263 @@
     }
 
     init();
+
+    // 히든 검 확률 체크 함수
+    async function checkForHiddenSword() {
+        // 이미 검이 있으면 체크하지 않음
+        if (user.current_sword_lvl > 0) return;
+        
+        // 1% 확률로 히든 검 획득
+        if (Math.random() < 0.01) {
+            const n = Math.floor(Math.random() * 3) + 1;
+            const hiddenKey = `hidden_sword_${String(n).padStart(2,'0')}`;
+            
+            // 100머니 지급
+            user.money += 100;
+            
+            // 히든 검으로 설정
+            user.current_weapon_type = 'hidden';
+            user.current_weapon_key = hiddenKey;
+            user.current_sword_lvl = 0;
+            
+            // 데이터베이스 업데이트
+            const { error } = await supabaseClient.from('profiles')
+                .update({
+                    money: user.money,
+                    current_weapon_type: 'hidden',
+                    current_weapon_key: hiddenKey,
+                    current_sword_lvl: 0
+                })
+                .eq('id', user.id);
+            
+            if (!error) {
+                updateUI();
+                setTimeout(() => {
+                    alert('🌟 히든 검을 획득했습니다! 🌟\n+100M 지급!\n\n히든 검은 머니로 강화할 수 있습니다.');
+                }, 100);
+            }
+        }
+    }
+
+    // 매크로 시스템 함수들
+    function startMacro() {
+        if (!hasMacro) {
+            alert('매크로를 먼저 구매해주세요!');
+            return;
+        }
+        
+        if (macroActive) {
+            alert('매크로가 이미 실행 중입니다.');
+            return;
+        }
+        
+        const targetLevel = parseInt(document.getElementById('targetLevel').value);
+        if (targetLevel <= user.current_sword_lvl) {
+            alert('목표 레벨은 현재 레벨보다 높아야 합니다.');
+            return;
+        }
+        
+        if (targetLevel > 20) {
+            alert('목표 레벨은 최대 20까지 설정할 수 있습니다.');
+            return;
+        }
+        
+        macroActive = true;
+        macroTargetLevel = targetLevel;
+        macroLog = [];
+        
+        document.getElementById('startMacroBtn').disabled = true;
+        document.getElementById('stopMacroBtn').disabled = false;
+        
+        addMacroLog(`매크로 시작: 목표 레벨 ${targetLevel}강`);
+        
+        // 매크로 실행
+        runMacroStep();
+    }
+    
+    function stopMacro() {
+        if (!macroActive) return;
+        
+        macroActive = false;
+        if (macroInterval) {
+            clearTimeout(macroInterval);
+            macroInterval = null;
+        }
+        
+        document.getElementById('startMacroBtn').disabled = false;
+        document.getElementById('stopMacroBtn').disabled = true;
+        
+        addMacroLog('매크로 중지됨');
+    }
+    
+    async function runMacroStep() {
+        if (!macroActive || user.current_sword_lvl >= macroTargetLevel) {
+            if (user.current_sword_lvl >= macroTargetLevel) {
+                addMacroLog(`목표 달성! ${macroTargetLevel}강 완료`);
+            }
+            stopMacro();
+            return;
+        }
+        
+        // 히든 검 체크 (머니 사용)
+        const isHidden = user.current_weapon_type === 'hidden';
+        const upgradeCost = getEnhancementCost(user.current_sword_lvl);
+        const costInMoney = Math.ceil(upgradeCost / 1000); // 1000G = 1M
+        
+        // 비용 체크
+        if (isHidden) {
+            if (user.money < costInMoney) {
+                addMacroLog(`머니 부족으로 매크로 중지 (필요: ${costInMoney}M, 보유: ${user.money}M)`);
+                stopMacro();
+                return;
+            }
+        } else {
+            if (user.gold < upgradeCost) {
+                addMacroLog(`골드 부족으로 매크로 중지 (필요: ${upgradeCost.toLocaleString()}G, 보유: ${user.gold.toLocaleString()}G)`);
+                stopMacro();
+                return;
+            }
+        }
+        
+        // 강화 시도
+        try {
+            await performMacroUpgrade();
+            
+            // 다음 단계 실행 (1초 후)
+            macroInterval = setTimeout(() => {
+                if (macroActive) {
+                    runMacroStep();
+                }
+            }, 1000);
+            
+        } catch (error) {
+            addMacroLog(`오류 발생: ${error.message}`);
+            stopMacro();
+        }
+    }
+    
+    async function performMacroUpgrade() {
+        const currentLevel = user.current_sword_lvl;
+        const rates = getEnhancementRates(currentLevel);
+        const isHidden = user.current_weapon_type === 'hidden';
+        const upgradeCost = getEnhancementCost(currentLevel);
+        const costInMoney = Math.ceil(upgradeCost / 1000);
+        
+        // 비용 차감
+        if (isHidden) {
+            user.money -= costInMoney;
+        } else {
+            user.gold -= upgradeCost;
+        }
+        
+        // 강화 결과 결정
+        const result = determineEnhancementResult(rates);
+        let newLevel = currentLevel;
+        let message = "";
+        let nextWeaponType = user.current_weapon_type;
+        let nextWeaponKey = user.current_weapon_key || 'sword_01';
+        
+        switch(result) {
+            case 'success':
+                newLevel = currentLevel + 1;
+                message = `강화 성공! [${currentLevel}강 → ${newLevel}강]`;
+                addMacroLog(message, 'success');
+                break;
+            case 'maintain':
+                message = `강화 실패 [${currentLevel}강 유지]`;
+                addMacroLog(message, 'fail');
+                break;
+            case 'destroy':
+                newLevel = 0;
+                // 히든 검 확률 체크 (1%)
+                if (Math.random() < 0.01) {
+                    nextWeaponType = 'hidden';
+                    nextWeaponKey = `hidden_sword_${String(Math.floor(Math.random() * 3) + 1).padStart(2,'0')}`;
+                    user.money += 100; // 100머니 지급
+                    message = `검 파괴! 히든 검 획득! [0강] (+100M 지급)`;
+                    addMacroLog(message, 'destroy');
+                } else {
+                    nextWeaponType = 'normal';
+                    const n = Math.floor(Math.random() * 30) + 1;
+                    nextWeaponKey = `sword_${String(n).padStart(2,'0')}`;
+                    message = `검 파괴! [0강]`;
+                    addMacroLog(message, 'destroy');
+                }
+                break;
+        }
+        
+        // 데이터베이스 업데이트
+        const updateData = {
+            gold: user.gold,
+            money: user.money,
+            current_sword_lvl: newLevel,
+            current_weapon_type: nextWeaponType,
+            current_weapon_key: nextWeaponKey
+        };
+        
+        const { error } = await supabaseClient
+            .from('profiles')
+            .update(updateData)
+            .eq('id', user.id);
+        
+        if (error) {
+            throw new Error('데이터베이스 업데이트 실패');
+        }
+        
+        // 로컬 변수 업데이트
+        user.current_sword_lvl = newLevel;
+        user.current_weapon_type = nextWeaponType;
+        user.current_weapon_key = nextWeaponKey;
+        
+        // UI 업데이트
+        updateUI();
+    }
+    
+    function addMacroLog(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = {
+            time: timestamp,
+            message: message,
+            type: type
+        };
+        
+        macroLog.push(logEntry);
+        
+        // 로그가 너무 많으면 오래된 것 제거 (최대 100개)
+        if (macroLog.length > 100) {
+            macroLog.shift();
+        }
+        
+        updateMacroLogDisplay();
+    }
+    
+    function updateMacroLogDisplay() {
+        const logContent = document.getElementById('macroLog');
+        if (!logContent) return;
+        
+        logContent.innerHTML = macroLog.map(entry => {
+            let className = 'log-entry';
+            if (entry.type === 'success') className += ' log-success';
+            else if (entry.type === 'fail') className += ' log-fail';
+            else if (entry.type === 'destroy') className += ' log-destroy';
+            
+            return `<div class="${className}">[${entry.time}] ${entry.message}</div>`;
+        }).reverse().join('');
+        
+        // 스크롤을 맨 위로 (최신 로그가 위에 오도록)
+        logContent.scrollTop = 0;
+    }
+    
+    function showMacroLog() {
+        if (macroLog.length === 0) {
+            alert('아직 매크로 로그가 없습니다.');
+            return;
+        }
+        
+        // 로그 모달 표시 (간단한 alert로 대체)
+        const logText = macroLog.map(entry => `[${entry.time}] ${entry.message}`).reverse().join('\n');
+        alert('매크로 로그:\n\n' + logText);
+    }
 
     // 페이지 가시성 변경 시 데이터 동기화 (탭 전환, 페이지 이동 등)
     document.addEventListener('visibilitychange', async function() {
