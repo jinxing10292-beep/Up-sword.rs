@@ -167,6 +167,11 @@
                 console.log('기존 검 레벨 유지:', user.current_sword_lvl);
             }
 
+            // 확정 강화권 사용 플래그 초기화 (로컬 추적용)
+            if (user.used_enhance_scroll === undefined) {
+                user.used_enhance_scroll = false;
+            }
+
             if (!user.current_weapon_type) {
                 user.current_weapon_type = 'normal';
                 await supabaseClient.from('profiles').update({ current_weapon_type: 'normal' }).eq('id', user.id);
@@ -357,10 +362,7 @@
                     current_weapon_key: result.weaponKey || user.current_weapon_key
                 };
                 
-                // 확정 강화권 사용 시 판매 페널티 플래그 추가
-                if (usedEnhanceScroll) {
-                    updateData.used_enhance_scroll = true;
-                }
+                // Note: used_enhance_scroll is tracked locally only (not in database)
                 
                 const { error: updateErr } = await supabaseClient
                     .from('profiles')
@@ -599,8 +601,7 @@
                 gold: user.gold, 
                 current_sword_lvl: newLevel,
                 current_weapon_type: nextWeaponType,
-                current_weapon_key: nextWeaponKey,
-                used_enhance_scroll: user.used_enhance_scroll || false
+                current_weapon_key: nextWeaponKey
             })
             .eq('id', user.id);
 
@@ -779,7 +780,7 @@
         
         let sellPrice = getSellPrice(currentLevel);
         
-        // 확정 강화권 사용 시 판매가 50% 감소
+        // 확정 강화권 사용 시 판매가 50% 감소 (로컬 추적)
         const usedEnhanceScroll = user.used_enhance_scroll || false;
         if (usedEnhanceScroll) {
             sellPrice = Math.floor(sellPrice * 0.5);
@@ -793,8 +794,7 @@
         const { error } = await supabaseClient.from('profiles')
             .update({ 
                 gold: newGold, 
-                current_sword_lvl: 0,
-                used_enhance_scroll: false
+                current_sword_lvl: 0
             })
             .eq('id', user.id);
         
@@ -965,7 +965,7 @@
                         user.current_sword_lvl = freshData.current_sword_lvl;
                         user.current_weapon_type = freshData.current_weapon_type;
                         user.current_weapon_key = freshData.current_weapon_key;
-                        user.used_enhance_scroll = freshData.used_enhance_scroll;
+                        // Note: used_enhance_scroll is tracked locally only
                         updateUI();
                         console.log('검 페이지 데이터 동기화 완료:', {
                             level: freshData.current_sword_lvl,
