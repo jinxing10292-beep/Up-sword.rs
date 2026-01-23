@@ -54,7 +54,7 @@
 <div class="game-container" id="game-ui">
     <div class="header">
         <div class="left-group">
-            <button onclick="location.href='index.html'" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;" title="홈으로">
+            <button onclick="location.href='home.html'" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;" title="홈으로">
                 <i class="fa-solid fa-house"></i>
             </button>
             <span id="u-nick" style="font-size: 14px;">...</span>
@@ -233,13 +233,18 @@
         const useItemId = sessionStorage.getItem('useItemId');
         const userItemId = sessionStorage.getItem('userItemId');
         
-        if (useItemId && userItemId) {
+        // null 체크 및 유효성 검사
+        if (useItemId && userItemId && useItemId !== 'null' && userItemId !== 'null') {
             // 세션 스토리지 클리어
             sessionStorage.removeItem('useItemId');
             sessionStorage.removeItem('userItemId');
             
             // 아이템 사용 확인
             showItemUsageConfirm(useItemId, userItemId);
+        } else {
+            // 잘못된 값이 있으면 클리어
+            sessionStorage.removeItem('useItemId');
+            sessionStorage.removeItem('userItemId');
         }
     }
     

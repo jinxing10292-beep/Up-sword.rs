@@ -54,7 +54,7 @@
         <h1>📦 아이템</h1>
         <div style="display: flex; gap: 10px;">
             <button onclick="location.href='shop.html'" title="상점"><i class="fa-solid fa-shopping-cart"></i></button>
-            <button onclick="location.href='index.html'" title="홈으로"><i class="fa-solid fa-house"></i></button>
+            <button onclick="location.href='home.html'" title="홈으로"><i class="fa-solid fa-house"></i></button>
         </div>
     </div>
     
@@ -178,6 +178,12 @@
     }
     
     async function useItem(itemId, userItemId) {
+        // null 값 체크
+        if (!itemId || !userItemId || itemId === 'null' || userItemId === 'null') {
+            alert('아이템 정보가 올바르지 않습니다.');
+            return;
+        }
+        
         if (!confirm('이 아이템을 사용하시겠습니까?\n검 강화 페이지로 이동합니다.')) return;
         
         // 아이템 사용을 위해 세션 스토리지에 저장
