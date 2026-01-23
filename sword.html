@@ -174,7 +174,7 @@
     }
 
     function getSellPrice(level) {
-        // 새로운 판매가 공식: (강화비용 + 기존판매비용) × 강화확률역수 × 0.6 (40% 감소)
+        // 새로운 판매가 공식: (강화비용 + 기존판매비용) × 강화확률역수 × 0.8 (20% 감소)
         const enhanceCost = getEnhancementCost(level);
         const successRate = getSuccessRate(level);
         
@@ -192,9 +192,9 @@
             }
         }
         
-        // 새로운 공식: (강화비용 + 기존판매가) × 성공확률역수 × 0.6 (40% 할인)
+        // 새로운 공식: (강화비용 + 기존판매가) × 성공확률역수 × 0.8 (20% 할인)
         const probabilityMultiplier = successRate > 0 ? (100 / successRate) : 1;
-        const newPrice = Math.floor((enhanceCost + basePrice) * probabilityMultiplier * 0.6);
+        const newPrice = Math.floor((enhanceCost + basePrice) * probabilityMultiplier * 0.8);
         
         return newPrice;
     }

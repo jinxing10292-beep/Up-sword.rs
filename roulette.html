@@ -113,10 +113,10 @@
             </div>
             
             <div class="betting-area">
-                <div class="betting-title">번호 선택 (배당: 100배)</div>
+                <div class="betting-title">번호 선택 (배당: 100배, 최대 5개)</div>
                 <div class="number-grid" id="numberGrid"></div>
                 
-                <div class="betting-title">특수 베팅</div>
+                <div class="betting-title">특수 베팅 (최대 3개)</div>
                 <div class="special-bets">
                     <button class="special-btn" data-bet="red">빨간색 (2배)</button>
                     <button class="special-btn" data-bet="black">검은색 (2배)</button>
@@ -217,9 +217,12 @@
             selectedBets.splice(betIndex, 1);
             btn.classList.remove('selected');
         } else {
-            // 중복 선택 방지: 기존 번호 베팅 제거
-            selectedBets = selectedBets.filter(bet => bet.type !== 'number');
-            document.querySelectorAll('.number-btn.selected').forEach(b => b.classList.remove('selected'));
+            // 번호 베팅 개수 제한 (최대 5개)
+            const numberBets = selectedBets.filter(bet => bet.type === 'number');
+            if (numberBets.length >= 5) {
+                alert('번호는 최대 5개까지만 선택할 수 있습니다.');
+                return;
+            }
             
             selectedBets.push({ type: 'number', value: number, payout: 100 });
             btn.classList.add('selected');
@@ -234,9 +237,12 @@
             selectedBets.splice(betIndex, 1);
             btn.classList.remove('selected');
         } else {
-            // 중복 선택 방지: 기존 특수 베팅 제거
-            selectedBets = selectedBets.filter(bet => bet.type === 'number');
-            document.querySelectorAll('.special-btn.selected').forEach(b => b.classList.remove('selected'));
+            // 특수 베팅 개수 제한 (최대 3개)
+            const specialBets = selectedBets.filter(bet => bet.type !== 'number');
+            if (specialBets.length >= 3) {
+                alert('특수 베팅은 최대 3개까지만 선택할 수 있습니다.');
+                return;
+            }
             
             selectedBets.push({ type: betType, payout: 2 });
             btn.classList.add('selected');
