@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Up Sword</title>
+    <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
+    <link rel="shortcut icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -103,21 +105,30 @@
     const variantNameCache = new Map(); // key: `${weapon_key}:${level}` => name
 
     async function getVariantName(weaponKey, level) {
-        const cl = Math.max(0, Math.min(19, parseInt(level || 0, 10)));
+        const cl = Math.max(0, Math.min(20, parseInt(level || 0, 10)));
         const cacheKey = `${weaponKey}:${cl}`;
         if (variantNameCache.has(cacheKey)) return variantNameCache.get(cacheKey);
+        
         try {
-            const { data } = await supabaseClient
-                .from('weapon_variants')
-                .select('name_ko')
-                .eq('weapon_key', weaponKey)
-                .eq('level', cl)
-                .maybeSingle();
-            const name = data?.name_ko || `${weaponKey} +${cl}`;
+            // Use local sword_names.json instead of non-existent weapon_variants table
+            const response = await fetch('sword_names.json');
+            const swordData = await response.json();
+            
+            // Find matching sword by type and level
+            const weaponType = getWeaponType();
+            const matchingSword = swordData.swords.find(s => 
+                s.type === weaponType && s.level === cl
+            );
+            
+            const name = matchingSword ? matchingSword.name : `${weaponType === 'hidden' ? '[HIDDEN] ' : ''}검 +${cl}`;
             variantNameCache.set(cacheKey, name);
             return name;
-        } catch (_) {
-            return `${weaponKey} +${cl}`;
+        } catch (error) {
+            console.warn('검 이름 로드 실패, 기본 이름 사용:', error);
+            const weaponType = getWeaponType();
+            const fallbackName = `${weaponType === 'hidden' ? '[HIDDEN] ' : ''}검 +${cl}`;
+            variantNameCache.set(cacheKey, fallbackName);
+            return fallbackName;
         }
     }
 
@@ -162,8 +173,8 @@
             }
 
             if (!user.current_weapon_key) {
-                user.current_weapon_key = 'normal_01';
-                await supabaseClient.from('profiles').update({ current_weapon_key: 'normal_01' }).eq('id', user.id);
+                user.current_weapon_key = 'sword_01';
+                await supabaseClient.from('profiles').update({ current_weapon_key: 'sword_01' }).eq('id', user.id);
             }
 
             const { data: sData } = await supabaseClient.from('sword_data').select('*').order('level');
@@ -432,13 +443,16 @@
         const successRate = getSuccessRate(currentLevel);
 
         const weaponType = getWeaponType();
-        const weaponKey = user.current_weapon_key || 'normal_01';
+        const weaponKey = user.current_weapon_key || 'sword_01';
         
         document.getElementById('u-nick').innerText = ((user.nickname && user.nickname.trim()) ? user.nickname : '플레이어') + '님';
         document.getElementById('u-gold').innerText = (user.gold || 0).toLocaleString() + "G";
         document.getElementById('u-money').innerText = (user.money || 0).toLocaleString() + "M";
         getVariantName(weaponKey, currentLevel).then(name => {
             document.getElementById('s-name').innerText = `[+${currentLevel}] ${weaponType === 'hidden' ? '[HIDDEN] ' : ''}${name}`;
+        }).catch(() => {
+            // Fallback if name loading fails
+            document.getElementById('s-name').innerText = `[+${currentLevel}] ${weaponType === 'hidden' ? '[HIDDEN] ' : ''}검`;
         });
         document.getElementById('s-desc').innerText = item.description;
         document.getElementById('stat-cost').innerText = upgradeCost.toLocaleString();
@@ -538,7 +552,7 @@
         let newLevel = currentLevel;
         let message = "";
         let nextWeaponType = getWeaponType();
-        let nextWeaponKey = user.current_weapon_key || 'normal_01';
+        let nextWeaponKey = user.current_weapon_key || 'sword_01';
         
         switch(result) {
             case 'success':
@@ -553,13 +567,13 @@
             case 'destroy':
                 newLevel = 0;
                 nextWeaponType = Math.random() < 0.01 ? 'hidden' : 'normal';
-                // reroll base weapon key within the type (normal_01.._30, hidden_01.._03)
+                // Generate a simple weapon key
                 if (nextWeaponType === 'normal') {
                     const n = Math.floor(Math.random() * 30) + 1;
-                    nextWeaponKey = `normal_${String(n).padStart(2,'0')}`;
+                    nextWeaponKey = `sword_${String(n).padStart(2,'0')}`;
                 } else {
                     const n = Math.floor(Math.random() * 3) + 1;
-                    nextWeaponKey = `hidden_${String(n).padStart(2,'0')}`;
+                    nextWeaponKey = `hidden_sword_${String(n).padStart(2,'0')}`;
                 }
                 message = "강화 실패! (검 파괴)";
                 // 파괴 시에도 플래그 초기화
@@ -624,7 +638,7 @@
         if (level <= 0) return alert("0강 상태는 보관할 수 없습니다.");
 
         const type = getWeaponType();
-        const key = user.current_weapon_key || 'normal_01';
+        const key = user.current_weapon_key || 'sword_01';
         
         // 검 이름 데이터에서 sword_id와 실제 이름 찾기
         let swordId = null;
