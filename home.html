@@ -139,10 +139,29 @@
         const { data: { session } } = await supabaseClient.auth.getSession();
         if(!session) { window.location.href="login.html"; return; }
         
-        const { data: p, error } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
-        if(error || !p) { window.location.href="login.html"; return; }
+        // 데이터베이스에서 최신 사용자 정보 로드 (캐시 방지)
+        const { data: p, error } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+            
+        if(error || !p) { 
+            console.error('프로필 로드 오류:', error);
+            alert('사용자 데이터를 불러올 수 없습니다.');
+            window.location.href="login.html"; 
+            return; 
+        }
         
         user = p;
+        
+        // 데이터 로드 확인을 위한 로그
+        console.log('홈 페이지 사용자 데이터 로드:', {
+            gold: user.gold,
+            money: user.money,
+            swordLevel: user.current_sword_lvl,
+            userId: user.id
+        });
 
         if (user.is_banned) {
             document.body.innerHTML = `
@@ -165,9 +184,21 @@
     function updateUI() {
         const nick = user.nickname || user.username || (user.email ? user.email.split('@')[0] : '') || "플레이어";
         document.getElementById('u-nick').innerText = nick + "님";
-        document.getElementById('u-gold').innerText = (user.gold || 0).toLocaleString();
-        document.getElementById('u-money').innerText = (user.money || 0).toLocaleString();
+        
+        // 안전한 숫자 변환 및 표시
+        const gold = parseInt(user.gold || 0, 10);
+        const money = parseInt(user.money || 0, 10);
+        
+        document.getElementById('u-gold').innerText = gold.toLocaleString();
+        document.getElementById('u-money').innerText = money.toLocaleString();
         document.getElementById('u-avatar').src = user.avatar_url || DEFAULT_AVATAR;
+        
+        // UI 업데이트 확인을 위한 로그
+        console.log('홈 UI 업데이트:', {
+            gold: gold,
+            money: money,
+            nickname: nick
+        });
     }
 
     // 1. 랭킹 작동
@@ -269,6 +300,30 @@
     async function handleLogout() { await supabaseClient.auth.signOut(); window.location.href = "login.html"; }
 
     init();
+
+    // 페이지 가시성 변경 시 데이터 동기화 (탭 전환, 페이지 이동 등)
+    document.addEventListener('visibilitychange', async function() {
+        if (!document.hidden && user) {
+            console.log('페이지가 다시 활성화됨 - 데이터 동기화 시작');
+            try {
+                const { data: freshData } = await supabaseClient
+                    .from('profiles')
+                    .select('gold, money, current_sword_lvl')
+                    .eq('id', user.id)
+                    .single();
+                
+                if (freshData) {
+                    user.gold = freshData.gold;
+                    user.money = freshData.money;
+                    user.current_sword_lvl = freshData.current_sword_lvl;
+                    updateUI();
+                    console.log('데이터 동기화 완료:', freshData);
+                }
+            } catch (e) {
+                console.error('데이터 동기화 오류:', e);
+            }
+        }
+    });
 </script>
 </body>
 </html>
