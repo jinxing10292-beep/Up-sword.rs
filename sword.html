@@ -174,7 +174,7 @@
     }
 
     function getSellPrice(level) {
-        // 새로운 판매가 공식: (강화비용 + 기존판매비용) × 강화확률역수 × 0.93 (7% 감소)
+        // 새로운 판매가 공식: (강화비용 + 기존판매비용) × 강화확률역수 × 0.6 (40% 감소)
         const enhanceCost = getEnhancementCost(level);
         const successRate = getSuccessRate(level);
         
@@ -192,9 +192,9 @@
             }
         }
         
-        // 새로운 공식: (강화비용 + 기존판매가) × 성공확률역수 × 0.93
+        // 새로운 공식: (강화비용 + 기존판매가) × 성공확률역수 × 0.6 (40% 할인)
         const probabilityMultiplier = successRate > 0 ? (100 / successRate) : 1;
-        const newPrice = Math.floor((enhanceCost + basePrice) * probabilityMultiplier * 0.93);
+        const newPrice = Math.floor((enhanceCost + basePrice) * probabilityMultiplier * 0.6);
         
         return newPrice;
     }
@@ -317,6 +317,9 @@
                         .eq('id', userItemId);
                 }
                 
+                // 확정 강화권 사용 시 판매가 페널티 플래그 설정
+                const usedEnhanceScroll = itemId.startsWith('enhance_scroll_');
+                
                 // 사용자 데이터 업데이트
                 // 안전장치: 레벨 하락 방지
                 if (result.newLevel < user.current_sword_lvl && !result.weaponType) {
@@ -324,24 +327,32 @@
                     result.newLevel = user.current_sword_lvl;
                 }
                 
+                const updateData = {
+                    current_sword_lvl: result.newLevel,
+                    current_weapon_type: result.weaponType || user.current_weapon_type,
+                    current_weapon_key: result.weaponKey || user.current_weapon_key
+                };
+                
+                // 확정 강화권 사용 시 판매 페널티 플래그 추가
+                if (usedEnhanceScroll) {
+                    updateData.used_enhance_scroll = true;
+                }
+                
                 await supabaseClient
                     .from('profiles')
-                    .update({ 
-                        current_sword_lvl: result.newLevel,
-                        current_weapon_type: result.weaponType || user.current_weapon_type,
-                        current_weapon_key: result.weaponKey || user.current_weapon_key
-                    })
+                    .update(updateData)
                     .eq('id', user.id);
                 
                 user.current_sword_lvl = result.newLevel;
                 if (result.weaponType) user.current_weapon_type = result.weaponType;
                 if (result.weaponKey) user.current_weapon_key = result.weaponKey;
+                if (usedEnhanceScroll) user.used_enhance_scroll = true;
                 
                 // UI 업데이트
                 updateUI();
                 
                 // 성공 메시지
-                alert(result.message);
+                alert(result.message + (usedEnhanceScroll ? '\n※ 확정 강화권 사용으로 판매가 50% 감소됩니다.' : ''));
             } else {
                 alert(result.message);
             }
@@ -515,6 +526,8 @@
             case 'success':
                 newLevel = currentLevel + 1;
                 message = `강화 성공! [+${newLevel}레벨]`;
+                // 일반 강화 성공 시 확정 강화권 플래그 초기화
+                user.used_enhance_scroll = false;
                 break;
             case 'maintain':
                 message = "강화 실패!";
@@ -531,6 +544,8 @@
                     nextWeaponKey = `hidden_${String(n).padStart(2,'0')}`;
                 }
                 message = "강화 실패! (검 파괴)";
+                // 파괴 시에도 플래그 초기화
+                user.used_enhance_scroll = false;
                 break;
             default:
                 // 예상치 못한 결과는 유지로 처리
@@ -551,7 +566,8 @@
                 gold: user.gold, 
                 current_sword_lvl: newLevel,
                 current_weapon_type: nextWeaponType,
-                current_weapon_key: nextWeaponKey
+                current_weapon_key: nextWeaponKey,
+                used_enhance_scroll: user.used_enhance_scroll || false
             })
             .eq('id', user.id);
 
@@ -707,15 +723,26 @@
         const currentLevel = user.current_sword_lvl;
         if (currentLevel === 0) return alert("0강 상태는 판매할 수 없습니다.");
         
-        const sellPrice = getSellPrice(currentLevel);
-        if (!confirm(`${sellPrice.toLocaleString()}G에 판매하시겠습니까?`)) return;
+        let sellPrice = getSellPrice(currentLevel);
+        
+        // 확정 강화권 사용 시 판매가 50% 감소
+        const usedEnhanceScroll = user.used_enhance_scroll || false;
+        if (usedEnhanceScroll) {
+            sellPrice = Math.floor(sellPrice * 0.5);
+        }
+        
+        const penaltyMsg = usedEnhanceScroll ? '\n※ 확정 강화권 사용으로 판매가 50% 감소 적용됨' : '';
+        if (!confirm(`${sellPrice.toLocaleString()}G에 판매하시겠습니까?${penaltyMsg}`)) return;
 
         user.gold += sellPrice;
         user.current_sword_lvl = 0;
+        user.used_enhance_scroll = false; // 판매 후 플래그 초기화
+        
         await supabaseClient.from('profiles')
             .update({ 
                 gold: user.gold, 
-                current_sword_lvl: 0 
+                current_sword_lvl: 0,
+                used_enhance_scroll: false
             })
             .eq('id', user.id);
         updateUI();
