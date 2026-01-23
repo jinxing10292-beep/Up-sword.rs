@@ -286,20 +286,26 @@
     // 매크로 보유 확인
     async function checkMacroOwnership() {
         try {
-            const { data: macroItem } = await supabaseClient
-                .from('user_items')
-                .select('*')
-                .eq('user_id', user.id)
-                .eq('item_id', 'auto_macro')
-                .maybeSingle();
+            // profiles 테이블에서 has_macro 필드 확인 (영구 소유)
+            hasMacro = user.has_macro || false;
             
-            hasMacro = macroItem && macroItem.quantity > 0;
+            console.log('매크로 소유 상태 확인:', {
+                userId: user.id,
+                hasMacro: hasMacro,
+                userHasMacro: user.has_macro
+            });
             
             if (hasMacro) {
                 document.getElementById('macroPanel').style.display = 'block';
+                console.log('매크로 패널 표시됨');
+            } else {
+                document.getElementById('macroPanel').style.display = 'none';
+                console.log('매크로 미소유 - 패널 숨김');
             }
         } catch (e) {
             console.error('매크로 확인 오류:', e);
+            // 오류 발생 시 안전하게 매크로 패널 숨김
+            document.getElementById('macroPanel').style.display = 'none';
         }
     }
 
@@ -1128,7 +1134,7 @@
     // 매크로 시스템 함수들
     function startMacro() {
         if (!hasMacro) {
-            alert('매크로를 먼저 구매해주세요!');
+            alert('매크로를 먼저 구매해주세요!\n상점에서 자동 강화 매크로를 구매할 수 있습니다.');
             return;
         }
         
@@ -1138,13 +1144,30 @@
         }
         
         const targetLevel = parseInt(document.getElementById('targetLevel').value);
-        if (targetLevel <= user.current_sword_lvl) {
-            alert('목표 레벨은 현재 레벨보다 높아야 합니다.');
+        
+        // 입력 값 검증
+        if (isNaN(targetLevel) || targetLevel < 1 || targetLevel > 20) {
+            alert('목표 레벨은 1~20 사이의 숫자여야 합니다.');
+            document.getElementById('targetLevel').value = Math.max(1, Math.min(20, user.current_sword_lvl + 1));
             return;
         }
         
-        if (targetLevel > 20) {
-            alert('목표 레벨은 최대 20까지 설정할 수 있습니다.');
+        if (targetLevel <= user.current_sword_lvl) {
+            alert(`목표 레벨은 현재 레벨(${user.current_sword_lvl}강)보다 높아야 합니다.`);
+            document.getElementById('targetLevel').value = Math.min(20, user.current_sword_lvl + 1);
+            return;
+        }
+        
+        // 비용 사전 체크
+        const isHidden = user.current_weapon_type === 'hidden';
+        const upgradeCost = getEnhancementCost(user.current_sword_lvl);
+        const costInMoney = Math.ceil(upgradeCost / 1000);
+        
+        if (isHidden && user.money < costInMoney) {
+            alert(`매크로 시작 불가: 머니가 부족합니다.\n필요: ${costInMoney}M, 보유: ${user.money}M`);
+            return;
+        } else if (!isHidden && user.gold < upgradeCost) {
+            alert(`매크로 시작 불가: 골드가 부족합니다.\n필요: ${upgradeCost.toLocaleString()}G, 보유: ${user.gold.toLocaleString()}G`);
             return;
         }
         
@@ -1155,7 +1178,7 @@
         document.getElementById('startMacroBtn').disabled = true;
         document.getElementById('stopMacroBtn').disabled = false;
         
-        addMacroLog(`매크로 시작: 목표 레벨 ${targetLevel}강`);
+        addMacroLog(`매크로 시작: 목표 레벨 ${targetLevel}강 (현재: ${user.current_sword_lvl}강)`);
         
         // 매크로 실행
         runMacroStep();

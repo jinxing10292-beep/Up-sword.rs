@@ -1,110 +1,163 @@
 # Implementation Tasks: Sword Enhancement System
 
-## Phase 1: Sword Name Generation (1,000 Names)
+## Overview
 
-- [ ] 1.1 Generate 800 common sword names (40 types × 21 levels)
-  - [ ] 1.1.1 Create naming patterns for 40 common sword types
-  - [ ] 1.1.2 Generate level 0-20 names for each type with increasing grandeur
-  - [ ] 1.1.3 Assign unique integer IDs (1-800) to each common sword variant
-  
-- [ ] 1.2 Generate 200 hidden sword names (10 types × 21 levels)
-  - [ ] 1.2.1 Create naming patterns for 10 hidden sword types
-  - [ ] 1.2.2 Generate level 0-20 names for each type with increasing grandeur
-  - [ ] 1.2.3 Assign unique integer IDs (801-1000) to each hidden sword variant
+This implementation plan focuses on completing the macro system and hidden sword system features that are partially implemented. The core sword enhancement, compendium, inventory, and battle systems are already functional.
 
-- [ ] 1.3 Create sword_names.json data file
-  - [ ] 1.3.1 Structure: { id, type, level, name, rarity, description }
-  - [ ] 1.3.2 Validate all 1,000 entries are unique and properly formatted
+## Tasks
 
-## Phase 2: Database Setup
+- [-] 1. Complete Macro System Implementation
+  - [x] 1.1 Fix macro purchase completion in shop.html
+    - Complete the macro purchase transaction flow
+    - Ensure proper error handling for insufficient funds
+    - Validate macro ownership persistence across sessions
+    - _Requirements: 6.1, 6.2_
 
-- [ ] 2.1 Create Supabase tables for sword system
-  - [ ] 2.1.1 Create `sword_variants` table (id, type, level, name, rarity, description)
-  - [ ] 2.1.2 Create `user_swords` table (user_id, sword_id, level, acquired_date)
-  - [ ] 2.1.3 Create `battles` table (id, player1_id, player2_id, winner_id, log, created_at)
-  - [ ] 2.1.4 Create `battle_logs` table (battle_id, step, action, damage, result)
+  - [ ]* 1.2 Write property test for macro purchase
+    - **Property 7: Macro Ownership Persistence**
+    - **Validates: Requirements 6.2, 6.3**
 
-- [ ] 2.2 Seed sword_variants table with 1,000 sword names
+  - [ ] 1.3 Enhance macro execution reliability
+    - Add proper error handling for database failures during macro execution
+    - Implement macro state recovery after page refresh
+    - Add validation for target level input (1-20 range)
+    - _Requirements: 6.4, 6.7, 6.8_
 
-## Phase 3: Sword Compendium Page
+  - [ ]* 1.4 Write property test for macro execution
+    - **Property 3: Macro Target Achievement**
+    - **Validates: Requirements 6.4, 6.6, 6.7, 6.8**
 
-- [ ] 3.1 Create sword_collection.html page
-  - [ ] 3.1.1 Display all 1,000 sword variants in grid/list format
-  - [ ] 3.1.2 Show sword name, type, level, ID, and rarity
-  - [ ] 3.1.3 Implement search/filter functionality by type and level
-  - [ ] 3.1.4 Add pagination or infinite scroll for performance
-  - [ ] 3.1.5 Display sword discovery status (owned/not owned)
+  - [ ] 1.5 Improve macro logging system
+    - Add log entry timestamps with millisecond precision
+    - Implement log export functionality for debugging
+    - Add log filtering by event type (success/fail/destroy)
+    - _Requirements: 6.5_
 
-- [ ] 3.2 Implement compendium data loading
-  - [ ] 3.2.1 Fetch all sword variants from database
-  - [ ] 3.2.2 Load user's discovered/owned swords
-  - [ ] 3.2.3 Cache data for performance
+  - [ ]* 1.6 Write property test for macro logging
+    - **Property 9: Macro Logging Completeness**
+    - **Validates: Requirements 6.5**
 
-## Phase 4: Inventory System
+- [ ] 2. Complete Hidden Sword System Implementation
+  - [ ] 2.1 Enhance hidden sword trigger mechanism
+    - Verify 1% probability implementation accuracy
+    - Add hidden sword trigger after sword sale completion
+    - Add hidden sword trigger after sword storage completion
+    - Ensure proper random number generation for probability
+    - _Requirements: 7.1, 7.6_
 
-- [ ] 4.1 Create inventory.html page
-  - [ ] 4.1.1 Display user's owned swords with details
-  - [ ] 4.1.2 Show sword name, type, level, ID, rarity
-  - [ ] 4.1.3 Implement sort/filter functionality
-  - [ ] 4.1.4 Add sword selection for battles
-  - [ ] 4.1.5 Show inventory capacity and usage
+  - [ ]* 2.2 Write property test for hidden sword probability
+    - **Property 4: Hidden Sword Probability Consistency**
+    - **Validates: Requirements 7.1, 7.2, 7.6**
 
-- [ ] 4.2 Implement inventory management logic
-  - [ ] 4.2.1 Add sword to inventory when enhanced/stored
-  - [ ] 4.2.2 Remove sword from inventory when sold/used
-  - [ ] 4.2.3 Update inventory in real-time
-  - [ ] 4.2.4 Persist inventory to database
+  - [ ] 2.3 Complete hidden sword currency system
+    - Verify money deduction during hidden sword enhancement
+    - Add proper currency validation before hidden sword enhancement
+    - Implement currency conversion display in UI (1000G = 1M)
+    - Add money balance checks in macro system for hidden swords
+    - _Requirements: 7.3, 7.5_
 
-## Phase 5: Battle System
+  - [ ]* 2.4 Write property test for hidden sword currency
+    - **Property 5: Hidden Sword Currency System**
+    - **Validates: Requirements 7.3, 7.5**
 
-- [ ] 5.1 Create battle.html page
-  - [ ] 5.1.1 Display battle creation interface
-  - [ ] 5.1.2 Show available opponents
-  - [ ] 5.1.3 Allow player to select sword from inventory
-  - [ ] 5.1.4 Display battle log in real-time
-  - [ ] 5.1.5 Show battle result and rewards
+  - [ ] 2.5 Improve hidden sword UI indicators
+    - Ensure "[HIDDEN]" prefix appears consistently in all UI contexts
+    - Add visual distinction for hidden sword enhancement costs (M vs G)
+    - Update macro panel to show money costs for hidden swords
+    - Add hidden sword acquisition notification improvements
+    - _Requirements: 7.4_
 
-- [ ] 5.2 Implement battle logic
-  - [ ] 5.2.1 Create battle between two players
-  - [ ] 5.2.2 Generate battle log with step-by-step actions
-  - [ ] 5.2.3 Calculate damage based on sword stats
-  - [ ] 5.2.4 Determine winner and update statistics
-  - [ ] 5.2.5 Record battle result in database
+  - [ ]* 2.6 Write property test for UI information display
+    - **Property 8: Required Information Display**
+    - **Validates: Requirements 2.2, 4.2, 7.4**
 
-- [ ] 5.3 Implement battle log generation
-  - [ ] 5.3.1 Generate realistic combat actions
-  - [ ] 5.3.2 Calculate damage for each action
-  - [ ] 5.3.3 Format log for display
-  - [ ] 5.3.4 Store log in database
+- [ ] 3. Database Integration Completion
+  - [ ] 3.1 Verify database schema for new features
+    - Confirm `has_macro` field exists in profiles table
+    - Verify `money` field exists and is properly initialized
+    - Add database indexes for performance optimization
+    - _Requirements: 6.2, 7.2_
 
-## Phase 6: Integration & Testing
+  - [ ] 3.2 Implement data persistence reliability
+    - Add transaction support for macro purchases
+    - Implement retry logic for failed database operations
+    - Add data validation before database updates
+    - Ensure atomic updates for currency changes
+    - _Requirements: 5.1, 5.3, 5.4_
 
-- [ ] 6.1 Integrate all components
-  - [ ] 6.1.1 Link compendium from main page
-  - [ ] 6.1.2 Link inventory from main page
-  - [ ] 6.1.3 Link battle system from main page
-  - [ ] 6.1.4 Update sword.html to save enhanced swords to inventory
+  - [ ]* 3.3 Write property test for data persistence
+    - **Property 6: Data Persistence Consistency**
+    - **Validates: Requirements 4.6, 5.1, 5.3, 5.4**
 
-- [ ] 6.2 Test all functionality
-  - [ ] 6.2.1 Test sword name generation
-  - [ ] 6.2.2 Test compendium display and filtering
-  - [ ] 6.2.3 Test inventory management
-  - [ ] 6.2.4 Test battle system and logging
-  - [ ] 6.2.5 Test data persistence
+- [ ] 4. Integration Testing and Bug Fixes
+  - [ ] 4.1 Test macro and hidden sword interaction
+    - Verify macro behavior with hidden swords (money vs gold)
+    - Test macro logging for hidden sword enhancements
+    - Ensure proper currency checks in macro execution
+    - Test hidden sword acquisition during macro execution
+    - _Requirements: 6.4, 7.3, 7.5_
 
-- [ ] 6.3 Performance optimization
-  - [ ] 6.3.1 Optimize database queries
-  - [ ] 6.3.2 Implement caching strategies
-  - [ ] 6.3.3 Optimize UI rendering for large datasets
+  - [ ] 4.2 Cross-page data synchronization
+    - Test macro ownership display after purchase in shop
+    - Verify hidden sword state persistence across page navigation
+    - Test currency synchronization between shop and enhancement pages
+    - Ensure proper data refresh on page visibility changes
+    - _Requirements: 6.3, 8.4_
 
-## Phase 7: Polish & Deployment
+  - [ ]* 4.3 Write integration tests
+    - Test end-to-end macro purchase and usage flow
+    - Test hidden sword acquisition and enhancement flow
+    - _Requirements: 6.1, 6.2, 6.3, 7.1, 7.2, 7.3_
 
-- [ ] 7.1 UI/UX improvements
-  - [ ] 7.1.1 Add animations and transitions
-  - [ ] 7.1.2 Improve responsive design
-  - [ ] 7.1.3 Add loading states and error handling
+- [ ] 5. Performance and User Experience Improvements
+  - [ ] 5.1 Optimize macro execution performance
+    - Reduce macro step interval for faster execution
+    - Implement batch database updates for macro operations
+    - Add progress indicators for long-running macro sessions
+    - Optimize UI updates during macro execution
+    - _Requirements: 6.4, 6.5_
 
-- [ ] 7.2 Final testing and deployment
-  - [ ] 7.2.1 Cross-browser testing
-  - [ ] 7.2.2 Mobile device testing
-  - [ ] 7.2.3 Deploy to production
+  - [ ] 5.2 Enhance error handling and user feedback
+    - Add comprehensive error messages for all failure scenarios
+    - Implement graceful degradation for network issues
+    - Add confirmation dialogs for destructive actions
+    - Improve loading states and user feedback
+    - _Requirements: 6.7, 8.2_
+
+  - [ ]* 5.3 Write unit tests for edge cases
+    - Test macro behavior with exactly 0 gold/money
+    - Test hidden sword probability at boundary conditions
+    - Test enhancement at maximum level (20)
+    - Test concurrent macro operations prevention
+
+- [ ] 6. Final Validation and Documentation
+  - [ ] 6.1 Comprehensive system testing
+    - Verify all 1,000 sword variants load correctly
+    - Test system behavior under high load (rapid clicking)
+    - Validate all currency calculations and conversions
+    - Ensure proper cleanup of intervals and event listeners
+    - _Requirements: 1.1, 1.7_
+
+  - [ ]* 6.2 Write property test for sword variant system
+    - **Property 10: Sword Variant Uniqueness**
+    - **Validates: Requirements 1.1, 1.7**
+
+  - [ ]* 6.3 Write property test for enhancement progression
+    - **Property 2: Enhancement Level Progression**
+    - **Validates: Requirements 1.2, 1.3**
+
+  - [ ]* 6.4 Write property test for name generation
+    - **Property 1: Sword Name Generation Consistency**
+    - **Validates: Requirements 1.4**
+
+- [ ] 7. Final checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notes
+
+- Tasks marked with `*` are optional property-based tests that can be skipped for faster completion
+- Each task references specific requirements for traceability
+- Focus on completing the partially implemented features rather than building from scratch
+- Property tests validate universal correctness properties using fast-check library
+- Unit tests validate specific examples and edge cases
+- Integration tests ensure end-to-end functionality works correctly

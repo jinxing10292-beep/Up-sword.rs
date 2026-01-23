@@ -15,6 +15,11 @@ This document specifies the requirements for a comprehensive sword enhancement s
 - **Inventory**: A collection of enhanced swords owned by the player
 - **Battle**: A player-versus-player combat encounter with logged progression
 - **Battle Log**: A record of battle events showing combat progression step-by-step
+- **Macro System**: An automated enhancement system that performs enhancement attempts until a target level or sword destruction
+- **Hidden Sword**: A rare sword type that uses money (M) instead of gold (G) for enhancement and appears with 1% probability
+- **Money (M)**: A secondary currency used for hidden sword enhancement, where 1000G = 1M
+- **Macro Control Panel**: The user interface for setting target levels and controlling automated enhancement
+- **Enhancement Log**: Real-time display of macro enhancement attempts showing success, failure, and destruction events
 
 ## Requirements
 
@@ -81,7 +86,36 @@ This document specifies the requirements for a comprehensive sword enhancement s
 3. WHEN inventory data is updated, THE Database_Layer SHALL synchronize changes with Supabase immediately
 4. WHEN a battle concludes, THE Database_Layer SHALL record the battle result and update player statistics
 
-### Requirement 6: UI/UX Integration
+### Requirement 6: Macro System
+
+**User Story:** As a player, I want to purchase and use an automated sword enhancement system, so that I can enhance swords to a target level without manual clicking.
+
+#### Acceptance Criteria
+
+1. WHEN a player visits the shop, THE Shop_System SHALL display the macro for purchase at 100 billion gold (100,000,000,000G)
+2. WHEN a player purchases the macro, THE Shop_System SHALL deduct the cost and set the has_macro flag permanently in their profile
+3. WHEN a player owns the macro, THE Enhancement_UI SHALL display the macro control panel on the sword enhancement page
+4. WHEN a player sets a target level and starts the macro, THE Macro_System SHALL automatically perform enhancement attempts until the target level is reached or the sword is destroyed
+5. WHEN the macro is running, THE Macro_System SHALL display real-time enhancement logs showing success, failure, and destruction events
+6. WHEN a player clicks stop during macro operation, THE Macro_System SHALL immediately halt the automated enhancement process
+7. WHEN the macro encounters insufficient funds, THE Macro_System SHALL stop automatically and display an appropriate message
+8. WHEN the macro reaches the target level, THE Macro_System SHALL stop automatically and display a completion message
+
+### Requirement 7: Hidden Sword System
+
+**User Story:** As a player, I want a chance to obtain special hidden swords with unique enhancement mechanics, so that I have rare rewards and different gameplay experiences.
+
+#### Acceptance Criteria
+
+1. WHEN a sword is destroyed, sold, or stored, THE Hidden_Sword_System SHALL have a 1% chance to trigger the hidden sword event
+2. WHEN the hidden sword event triggers, THE Hidden_Sword_System SHALL immediately award 100 money (M) to the player
+3. WHEN a hidden sword is obtained, THE Enhancement_System SHALL use money instead of gold for enhancement costs at a conversion rate of 1000G = 1M
+4. WHEN a hidden sword appears, THE UI_System SHALL display "[HIDDEN]" prefix in the sword name and show enhancement costs in money (M) instead of gold (G)
+5. WHEN a hidden sword is enhanced, THE Enhancement_System SHALL deduct money from the player's money balance instead of gold
+6. WHEN a hidden sword is destroyed, THE Hidden_Sword_System SHALL have the same 1% chance to trigger another hidden sword event
+7. THE Hidden_Sword_System SHALL select from 3 different hidden sword variants (hidden_sword_01, hidden_sword_02, hidden_sword_03) when triggered
+
+### Requirement 8: UI/UX Integration
 
 **User Story:** As a player, I want a seamless user experience across all sword enhancement features, so that I can easily navigate between compendium, inventory, enhancement, and battle screens.
 
