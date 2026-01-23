@@ -338,11 +338,16 @@
                     updateData.used_enhance_scroll = true;
                 }
                 
-                await supabaseClient
+                const { error: updateErr } = await supabaseClient
                     .from('profiles')
                     .update(updateData)
                     .eq('id', user.id);
                 
+                if (updateErr) {
+                    throw updateErr;
+                }
+                
+                // 데이터베이스 업데이트 성공 후 로컬 변수 업데이트
                 user.current_sword_lvl = result.newLevel;
                 if (result.weaponType) user.current_weapon_type = result.weaponType;
                 if (result.weaponKey) user.current_weapon_key = result.weaponKey;
@@ -560,6 +565,7 @@
             newLevel = currentLevel;
         }
         
+        // 데이터베이스 업데이트 먼저 수행하고 에러 체크
         const { error } = await supabaseClient
             .from('profiles')
             .update({ 
@@ -571,8 +577,17 @@
             })
             .eq('id', user.id);
 
+        if (error) {
+            console.error('강화 업데이트 오류:', error);
+            alert('강화 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+            isUpgrading = false;
+            img.classList.remove('hammering');
+            return;
+        }
+
         setTimeout(() => {
             img.classList.remove('hammering');
+            // 데이터베이스 업데이트 성공 후 로컬 변수 업데이트
             user.current_sword_lvl = newLevel;
             user.current_weapon_type = nextWeaponType;
             user.current_weapon_key = nextWeaponKey;
@@ -653,10 +668,14 @@
             }
 
             // reset current sword to 0 after storing
-            user.current_sword_lvl = 0;
-            await supabaseClient.from('profiles')
+            const { error: resetErr } = await supabaseClient.from('profiles')
                 .update({ current_sword_lvl: 0 })
                 .eq('id', user.id);
+            
+            if (resetErr) throw resetErr;
+            
+            // 데이터베이스 업데이트 성공 후 로컬 변수 업데이트
+            user.current_sword_lvl = 0;
             updateUI();
 
             alert('현재 검을 인벤토리에 보관했습니다.');
@@ -734,18 +753,28 @@
         const penaltyMsg = usedEnhanceScroll ? '\n※ 확정 강화권 사용으로 판매가 50% 감소 적용됨' : '';
         if (!confirm(`${sellPrice.toLocaleString()}G에 판매하시겠습니까?${penaltyMsg}`)) return;
 
-        user.gold += sellPrice;
-        user.current_sword_lvl = 0;
-        user.used_enhance_scroll = false; // 판매 후 플래그 초기화
-        
-        await supabaseClient.from('profiles')
+        // 데이터베이스 업데이트 먼저 수행
+        const newGold = user.gold + sellPrice;
+        const { error } = await supabaseClient.from('profiles')
             .update({ 
-                gold: user.gold, 
+                gold: newGold, 
                 current_sword_lvl: 0,
                 used_enhance_scroll: false
             })
             .eq('id', user.id);
+        
+        if (error) {
+            alert('판매 중 오류가 발생했습니다: ' + error.message);
+            return;
+        }
+        
+        // 데이터베이스 업데이트 성공 후 로컬 변수 업데이트
+        user.gold = newGold;
+        user.current_sword_lvl = 0;
+        user.used_enhance_scroll = false;
+        
         updateUI();
+        alert(`${sellPrice.toLocaleString()}G에 판매되었습니다!`);
     }
 
     function showEffect(win, message) {
