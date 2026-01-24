@@ -865,28 +865,28 @@
     }
     
     function getEnhancementRates(level) {
-        // Format: { success: %, maintain: %, destroy: % } - 10강부터 더 어렵게 조정
+        // Format: { success: %, maintain: %, destroy: % } - 전체적으로 더 어렵게 조정
         const rates = [
-            { success: 85, maintain: 15, destroy: 0 },   // 0 → 1
-            { success: 80, maintain: 20, destroy: 0 },   // 1 → 2
-            { success: 75, maintain: 25, destroy: 0 },   // 2 → 3
-            { success: 70, maintain: 30, destroy: 0 },   // 3 → 4
-            { success: 65, maintain: 35, destroy: 0 },   // 4 → 5
-            { success: 60, maintain: 39, destroy: 1 },   // 5 → 6
-            { success: 55, maintain: 43, destroy: 2 },   // 6 → 7
-            { success: 50, maintain: 47, destroy: 3 },   // 7 → 8
-            { success: 45, maintain: 51, destroy: 4 },   // 8 → 9
-            { success: 40, maintain: 55, destroy: 5 },   // 9 → 10
-            { success: 30, maintain: 50, destroy: 20 },  // 10 → 11 (성공↓, 유지↓, 파괴↑)
-            { success: 25, maintain: 45, destroy: 30 },  // 11 → 12
-            { success: 20, maintain: 40, destroy: 40 },  // 12 → 13
-            { success: 17, maintain: 33, destroy: 50 },  // 13 → 14
-            { success: 15, maintain: 30, destroy: 55 },  // 14 → 15
-            { success: 13, maintain: 27, destroy: 60 },  // 15 → 16
-            { success: 10, maintain: 25, destroy: 65 },  // 16 → 17
-            { success: 8, maintain: 22, destroy: 70 },   // 17 → 18
-            { success: 5, maintain: 20, destroy: 75 },   // 18 → 19
-            { success: 3, maintain: 17, destroy: 80 }    // 19 → 20 (매우 어려움)
+            { success: 80, maintain: 20, destroy: 0 },   // 0 → 1
+            { success: 75, maintain: 25, destroy: 0 },   // 1 → 2
+            { success: 70, maintain: 30, destroy: 0 },   // 2 → 3
+            { success: 65, maintain: 35, destroy: 0 },   // 3 → 4
+            { success: 60, maintain: 38, destroy: 2 },   // 4 → 5
+            { success: 55, maintain: 40, destroy: 5 },   // 5 → 6
+            { success: 50, maintain: 40, destroy: 10 },  // 6 → 7
+            { success: 45, maintain: 40, destroy: 15 },  // 7 → 8
+            { success: 40, maintain: 40, destroy: 20 },  // 8 → 9
+            { success: 35, maintain: 40, destroy: 25 },  // 9 → 10
+            { success: 25, maintain: 35, destroy: 40 },  // 10 → 11 (매우 어려움)
+            { success: 20, maintain: 30, destroy: 50 },  // 11 → 12
+            { success: 17, maintain: 25, destroy: 58 },  // 12 → 13
+            { success: 15, maintain: 20, destroy: 65 },  // 13 → 14
+            { success: 12, maintain: 18, destroy: 70 },  // 14 → 15
+            { success: 10, maintain: 15, destroy: 75 },  // 15 → 16
+            { success: 8, maintain: 12, destroy: 80 },   // 16 → 17
+            { success: 5, maintain: 10, destroy: 85 },   // 17 → 18
+            { success: 3, maintain: 7, destroy: 90 },    // 18 → 19
+            { success: 1, maintain: 4, destroy: 95 }     // 19 → 20 (거의 불가능)
         ];
         
         return rates[level] || { success: 0, maintain: 0, destroy: 0 };
