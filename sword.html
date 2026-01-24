@@ -574,7 +574,10 @@
         
         document.getElementById('stat-sell').innerText = sellPrice.toLocaleString() + "G";
         document.getElementById('stat-rate').innerText = successRate + "%";
-        document.getElementById('s-img').src = item.image_url;
+        
+        // 이미지 URL이 없으면 기본 이미지 사용
+        const imageUrl = item.image_url || 'https://via.placeholder.com/300x300?text=Sword';
+        document.getElementById('s-img').src = imageUrl;
     }
 
     function getSwordDataForLevel(level) {
@@ -584,7 +587,13 @@
         for (let i = lv; i >= 0; i--) {
             if (swords[i]) return swords[i];
         }
-        return swords[1];
+        
+        // 기본값 반환
+        return swords[1] || {
+            level: lv,
+            description: `+${lv} 강화 검`,
+            image_url: 'https://via.placeholder.com/300x300?text=Sword'
+        };
     }
     
     function getSuccessRate(level) {
