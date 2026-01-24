@@ -52,6 +52,35 @@
     </div>
     <div id="notification" class="notification"></div>
 
+    <!-- 로그 확인 모달 -->
+    <div id="logModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; overflow-y:auto;">
+        <div style="max-width:1000px; margin:50px auto; background:white; border-radius:10px; padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 id="logModalTitle">활동 로그</h2>
+                <button onclick="closeLogModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            
+            <!-- 통계 요약 -->
+            <div id="logStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:20px;"></div>
+            
+            <!-- 로그 목록 -->
+            <div style="max-height:500px; overflow-y:auto; border:1px solid #ddd; border-radius:5px;">
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead style="position:sticky; top:0; background:#f8f9fa;">
+                        <tr>
+                            <th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">시간</th>
+                            <th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">활동</th>
+                            <th style="padding:10px; border-bottom:2px solid #ddd; text-align:right;">골드 변화</th>
+                            <th style="padding:10px; border-bottom:2px solid #ddd; text-align:right;">머니 변화</th>
+                            <th style="padding:10px; border-bottom:2px solid #ddd; text-align:left;">상세</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script>
         const S_URL = 'https://utfrjzcnefsbuadnkdud.supabase.co';
         const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZnJqemNuZWZzYnVhZG5rZHVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MjE1MTYsImV4cCI6MjA4MjM5NzUxNn0.D3Za1nMw-x0JwOpkFuYceUHlagcpRdrpFqNUIP5Kjdc';
@@ -120,6 +149,7 @@
                     </div>
                     <div style="margin-left:auto; display:flex; gap:5px;">
                         <button class="btn btn-save" onclick="updateUser('${u.id}')">저장</button>
+                        <button class="btn" style="background-color: #6c757d; color: white;" onclick="showUserLogs('${u.id}', '${u.nickname || '이름없음'}')">로그 확인</button>
                         <button class="btn btn-ban" onclick="showBanModal('${u.id}', ${!u.is_banned}, '${u.nickname || '이름없음'}')">
                             ${u.is_banned ? '해제' : '정지'}
                         </button>
@@ -321,6 +351,132 @@
             n.textContent = msg;
             n.className = `notification ${type} show`;
             setTimeout(() => n.classList.remove('show'), 2000);
+        }
+
+        async function showUserLogs(userId, nickname) {
+            try {
+                document.getElementById('logModalTitle').innerText = `${nickname}님의 활동 로그`;
+                document.getElementById('logModal').style.display = 'block';
+                
+                // 통계 로드
+                const { data: stats, error: statsError } = await client.rpc('get_user_activity_stats', {
+                    target_user_id: userId
+                });
+                
+                if (statsError) {
+                    console.error('통계 로드 오류:', statsError);
+                }
+                
+                renderLogStats(stats || []);
+                
+                // 최근 활동 로드
+                const { data: logs, error: logsError } = await client.rpc('get_recent_user_activities', {
+                    target_user_id: userId,
+                    limit_count: 200
+                });
+                
+                if (logsError) {
+                    console.error('로그 로드 오류:', logsError);
+                    showNotification('로그 로드 실패: ' + logsError.message, 'error');
+                    return;
+                }
+                
+                renderLogs(logs || []);
+            } catch (error) {
+                console.error('로그 표시 오류:', error);
+                showNotification('로그 표시 실패: ' + error.message, 'error');
+            }
+        }
+        
+        function renderLogStats(stats) {
+            const statsDiv = document.getElementById('logStats');
+            if (!stats || stats.length === 0) {
+                statsDiv.innerHTML = '<div style="padding:20px; text-align:center; color:#6c757d;">통계 데이터가 없습니다.</div>';
+                return;
+            }
+            
+            const activityNames = {
+                'sword_enhance_success': '검 강화 성공',
+                'sword_enhance_fail': '검 강화 실패',
+                'sword_enhance_destroy': '검 파괴',
+                'sword_sell': '검 판매',
+                'roulette_win': '룰렛 승리',
+                'roulette_lose': '룰렛 패배',
+                'battle_win': '배틀 승리',
+                'battle_lose': '배틀 패배',
+                'shop_purchase': '상점 구매',
+                'daily_check': '출석 체크',
+                'mission_reward': '미션 보상',
+                'achievement_reward': '업적 보상'
+            };
+            
+            statsDiv.innerHTML = stats.map(s => `
+                <div style="background:#f8f9fa; padding:15px; border-radius:8px; border-left:4px solid ${s.net_gold_change + s.net_money_change >= 0 ? '#28a745' : '#dc3545'};">
+                    <div style="font-weight:700; margin-bottom:8px;">${activityNames[s.activity_type] || s.activity_type}</div>
+                    <div style="font-size:0.9em; color:#6c757d;">횟수: ${s.total_count}회</div>
+                    <div style="font-size:0.9em; color:#28a745;">골드 획득: +${(s.total_gold_gained || 0).toLocaleString()}G</div>
+                    <div style="font-size:0.9em; color:#dc3545;">골드 손실: -${(s.total_gold_lost || 0).toLocaleString()}G</div>
+                    <div style="font-size:0.9em; color:#28a745;">머니 획득: +${(s.total_money_gained || 0).toLocaleString()}M</div>
+                    <div style="font-size:0.9em; color:#dc3545;">머니 손실: -${(s.total_money_lost || 0).toLocaleString()}M</div>
+                    <div style="font-weight:700; margin-top:8px; color:${s.net_gold_change >= 0 ? '#28a745' : '#dc3545'};">
+                        순 골드: ${s.net_gold_change >= 0 ? '+' : ''}${(s.net_gold_change || 0).toLocaleString()}G
+                    </div>
+                    <div style="font-weight:700; color:${s.net_money_change >= 0 ? '#28a745' : '#dc3545'};">
+                        순 머니: ${s.net_money_change >= 0 ? '+' : ''}${(s.net_money_change || 0).toLocaleString()}M
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function renderLogs(logs) {
+            const tbody = document.getElementById('logTableBody');
+            if (!logs || logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="padding:20px; text-align:center; color:#6c757d;">활동 로그가 없습니다.</td></tr>';
+                return;
+            }
+            
+            const activityNames = {
+                'sword_enhance_success': '검 강화 성공',
+                'sword_enhance_fail': '검 강화 실패',
+                'sword_enhance_destroy': '검 파괴',
+                'sword_sell': '검 판매',
+                'sword_store': '검 보관',
+                'roulette_win': '룰렛 승리',
+                'roulette_lose': '룰렛 패배',
+                'battle_win': '배틀 승리',
+                'battle_lose': '배틀 패배',
+                'shop_purchase': '상점 구매',
+                'daily_check': '출석 체크',
+                'mission_reward': '미션 보상',
+                'achievement_reward': '업적 보상',
+                'admin_adjust': '관리자 조정'
+            };
+            
+            tbody.innerHTML = logs.map(log => {
+                const date = new Date(log.created_at);
+                const timeStr = date.toLocaleString('ko-KR');
+                const goldChange = log.gold_change || 0;
+                const moneyChange = log.money_change || 0;
+                const details = log.details ? JSON.stringify(log.details) : '-';
+                
+                return `
+                    <tr style="border-bottom:1px solid #e9ecef;">
+                        <td style="padding:10px; font-size:0.9em;">${timeStr}</td>
+                        <td style="padding:10px;">${activityNames[log.activity_type] || log.activity_type}</td>
+                        <td style="padding:10px; text-align:right; color:${goldChange >= 0 ? '#28a745' : '#dc3545'}; font-weight:600;">
+                            ${goldChange >= 0 ? '+' : ''}${goldChange.toLocaleString()}G
+                        </td>
+                        <td style="padding:10px; text-align:right; color:${moneyChange >= 0 ? '#28a745' : '#dc3545'}; font-weight:600;">
+                            ${moneyChange >= 0 ? '+' : ''}${moneyChange.toLocaleString()}M
+                        </td>
+                        <td style="padding:10px; font-size:0.85em; color:#6c757d; max-width:200px; overflow:hidden; text-overflow:ellipsis;">${details}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function closeLogModal() {
+            document.getElementById('logModal').style.display = 'none';
         }
 
         async function handleLogout() {
