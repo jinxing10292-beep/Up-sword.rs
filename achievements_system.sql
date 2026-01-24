@@ -139,8 +139,37 @@ CREATE POLICY "Users can update their own milestone progress"
 -- 업적 데이터 삽입
 -- ============================================
 
--- 기존 업적 삭제 (중복 방지)
-DELETE FROM achievements WHERE category IN ('sword', 'gold', 'money', 'battle', 'roulette');
+-- 기존 업적 삭제 (중복 방지) - category가 있는 경우만
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'achievements' AND column_name = 'category'
+    ) THEN
+        DELETE FROM achievements WHERE category IN ('sword', 'gold', 'money', 'battle', 'roulette');
+    END IF;
+END $$;
+
+-- id 컬럼의 시퀀스 확인 및 수정
+DO $$
+BEGIN
+    -- achievements 테이블의 id 컬럼이 시퀀스를 사용하도록 설정
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_attrdef 
+        WHERE adrelid = 'achievements'::regclass 
+        AND adnum = (SELECT attnum FROM pg_attribute WHERE attrelid = 'achievements'::regclass AND attname = 'id')
+        AND pg_get_expr(adbin, adrelid) LIKE '%nextval%'
+    ) THEN
+        -- 시퀀스 생성
+        CREATE SEQUENCE IF NOT EXISTS achievements_id_seq;
+        -- id 컬럼에 시퀀스 기본값 설정
+        ALTER TABLE achievements ALTER COLUMN id SET DEFAULT nextval('achievements_id_seq');
+        -- 시퀀스 소유권 설정
+        ALTER SEQUENCE achievements_id_seq OWNED BY achievements.id;
+        -- 현재 최대 id 값으로 시퀀스 초기화
+        PERFORM setval('achievements_id_seq', COALESCE((SELECT MAX(id) FROM achievements), 0) + 1, false);
+    END IF;
+END $$;
 
 -- 검 관련 업적
 INSERT INTO achievements (title, description, target, active, category, reward_gold, reward_money) VALUES
