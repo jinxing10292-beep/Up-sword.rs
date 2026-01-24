@@ -174,13 +174,6 @@
     let macroLog = [];
     let macroInterval = null;
     let hasMacro = false; // 매크로 구매 여부
-    
-    // 매크로 관련 변수
-    let macroActive = false;
-    let macroInterval = null;
-    let macroTargetLevel = 10;
-    let macroLog = [];
-    let hasMacro = false;
 
     async function getVariantName(weaponKey, level) {
         const cl = Math.max(0, Math.min(20, parseInt(level || 0, 10)));
