@@ -130,49 +130,44 @@
             
             userSwords = swords || [];
             
-            // 검을 가진 플레이어만 로드
+            // 검을 가진 플레이어만 로드 (효율적인 방법)
             const { data: usersWithSwords, error: usersError } = await supabaseClient
-                .from('profiles')
-                .select(`
-                    id, 
-                    nickname
-                `)
-                .neq('id', user.id)
+                .from('user_swords')
+                .select('user_id, profiles!inner(id, nickname)')
+                .neq('user_id', user.id)
                 .limit(100);
             
             if (usersError) {
                 console.error('유저 로드 오류:', usersError);
-            }
-            
-            // 각 유저가 검을 가지고 있는지 확인
-            const usersWithSwordsFiltered = [];
-            for (const u of (usersWithSwords || [])) {
-                const { data: hasSwords } = await supabaseClient
-                    .from('user_swords')
-                    .select('id')
-                    .eq('user_id', u.id)
-                    .limit(1);
+                // 오류 발생 시 대체 방법 사용
+                const { data: allProfiles } = await supabaseClient
+                    .from('profiles')
+                    .select('id, nickname')
+                    .neq('id', user.id)
+                    .limit(50);
                 
-                if (hasSwords && hasSwords.length > 0) {
-                    usersWithSwordsFiltered.push(u);
-                }
+                allUsers = (allProfiles || []).map(p => ({
+                    id: p.id,
+                    nickname: p.nickname || p.id
+                }));
+            } else {
+                // 중복 제거 (한 유저가 여러 검을 가진 경우)
+                const uniqueUsers = [];
+                const seenIds = new Set();
+                
+                (usersWithSwords || []).forEach(item => {
+                    const u = item.profiles;
+                    if (u && !seenIds.has(u.id)) {
+                        seenIds.add(u.id);
+                        uniqueUsers.push({
+                            id: u.id,
+                            nickname: u.nickname || u.id
+                        });
+                    }
+                });
+                
+                allUsers = uniqueUsers;
             }
-            
-            // 중복 제거 (한 유저가 여러 검을 가진 경우)
-            const uniqueUsers = [];
-            const seenIds = new Set();
-            
-            usersWithSwordsFiltered.forEach(u => {
-                if (!seenIds.has(u.id)) {
-                    seenIds.add(u.id);
-                    uniqueUsers.push({
-                        id: u.id,
-                        nickname: u.nickname
-                    });
-                }
-            });
-            
-            allUsers = uniqueUsers;
             
             document.getElementById('loadingDiv').style.display = 'none';
             populateSelects();

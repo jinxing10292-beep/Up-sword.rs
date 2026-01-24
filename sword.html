@@ -856,7 +856,7 @@
     }
     
     function getEnhancementRates(level) {
-        // Format: { success: %, maintain: %, destroy: % } - 파괴 확률 감소, 성공 확률 증가
+        // Format: { success: %, maintain: %, destroy: % } - 10강부터 더 어렵게 조정
         const rates = [
             { success: 85, maintain: 15, destroy: 0 },   // 0 → 1
             { success: 80, maintain: 20, destroy: 0 },   // 1 → 2
@@ -868,16 +868,16 @@
             { success: 50, maintain: 47, destroy: 3 },   // 7 → 8
             { success: 45, maintain: 51, destroy: 4 },   // 8 → 9
             { success: 40, maintain: 55, destroy: 5 },   // 9 → 10
-            { success: 35, maintain: 60, destroy: 5 },   // 10 → 11
-            { success: 30, maintain: 65, destroy: 5 },   // 11 → 12
-            { success: 25, maintain: 70, destroy: 5 },   // 12 → 13
-            { success: 20, maintain: 75, destroy: 5 },   // 13 → 14
-            { success: 17, maintain: 78, destroy: 5 },   // 14 → 15
-            { success: 15, maintain: 80, destroy: 5 },   // 15 → 16
-            { success: 13, maintain: 82, destroy: 5 },   // 16 → 17
-            { success: 10, maintain: 85, destroy: 5 },   // 17 → 18
-            { success: 8, maintain: 87, destroy: 5 },    // 18 → 19
-            { success: 5, maintain: 90, destroy: 5 }     // 19 → 20
+            { success: 30, maintain: 50, destroy: 20 },  // 10 → 11 (성공↓, 유지↓, 파괴↑)
+            { success: 25, maintain: 45, destroy: 30 },  // 11 → 12
+            { success: 20, maintain: 40, destroy: 40 },  // 12 → 13
+            { success: 17, maintain: 33, destroy: 50 },  // 13 → 14
+            { success: 15, maintain: 30, destroy: 55 },  // 14 → 15
+            { success: 13, maintain: 27, destroy: 60 },  // 15 → 16
+            { success: 10, maintain: 25, destroy: 65 },  // 16 → 17
+            { success: 8, maintain: 22, destroy: 70 },   // 17 → 18
+            { success: 5, maintain: 20, destroy: 75 },   // 18 → 19
+            { success: 3, maintain: 17, destroy: 80 }    // 19 → 20 (매우 어려움)
         ];
         
         return rates[level] || { success: 0, maintain: 0, destroy: 0 };
