@@ -152,6 +152,8 @@ END $$;
 
 -- id 컬럼의 시퀀스 확인 및 수정
 DO $$
+DECLARE
+    max_id INTEGER;
 BEGIN
     -- achievements 테이블의 id 컬럼이 시퀀스를 사용하도록 설정
     IF NOT EXISTS (
@@ -166,8 +168,16 @@ BEGIN
         ALTER TABLE achievements ALTER COLUMN id SET DEFAULT nextval('achievements_id_seq');
         -- 시퀀스 소유권 설정
         ALTER SEQUENCE achievements_id_seq OWNED BY achievements.id;
-        -- 현재 최대 id 값으로 시퀀스 초기화
-        PERFORM setval('achievements_id_seq', COALESCE((SELECT MAX(id) FROM achievements), 0) + 1, false);
+        
+        -- 현재 최대 id 값으로 시퀀스 초기화 (타입 변환 처리)
+        BEGIN
+            -- id가 숫자형인 경우
+            SELECT COALESCE(MAX(id::INTEGER), 0) + 1 INTO max_id FROM achievements;
+            PERFORM setval('achievements_id_seq', max_id, false);
+        EXCEPTION WHEN OTHERS THEN
+            -- id가 숫자로 변환 불가능한 경우 1부터 시작
+            PERFORM setval('achievements_id_seq', 1, false);
+        END;
     END IF;
 END $$;
 
