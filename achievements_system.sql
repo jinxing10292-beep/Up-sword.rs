@@ -143,48 +143,48 @@ CREATE POLICY "Users can update their own milestone progress"
 DELETE FROM achievements WHERE category IN ('sword', 'gold', 'money', 'battle', 'roulette');
 
 -- 검 관련 업적
-INSERT INTO achievements (title, description, category, target, reward_gold, reward_money) VALUES
-('검의 시작', '검을 +1 강화하세요', 'sword', 1, 1000, 0),
-('초보 대장장이', '검을 +5 강화하세요', 'sword', 5, 5000, 0),
-('숙련된 대장장이', '검을 +10 강화하세요', 'sword', 10, 20000, 5),
-('마스터 대장장이', '검을 +15 강화하세요', 'sword', 15, 100000, 20),
-('전설의 대장장이', '검을 +20 강화하세요', 'sword', 20, 500000, 100),
-('강화 중독자', '총 100번 강화하세요', 'sword', 100, 50000, 10),
-('강화 마니아', '총 500번 강화하세요', 'sword', 500, 200000, 50),
-('강화의 신', '총 1000번 강화하세요', 'sword', 1000, 1000000, 200),
-('검 수집가', '인벤토리에 검 10개를 보관하세요', 'sword', 10, 30000, 10),
-('검 박물관', '인벤토리에 검 50개를 보관하세요', 'sword', 50, 200000, 50);
+INSERT INTO achievements (title, description, target, active, category, reward_gold, reward_money) VALUES
+('검의 시작', '검을 +1 강화하세요', 1, true, 'sword', 1000, 0),
+('초보 대장장이', '검을 +5 강화하세요', 5, true, 'sword', 5000, 0),
+('숙련된 대장장이', '검을 +10 강화하세요', 10, true, 'sword', 20000, 5),
+('마스터 대장장이', '검을 +15 강화하세요', 15, true, 'sword', 100000, 20),
+('전설의 대장장이', '검을 +20 강화하세요', 20, true, 'sword', 500000, 100),
+('강화 중독자', '총 100번 강화하세요', 100, true, 'sword', 50000, 10),
+('강화 마니아', '총 500번 강화하세요', 500, true, 'sword', 200000, 50),
+('강화의 신', '총 1000번 강화하세요', 1000, true, 'sword', 1000000, 200),
+('검 수집가', '인벤토리에 검 10개를 보관하세요', 10, true, 'sword', 30000, 10),
+('검 박물관', '인벤토리에 검 50개를 보관하세요', 50, true, 'sword', 200000, 50);
 
 -- 골드 관련 업적
-INSERT INTO achievements (title, description, category, target, reward_gold, reward_money) VALUES
-('첫 재산', '골드 10,000G를 모으세요', 'gold', 10000, 5000, 0),
-('부자의 시작', '골드 100,000G를 모으세요', 'gold', 100000, 20000, 5),
-('백만장자', '골드 1,000,000G를 모으세요', 'gold', 1000000, 100000, 20),
-('억만장자', '골드 10,000,000G를 모으세요', 'gold', 10000000, 500000, 100),
-('골드 마스터', '골드 100,000,000G를 모으세요', 'gold', 100000000, 2000000, 500);
+INSERT INTO achievements (title, description, target, active, category, reward_gold, reward_money) VALUES
+('첫 재산', '골드 10,000G를 모으세요', 10000, true, 'gold', 5000, 0),
+('부자의 시작', '골드 100,000G를 모으세요', 100000, true, 'gold', 20000, 5),
+('백만장자', '골드 1,000,000G를 모으세요', 1000000, true, 'gold', 100000, 20),
+('억만장자', '골드 10,000,000G를 모으세요', 10000000, true, 'gold', 500000, 100),
+('골드 마스터', '골드 100,000,000G를 모으세요', 100000000, true, 'gold', 2000000, 500);
 
 -- 머니 관련 업적
-INSERT INTO achievements (title, description, category, target, reward_gold, reward_money) VALUES
-('머니의 시작', '머니 10M을 모으세요', 'money', 10, 10000, 5),
-('머니 수집가', '머니 100M을 모으세요', 'money', 100, 50000, 20),
-('머니 부자', '머니 1,000M을 모으세요', 'money', 1000, 200000, 100),
-('머니 재벌', '머니 10,000M을 모으세요', 'money', 10000, 1000000, 500),
-('머니 황제', '머니 100,000M을 모으세요', 'money', 100000, 5000000, 2000);
+INSERT INTO achievements (title, description, target, active, category, reward_gold, reward_money) VALUES
+('머니의 시작', '머니 10M을 모으세요', 10, true, 'money', 10000, 5),
+('머니 수집가', '머니 100M을 모으세요', 100, true, 'money', 50000, 20),
+('머니 부자', '머니 1,000M을 모으세요', 1000, true, 'money', 200000, 100),
+('머니 재벌', '머니 10,000M을 모으세요', 10000, true, 'money', 1000000, 500),
+('머니 황제', '머니 100,000M을 모으세요', 100000, true, 'money', 5000000, 2000);
 
 -- 전투 관련 업적
-INSERT INTO achievements (title, description, category, target, reward_gold, reward_money) VALUES
-('첫 승리', '전투에서 1번 승리하세요', 'battle', 1, 5000, 0),
-('전투 입문자', '전투에서 10번 승리하세요', 'battle', 10, 20000, 5),
-('전투 고수', '전투에서 50번 승리하세요', 'battle', 50, 100000, 30),
-('전투 마스터', '전투에서 100번 승리하세요', 'battle', 100, 300000, 100),
-('무적의 전사', '전투에서 500번 승리하세요', 'battle', 500, 1000000, 300);
+INSERT INTO achievements (title, description, target, active, category, reward_gold, reward_money) VALUES
+('첫 승리', '전투에서 1번 승리하세요', 1, true, 'battle', 5000, 0),
+('전투 입문자', '전투에서 10번 승리하세요', 10, true, 'battle', 20000, 5),
+('전투 고수', '전투에서 50번 승리하세요', 50, true, 'battle', 100000, 30),
+('전투 마스터', '전투에서 100번 승리하세요', 100, true, 'battle', 300000, 100),
+('무적의 전사', '전투에서 500번 승리하세요', 500, true, 'battle', 1000000, 300);
 
 -- 룰렛 관련 업적
-INSERT INTO achievements (title, description, category, target, reward_gold, reward_money) VALUES
-('행운의 시작', '룰렛에서 1번 승리하세요', 'roulette', 1, 5000, 0),
-('도박꾼', '룰렛에서 10번 승리하세요', 'roulette', 10, 30000, 10),
-('행운아', '룰렛에서 50번 승리하세요', 'roulette', 50, 150000, 10),
-('카지노 왕', '룰렛에서 100번 승리하세요', 'roulette', 100, 500000, 10);
+INSERT INTO achievements (title, description, target, active, category, reward_gold, reward_money) VALUES
+('행운의 시작', '룰렛에서 1번 승리하세요', 1, true, 'roulette', 5000, 0),
+('도박꾼', '룰렛에서 10번 승리하세요', 10, true, 'roulette', 30000, 10),
+('행운아', '룰렛에서 50번 승리하세요', 50, true, 'roulette', 150000, 50),
+('카지노 왕', '룰렛에서 100번 승리하세요', 100, true, 'roulette', 500000, 150);
 
 -- ============================================
 -- 마일스톤 보상 데이터 삽입
