@@ -180,6 +180,9 @@
 
         updateUI();
         document.getElementById('main-ui').style.display = 'flex';
+        
+        // 월간 랭킹 보상 확인
+        checkMonthlyRankingReward();
     }
 
     function updateUI() {
@@ -299,6 +302,46 @@
 
     function resetToDefaultAvatar() { document.getElementById('edit-avatar-prev').src = DEFAULT_AVATAR; }
     async function handleLogout() { await supabaseClient.auth.signOut(); window.location.href = "login.html"; }
+
+    // 월간 랭킹 보상 확인
+    async function checkMonthlyRankingReward() {
+        try {
+            const { data: rewards } = await supabaseClient
+                .from('monthly_ranking_rewards')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('claimed', false)
+                .order('created_at', { ascending: false });
+
+            if (rewards && rewards.length > 0) {
+                const reward = rewards[0];
+                const confirmMsg = `🎉 축하합니다!\n\n${reward.year}년 ${reward.month}월 랭킹 ${reward.rank}위 달성!\n보상: ${reward.reward_money}M\n\n보상을 받으시겠습니까?`;
+                
+                if (confirm(confirmMsg)) {
+                    const { data: result, error } = await supabaseClient.rpc('claim_monthly_ranking_reward', {
+                        reward_id: reward.id
+                    });
+
+                    if (error) {
+                        console.error('보상 수령 오류:', error);
+                        alert('보상 수령 중 오류가 발생했습니다.');
+                        return;
+                    }
+
+                    if (result && result.success) {
+                        alert(`${result.message}\n+${result.reward_money}M\n현재 머니: ${result.new_money}M`);
+                        // UI 업데이트
+                        user.money = result.new_money;
+                        updateUI();
+                    } else {
+                        alert(result.message || '보상 수령에 실패했습니다.');
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('월간 보상 확인 오류:', e);
+        }
+    }
 
     init();
 

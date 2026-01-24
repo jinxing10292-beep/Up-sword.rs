@@ -55,7 +55,7 @@ export const ROULETTE_CONFIG: RouletteConfiguration = {
     maxNumberBets: 3    // Changed from 5 to 3
   },
   payoutRates: {
-    numberBetMultiplier: 95,  // Changed from 100 to 95
+    numberBetMultiplier: 80,  // Changed from 95 to 80
     specialBetMultipliers: {
       red: 2,
       black: 2,

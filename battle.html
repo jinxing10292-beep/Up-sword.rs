@@ -131,21 +131,38 @@
             userSwords = swords || [];
             
             // 검을 가진 플레이어만 로드
-            const { data: usersWithSwords } = await supabaseClient
+            const { data: usersWithSwords, error: usersError } = await supabaseClient
                 .from('profiles')
                 .select(`
                     id, 
-                    nickname,
-                    user_swords!inner(id)
+                    nickname
                 `)
                 .neq('id', user.id)
-                .limit(20);
+                .limit(100);
+            
+            if (usersError) {
+                console.error('유저 로드 오류:', usersError);
+            }
+            
+            // 각 유저가 검을 가지고 있는지 확인
+            const usersWithSwordsFiltered = [];
+            for (const u of (usersWithSwords || [])) {
+                const { data: hasSwords } = await supabaseClient
+                    .from('user_swords')
+                    .select('id')
+                    .eq('user_id', u.id)
+                    .limit(1);
+                
+                if (hasSwords && hasSwords.length > 0) {
+                    usersWithSwordsFiltered.push(u);
+                }
+            }
             
             // 중복 제거 (한 유저가 여러 검을 가진 경우)
             const uniqueUsers = [];
             const seenIds = new Set();
             
-            (usersWithSwords || []).forEach(u => {
+            usersWithSwordsFiltered.forEach(u => {
                 if (!seenIds.has(u.id)) {
                     seenIds.add(u.id);
                     uniqueUsers.push({

@@ -23,8 +23,13 @@
     <div class="card">
       <h1>🏆 업적</h1>
       <div class="btns">
-        <button class="btn-sub" onclick="location.href='index.html'">뒤로</button>
+        <button class="btn-sub" onclick="location.href='home.html'">뒤로</button>
       </div>
+      
+      <!-- 마일스톤 진행도 -->
+      <div id="milestones" style="margin-top: 16px;"></div>
+      
+      <!-- 업적 목록 -->
       <div id="list"></div>
     </div>
   </div>
@@ -35,12 +40,165 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let me = null;
+    let userProfile = null;
 
     async function requireSession() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session) { location.href = 'login.html'; return null; }
       me = session.user;
+      
+      // 프로필 로드
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', me.id)
+        .single();
+      userProfile = profile;
+      
       return session;
+    }
+
+    async function loadMilestones() {
+      // 마일스톤 정의 로드
+      const { data: milestones } = await supabaseClient
+        .from('achievement_milestones')
+        .select('*')
+        .order('milestone_count', { ascending: true });
+
+      // 사용자가 달성한 업적 수 계산
+      const { data: userAchievements } = await supabaseClient
+        .from('user_achievements')
+        .select('*')
+        .eq('user_id', me.id)
+        .eq('unlocked', true);
+
+      const unlockedCount = (userAchievements || []).length;
+
+      // 사용자가 받은 마일스톤 보상 로드
+      const { data: claimedMilestones } = await supabaseClient
+        .from('user_achievement_milestones')
+        .select('*')
+        .eq('user_id', me.id)
+        .eq('claimed', true);
+
+      const claimedSet = new Set((claimedMilestones || []).map(m => m.milestone_id));
+
+      const milestonesDiv = document.getElementById('milestones');
+      if (!milestones || milestones.length === 0) {
+        milestonesDiv.innerHTML = '';
+        return;
+      }
+
+      milestonesDiv.innerHTML = `
+        <div style="background: rgba(236,201,75,0.1); border: 2px solid #ecc94b; border-radius: 14px; padding: 14px; margin-bottom: 16px;">
+          <div style="font-weight: 900; font-size: 16px; color: #ecc94b; margin-bottom: 10px;">
+            🎁 마일스톤 보상 (달성: ${unlockedCount}개)
+          </div>
+          ${milestones.map(m => {
+            const canClaim = unlockedCount >= m.milestone_count && !claimedSet.has(m.id);
+            const claimed = claimedSet.has(m.id);
+            const locked = unlockedCount < m.milestone_count;
+            
+            return `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 10px; margin-top: 8px;">
+                <div>
+                  <div style="font-weight: 700; font-size: 14px;">${m.milestone_count}개 달성</div>
+                  <div style="font-size: 12px; color: #cbd5e0;">
+                    ${m.reward_gold.toLocaleString()}G + ${m.reward_money.toLocaleString()}M
+                  </div>
+                </div>
+                <button 
+                  onclick="claimMilestone(${m.id}, ${m.milestone_count})"
+                  style="padding: 8px 16px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 12px;
+                    ${canClaim ? 'background: #48bb78; color: white;' : claimed ? 'background: #4a5568; color: #a0aec0;' : 'background: #2d3748; color: #718096;'}"
+                  ${!canClaim ? 'disabled' : ''}
+                >
+                  ${claimed ? '수령완료' : canClaim ? '보상받기' : '미달성'}
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    async function claimMilestone(milestoneId, milestoneCount) {
+      try {
+        // 마일스톤 정보 로드
+        const { data: milestone } = await supabaseClient
+          .from('achievement_milestones')
+          .select('*')
+          .eq('id', milestoneId)
+          .single();
+
+        if (!milestone) {
+          alert('마일스톤을 찾을 수 없습니다.');
+          return;
+        }
+
+        // 이미 받았는지 확인
+        const { data: existing } = await supabaseClient
+          .from('user_achievement_milestones')
+          .select('*')
+          .eq('user_id', me.id)
+          .eq('milestone_id', milestoneId)
+          .maybeSingle();
+
+        if (existing && existing.claimed) {
+          alert('이미 받은 보상입니다.');
+          return;
+        }
+
+        // 달성한 업적 수 확인
+        const { data: userAchievements } = await supabaseClient
+          .from('user_achievements')
+          .select('*')
+          .eq('user_id', me.id)
+          .eq('unlocked', true);
+
+        const unlockedCount = (userAchievements || []).length;
+        if (unlockedCount < milestoneCount) {
+          alert(`업적 ${milestoneCount}개를 달성해야 합니다. (현재: ${unlockedCount}개)`);
+          return;
+        }
+
+        // 보상 지급
+        const newGold = (userProfile.gold || 0) + milestone.reward_gold;
+        const newMoney = (userProfile.money || 0) + milestone.reward_money;
+
+        const { error: updateError } = await supabaseClient
+          .from('profiles')
+          .update({ gold: newGold, money: newMoney })
+          .eq('id', me.id);
+
+        if (updateError) throw updateError;
+
+        // 마일스톤 기록
+        if (existing) {
+          await supabaseClient
+            .from('user_achievement_milestones')
+            .update({ claimed: true, claimed_at: new Date().toISOString() })
+            .eq('id', existing.id);
+        } else {
+          await supabaseClient
+            .from('user_achievement_milestones')
+            .insert({
+              user_id: me.id,
+              milestone_id: milestoneId,
+              claimed: true,
+              claimed_at: new Date().toISOString()
+            });
+        }
+
+        userProfile.gold = newGold;
+        userProfile.money = newMoney;
+
+        alert(`보상을 받았습니다!\n+${milestone.reward_gold.toLocaleString()}G, +${milestone.reward_money.toLocaleString()}M`);
+        await loadMilestones();
+      } catch (e) {
+        console.error('마일스톤 보상 오류:', e);
+        alert('보상 수령 중 오류가 발생했습니다: ' + e.message);
+      }
     }
 
     async function loadAchievements() {
@@ -83,6 +241,7 @@
 
     async function init() {
       await requireSession();
+      await loadMilestones();
       await loadAchievements();
     }
 
