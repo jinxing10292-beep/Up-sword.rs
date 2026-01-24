@@ -19,6 +19,8 @@
         .gold-value { color: #f39c12; font-weight: 900; font-size: 22px; }
         .money-value { color: #9b59b6; font-weight: 900; font-size: 22px; }
         .button-grid-container { background: white; border: 3px solid black; border-radius: 30px; padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .button-grid-5 { grid-template-columns: repeat(3, 1fr); }
+        .button-grid-5 .grid-btn:nth-child(5) { grid-column: 2 / 3; }
         .grid-btn { border: none; border-radius: 20px; padding: 12px; font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.2s; }
         .btn-gray { background: #ddd; color: #333; }
         .btn-pink { background: #ff9a9e; color: #333; }
@@ -61,11 +63,12 @@
         <button class="grid-btn btn-purple" onclick="showGMLogin()">GM</button>
     </div>
 
-    <div class="button-grid-container" style="margin-top: 15px;">
+    <div class="button-grid-container button-grid-5" style="margin-top: 15px;">
         <button class="grid-btn btn-gray" onclick="location.href='inventory.html'">인벤토리</button>
         <button class="grid-btn btn-gray" onclick="location.href='missions.html'">미션</button>
         <button class="grid-btn btn-gray" onclick="location.href='achievements.html'">업적</button>
         <button class="grid-btn btn-gray" onclick="location.href='sword_collection.html'">검도감</button>
+        <button class="grid-btn btn-gray" onclick="location.href='shop.html'">상점</button>
     </div>
 
     <div class="game-selection">
