@@ -3,11 +3,40 @@
 -- ============================================
 
 -- 1. achievements 테이블 (업적 정의)
+-- 기존 테이블이 있다면 컬럼 추가
+DO $$ 
+BEGIN
+    -- category 컬럼이 없으면 추가
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'achievements' AND column_name = 'category'
+    ) THEN
+        ALTER TABLE achievements ADD COLUMN category TEXT DEFAULT 'general';
+    END IF;
+    
+    -- reward_gold 컬럼이 없으면 추가
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'achievements' AND column_name = 'reward_gold'
+    ) THEN
+        ALTER TABLE achievements ADD COLUMN reward_gold INTEGER DEFAULT 0;
+    END IF;
+    
+    -- reward_money 컬럼이 없으면 추가
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'achievements' AND column_name = 'reward_money'
+    ) THEN
+        ALTER TABLE achievements ADD COLUMN reward_money INTEGER DEFAULT 0;
+    END IF;
+END $$;
+
+-- 테이블이 없으면 생성
 CREATE TABLE IF NOT EXISTS achievements (
     id BIGSERIAL PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
-    category TEXT NOT NULL, -- 'sword', 'gold', 'money', 'battle', 'roulette', 'general'
+    category TEXT NOT NULL DEFAULT 'general', -- 'sword', 'gold', 'money', 'battle', 'roulette', 'general'
     target INTEGER NOT NULL DEFAULT 1,
     reward_gold INTEGER DEFAULT 0,
     reward_money INTEGER DEFAULT 0,
@@ -60,6 +89,16 @@ ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE achievement_milestones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_achievement_milestones ENABLE ROW LEVEL SECURITY;
 
+-- 기존 정책 삭제 후 재생성
+DROP POLICY IF EXISTS "Anyone can view achievements" ON achievements;
+DROP POLICY IF EXISTS "Users can view their own achievements" ON user_achievements;
+DROP POLICY IF EXISTS "Users can insert their own achievements" ON user_achievements;
+DROP POLICY IF EXISTS "Users can update their own achievements" ON user_achievements;
+DROP POLICY IF EXISTS "Anyone can view milestones" ON achievement_milestones;
+DROP POLICY IF EXISTS "Users can view their own milestone progress" ON user_achievement_milestones;
+DROP POLICY IF EXISTS "Users can insert their own milestone progress" ON user_achievement_milestones;
+DROP POLICY IF EXISTS "Users can update their own milestone progress" ON user_achievement_milestones;
+
 -- achievements는 모두가 읽을 수 있음
 CREATE POLICY "Anyone can view achievements"
     ON achievements FOR SELECT
@@ -99,6 +138,9 @@ CREATE POLICY "Users can update their own milestone progress"
 -- ============================================
 -- 업적 데이터 삽입
 -- ============================================
+
+-- 기존 업적 삭제 (중복 방지)
+DELETE FROM achievements WHERE category IN ('sword', 'gold', 'money', 'battle', 'roulette');
 
 -- 검 관련 업적
 INSERT INTO achievements (title, description, category, target, reward_gold, reward_money) VALUES
@@ -141,8 +183,8 @@ INSERT INTO achievements (title, description, category, target, reward_gold, rew
 INSERT INTO achievements (title, description, category, target, reward_gold, reward_money) VALUES
 ('행운의 시작', '룰렛에서 1번 승리하세요', 'roulette', 1, 5000, 0),
 ('도박꾼', '룰렛에서 10번 승리하세요', 'roulette', 10, 30000, 10),
-('행운아', '룰렛에서 50번 승리하세요', 'roulette', 50, 150000, 50),
-('카지노 왕', '룰렛에서 100번 승리하세요', 'roulette', 100, 500000, 150);
+('행운아', '룰렛에서 50번 승리하세요', 'roulette', 50, 150000, 10),
+('카지노 왕', '룰렛에서 100번 승리하세요', 'roulette', 100, 500000, 10);
 
 -- ============================================
 -- 마일스톤 보상 데이터 삽입

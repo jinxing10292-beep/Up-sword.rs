@@ -24,6 +24,10 @@ CREATE INDEX IF NOT EXISTS idx_monthly_ranking_rewards_year_month ON monthly_ran
 -- RLS 정책
 ALTER TABLE monthly_ranking_rewards ENABLE ROW LEVEL SECURITY;
 
+-- 기존 정책 삭제 후 재생성
+DROP POLICY IF EXISTS "Users can view all ranking rewards" ON monthly_ranking_rewards;
+DROP POLICY IF EXISTS "Users can update their own rewards" ON monthly_ranking_rewards;
+
 CREATE POLICY "Users can view all ranking rewards"
     ON monthly_ranking_rewards FOR SELECT
     USING (true);
@@ -68,7 +72,7 @@ BEGIN
     END IF;
     
     -- 지난 달 1위 유저 찾기 (검 레벨 기준)
-    SELECT id, current_sword_lvl, nickname
+    SELECT id, current_sword_lvl, COALESCE(nickname, username, email) as nickname
     INTO top_user
     FROM profiles
     WHERE current_sword_lvl IS NOT NULL
