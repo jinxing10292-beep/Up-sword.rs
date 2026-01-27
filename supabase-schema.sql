@@ -302,14 +302,11 @@ ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_activities ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
-CREATE POLICY "Users can view their own profile" ON profiles
-    FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can view all profiles" ON profiles
+    FOR SELECT USING (true);
 
 CREATE POLICY "Users can update their own profile" ON profiles
     FOR UPDATE USING (auth.uid() = id);
-
-CREATE POLICY "Users can view all profiles for ranking" ON profiles
-    FOR SELECT USING (true);
 
 -- User swords policies
 CREATE POLICY "Users can view their own swords" ON user_swords
