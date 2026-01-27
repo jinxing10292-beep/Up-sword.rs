@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공룡 게임 - Up Sword</title>
+    <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f7f7f7;
+            font-family: 'Pretendard', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .game-container {
+            background: white;
+            border: 3px solid #333;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+            display: block;
+            background: #fff;
+        }
+        .score-display {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 15px;
+            color: #333;
+        }
+        .controls {
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+        }
+        .game-over {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .restart-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="location.href='minigames.html'">← 돌아가기</button>
+    
+    <div class="game-container">
+        <h1 style="text-align: center; margin: 0 0 15px 0;">🦖 공룡 게임</h1>
+        <canvas id="gameCanvas" width="600" height="200"></canvas>
+        <div class="score-display">점수: <span id="score">0</span></div>
+        <div class="controls">스페이스바 또는 화면 터치로 점프!</div>
+        <div class="game-over" id="gameOver">
+            <h2>게임 오버!</h2>
+            <p>획득 골드: <span id="earnedGold">0</span>G</p>
+            <button class="restart-btn" onclick="restartGame()">다시 시작</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let user = null;
+        let gameRunning = false;
+        let score = 0;
+        let gameSpeed = 5;
+        
+        const dino = {
+            x: 50,
+            y: 150,
+            width: 40,
+            height: 50,
+            dy: 0,
+            gravity: 0.8,
+            jumpPower: -15,
+            grounded: true
+        };
+        
+        let obstacles = [];
+        let frameCount = 0;
+        
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                location.href = "login.html";
+                return;
+            }
+            
+            const { data: p } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+            
+            user = p;
+            startGame();
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            score = 0;
+            gameSpeed = 5;
+            obstacles = [];
+            frameCount = 0;
+            dino.y = 150;
+            dino.dy = 0;
+            dino.grounded = true;
+            document.getElementById('gameOver').style.display = 'none';
+            gameLoop();
+        }
+        
+        function jump() {
+            if (dino.grounded && gameRunning) {
+                dino.dy = dino.jumpPower;
+                dino.grounded = false;
+            }
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Update dino
+            dino.dy += dino.gravity;
+            dino.y += dino.dy;
+            
+            if (dino.y >= 150) {
+                dino.y = 150;
+                dino.dy = 0;
+                dino.grounded = true;
+            }
+            
+            // Draw dino
+            ctx.fillStyle = '#333';
+            ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+            
+            // Spawn obstacles
+            frameCount++;
+            if (frameCount % 100 === 0) {
+                obstacles.push({
+                    x: canvas.width,
+                    y: 160,
+                    width: 20,
+                    height: 40
+                });
+            }
+            
+            // Update and draw obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= gameSpeed;
+                
+                ctx.fillStyle = '#e74c3c';
+                ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+                
+                // Check collision
+                if (
+                    dino.x < obstacles[i].x + obstacles[i].width &&
+                    dino.x + dino.width > obstacles[i].x &&
+                    dino.y < obstacles[i].y + obstacles[i].height &&
+                    dino.y + dino.height > obstacles[i].y
+                ) {
+                    endGame();
+                    return;
+                }
+                
+                // Remove off-screen obstacles
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                    document.getElementById('score').textContent = score;
+                }
+            }
+            
+            // Increase difficulty
+            if (frameCount % 500 === 0) {
+                gameSpeed += 0.5;
+            }
+            
+            // Draw ground
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, 198, canvas.width, 2);
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        async function endGame() {
+            gameRunning = false;
+            const earnedGold = Math.floor(score / 10);
+            
+            document.getElementById('earnedGold').textContent = earnedGold;
+            document.getElementById('gameOver').style.display = 'block';
+            
+            if (earnedGold > 0 && user) {
+                const newGold = user.gold + earnedGold;
+                await supabaseClient
+                    .from('profiles')
+                    .update({ gold: newGold })
+                    .eq('id', user.id);
+                
+                user.gold = newGold;
+            }
+        }
+        
+        function restartGame() {
+            startGame();
+        }
+        
+        // Controls
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                jump();
+            }
+        });
+        
+        canvas.addEventListener('click', jump);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jump();
+        });
+        
+        init();
+    </script>
+</body>
+</html>

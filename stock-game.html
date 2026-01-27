@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주식 게임 - Up Sword</title>
+    <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            font-family: 'Pretendard', sans-serif;
+            min-height: 100vh;
+        }
+        .back-btn {
+            background: white;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            margin: 0 0 20px 0;
+            color: #333;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .chart-container {
+            background: #f9f9f9;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            height: 200px;
+            position: relative;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .stock-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+        }
+        .price {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .price.up { color: #e74c3c; }
+        .price.down { color: #3498db; }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        input {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .buy-btn {
+            background: #e74c3c;
+            color: white;
+        }
+        .sell-btn {
+            background: #3498db;
+            color: white;
+        }
+        .buy-btn:hover { background: #c0392b; }
+        .sell-btn:hover { background: #2980b9; }
+        .holdings {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="location.href='minigames.html'">← 돌아가기</button>
+    
+    <div class="container">
+        <h1>📈 주식 게임</h1>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-label">보유 골드</div>
+                <div class="stat-value" id="userGold">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">보유 주식</div>
+                <div class="stat-value" id="holdings">0</div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="chart"></canvas>
+        </div>
+        
+        <div class="stock-info">
+            <div>
+                <div style="font-size: 14px; color: #666;">현재 주가</div>
+                <div class="price" id="currentPrice">1000</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 14px; color: #666;">변동</div>
+                <div id="priceChange" style="font-size: 18px; font-weight: bold;">0</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <input type="number" id="buyAmount" placeholder="구매 수량" min="1" value="1">
+                <button class="buy-btn" onclick="buyStock()">매수</button>
+            </div>
+            <div class="control-group">
+                <input type="number" id="sellAmount" placeholder="판매 수량" min="1" value="1">
+                <button class="sell-btn" onclick="sellStock()">매도</button>
+            </div>
+        </div>
+        
+        <div class="holdings">
+            <strong>평가 손익:</strong> <span id="profit">0</span>G
+        </div>
+    </div>
+
+    <script>
+        let user = null;
+        let stockPrice = 1000;
+        let priceHistory = [1000];
+        let holdings = 0;
+        let avgBuyPrice = 0;
+        
+        const canvas = document.getElementById('chart');
+        const ctx = canvas.getContext('2d');
+        
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                location.href = "login.html";
+                return;
+            }
+            
+            const { data: p } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+            
+            user = p;
+            updateDisplay();
+            startPriceUpdates();
+        }
+        
+        function startPriceUpdates() {
+            setInterval(() => {
+                const change = (Math.random() - 0.5) * 100;
+                stockPrice = Math.max(100, Math.min(5000, stockPrice + change));
+                priceHistory.push(stockPrice);
+                if (priceHistory.length > 50) priceHistory.shift();
+                
+                updateDisplay();
+                drawChart();
+            }, 2000);
+        }
+        
+        function updateDisplay() {
+            document.getElementById('userGold').textContent = user.gold + 'G';
+            document.getElementById('holdings').textContent = holdings + '주';
+            
+            const priceEl = document.getElementById('currentPrice');
+            priceEl.textContent = Math.floor(stockPrice) + 'G';
+            
+            if (priceHistory.length > 1) {
+                const change = stockPrice - priceHistory[priceHistory.length - 2];
+                const changeEl = document.getElementById('priceChange');
+                changeEl.textContent = (change >= 0 ? '+' : '') + Math.floor(change) + 'G';
+                changeEl.style.color = change >= 0 ? '#e74c3c' : '#3498db';
+                priceEl.className = 'price ' + (change >= 0 ? 'up' : 'down');
+            }
+            
+            const profit = holdings > 0 ? Math.floor((stockPrice - avgBuyPrice) * holdings) : 0;
+            const profitEl = document.getElementById('profit');
+            profitEl.textContent = (profit >= 0 ? '+' : '') + profit;
+            profitEl.style.color = profit >= 0 ? '#27ae60' : '#e74c3c';
+        }
+        
+        function drawChart() {
+            const width = canvas.width;
+            const height = canvas.height;
+            ctx.clearRect(0, 0, width, height);
+            
+            if (priceHistory.length < 2) return;
+            
+            const max = Math.max(...priceHistory);
+            const min = Math.min(...priceHistory);
+            const range = max - min || 1;
+            
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            priceHistory.forEach((price, i) => {
+                const x = (i / (priceHistory.length - 1)) * width;
+                const y = height - ((price - min) / range) * height;
+                
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            
+            ctx.stroke();
+        }
+        
+        async function buyStock() {
+            const amount = parseInt(document.getElementById('buyAmount').value) || 0;
+            if (amount <= 0) return alert('수량을 입력하세요');
+            
+            const cost = Math.floor(stockPrice * amount);
+            if (user.gold < cost) return alert('골드가 부족합니다');
+            
+            avgBuyPrice = (avgBuyPrice * holdings + stockPrice * amount) / (holdings + amount);
+            holdings += amount;
+            user.gold -= cost;
+            
+            await supabaseClient
+                .from('profiles')
+                .update({ gold: user.gold })
+                .eq('id', user.id);
+            
+            updateDisplay();
+        }
+        
+        async function sellStock() {
+            const amount = parseInt(document.getElementById('sellAmount').value) || 0;
+            if (amount <= 0) return alert('수량을 입력하세요');
+            if (holdings < amount) return alert('보유 주식이 부족합니다');
+            
+            const revenue = Math.floor(stockPrice * amount);
+            holdings -= amount;
+            user.gold += revenue;
+            
+            if (holdings === 0) avgBuyPrice = 0;
+            
+            await supabaseClient
+                .from('profiles')
+                .update({ gold: user.gold })
+                .eq('id', user.id);
+            
+            updateDisplay();
+        }
+        
+        init();
+        
+        // Set canvas size
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+    </script>
+</body>
+</html>
