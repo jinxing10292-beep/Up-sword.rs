@@ -148,16 +148,40 @@
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
             
-        if(error || !p) { 
+        if(error) { 
             console.error('프로필 로드 오류:', error);
             alert('사용자 데이터를 불러올 수 없습니다.');
             window.location.href="login.html"; 
             return; 
         }
         
-        user = p;
+        // 프로필이 없으면 자동 생성
+        if(!p) {
+            console.log('프로필이 없어 자동 생성합니다.');
+            const nickname = session.user.user_metadata?.nickname || `user_${session.user.id.substring(0, 8)}`;
+            const { data: newProfile, error: createError } = await supabaseClient
+                .from('profiles')
+                .insert([{
+                    id: session.user.id,
+                    nickname: nickname,
+                    gold: 10000,
+                    current_sword_lvl: 0
+                }])
+                .select()
+                .single();
+            
+            if(createError) {
+                console.error('프로필 생성 오류:', createError);
+                alert('프로필을 생성할 수 없습니다.');
+                window.location.href="login.html";
+                return;
+            }
+            user = newProfile;
+        } else {
+            user = p;
+        }
         
         // 데이터 로드 확인을 위한 로그
         console.log('홈 페이지 사용자 데이터 로드:', {
