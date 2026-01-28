@@ -121,7 +121,7 @@
                 password: pw 
             });
             if (error) return alert("로그인 실패: 번호 또는 비밀번호 확인");
-            location.href = "home.html";
+            location.href = "home.html?v=" + Date.now();
         }
     }
 
