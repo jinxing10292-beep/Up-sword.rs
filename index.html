@@ -136,31 +136,77 @@
     }
 
     async function init() {
-        initSupabase();
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { window.location.href="login.html"; return; }
-        
-        const { data: p, error } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
-        if(error || !p) { window.location.href="login.html"; return; }
-        
-        user = p;
+        try {
+            initSupabase();
+            const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+            
+            if(sessionError || !session) { 
+                window.location.href="login.html"; 
+                return; 
+            }
+            
+            // 프로필 조회
+            let p = null;
+            try {
+                const result = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id);
+                
+                if (result.data && result.data.length > 0) {
+                    p = result.data[0];
+                }
+            } catch (err) {
+                console.error('프로필 조회 오류:', err);
+            }
+            
+            // 프로필이 없으면 생성
+            if(!p) {
+                console.log('프로필 생성 중...');
+                const nickname = session.user.user_metadata?.nickname || `user_${session.user.id.substring(0, 8)}`;
+                const { data: newProfile, error: createError } = await supabaseClient
+                    .from('profiles')
+                    .insert([{
+                        id: session.user.id,
+                        nickname: nickname,
+                        gold: 10000,
+                        current_sword_lvl: 0
+                    }])
+                    .select();
+                
+                if(createError || !newProfile || newProfile.length === 0) {
+                    console.error('프로필 생성 실패:', createError);
+                    alert('프로필을 생성할 수 없습니다. 다시 로그인해주세요.');
+                    await supabaseClient.auth.signOut();
+                    window.location.href="login.html";
+                    return;
+                }
+                p = newProfile[0];
+            }
+            
+            user = p;
 
-        if (user.is_banned) {
-            document.body.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; padding:20px; background:#fff;">
-                    <h1 style="color:#e74c3c; font-size:30px; font-weight:900;">🚫 계정 접속 제한</h1>
-                    <div style="background:#f8d7da; border:2px solid #f5c6cb; padding:25px; border-radius:20px; margin:20px 0; width:100%; max-width:350px; box-sizing:border-box;">
-                        <p style="font-weight:bold; margin-bottom:10px; color:#721c24;">정지 사유</p>
-                        <p style="color:#721c24; word-break:break-all;">${user.ban_reason || '관리자 규정 위반으로 정지되었습니다.'}</p>
+            if (user.is_banned) {
+                document.body.innerHTML = `
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; padding:20px; background:#fff;">
+                        <h1 style="color:#e74c3c; font-size:30px; font-weight:900;">🚫 계정 접속 제한</h1>
+                        <div style="background:#f8d7da; border:2px solid #f5c6cb; padding:25px; border-radius:20px; margin:20px 0; width:100%; max-width:350px; box-sizing:border-box;">
+                            <p style="font-weight:bold; margin-bottom:10px; color:#721c24;">정지 사유</p>
+                            <p style="color:#721c24; word-break:break-all;">${user.ban_reason || '관리자 규정 위반으로 정지되었습니다.'}</p>
+                        </div>
+                        <button onclick="handleLogout()" style="padding:15px 40px; background:#2c3e50; color:white; border:none; border-radius:15px; font-weight:bold; cursor:pointer;">로그아웃</button>
                     </div>
-                    <button onclick="handleLogout()" style="padding:15px 40px; background:#2c3e50; color:white; border:none; border-radius:15px; font-weight:bold; cursor:pointer;">로그아웃</button>
-                </div>
-            `;
-            return;
-        }
+                `;
+                return;
+            }
 
-        updateUI();
-        document.getElementById('main-ui').style.display = 'flex';
+            updateUI();
+            document.getElementById('main-ui').style.display = 'flex';
+        } catch (err) {
+            console.error('초기화 오류:', err);
+            alert('페이지 로드 중 오류가 발생했습니다.');
+            window.location.href="login.html";
+        }
     }
 
     function updateUI() {
