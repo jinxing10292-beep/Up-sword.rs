@@ -117,13 +117,13 @@
     <script>
         const SUPABASE_URL = 'https://tcixevutegeimzxmwabu.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjaXhldnV0ZWdlaW16eG13YWJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MzE0MjgsImV4cCI6MjA4NTQwNzQyOH0.-5Byh95HgE2yPM0m24LPEERZu6KJFe7eD0VSBGf_Ukk';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
         let isSignupMode = false;
         
         // 이미 로그인되어 있으면 메인으로
         async function checkSession() {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 window.location.href = 'index.html';
             }
@@ -188,7 +188,7 @@
                     }
                     
                     // 닉네임 중복 확인
-                    const { data: existing } = await supabase
+                    const { data: existing } = await supabaseClient
                         .from('profiles')
                         .select('id')
                         .eq('nickname', nickname);
@@ -199,7 +199,7 @@
                     }
                     
                     // 회원가입
-                    const { data: authData, error: authError } = await supabase.auth.signUp({
+                    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
                         email: email,
                         password: password,
                         options: {
@@ -216,7 +216,7 @@
                     }
                     
                     // 프로필 생성
-                    const { error: profileError } = await supabase
+                    const { error: profileError } = await supabaseClient
                         .from('profiles')
                         .insert({
                             id: authData.user.id,
@@ -238,7 +238,7 @@
                     
                 } else {
                     // 로그인
-                    const { data, error } = await supabase.auth.signInWithPassword({
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
                         email: email,
                         password: password
                     });
