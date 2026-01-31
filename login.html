@@ -3,140 +3,267 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <title>Up Sword</title>
-    
+    <title>Up Sword - 로그인</title>
     <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
-    <link rel="shortcut icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
-    
-    <meta property="og:title" content="Up Sword">
-    <meta property="og:image" content="https://i.ifh.cc/rvTcHw.jpg">
-    <meta property="og:description" content="자체 제작 강화게임 Up Sword">
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background: #e6e9ed; font-family: 'Pretendard', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-box { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 350px; }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 25px; }
-        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 14px; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.2s; }
-        .btn-login { background: #2c3e50; color: white; }
-        .btn-login:hover { background: #1a252f; }
-        .btn-join { background: #f1f2f6; color: #2c3e50; }
-        .btn-join:hover { background: #e2e4e9; }
-        .info-text { font-size: 11px; color: #7f8c8d; text-align: center; margin-top: 10px; line-height: 1.4; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .login-container {
+            background: white;
+            border-radius: 30px;
+            padding: 40px 30px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .logo {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-bottom: 10px;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        .info-text {
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
-
-<div class="login-box">
-    <h2>⚔️ Up Sword</h2>
-    <input type="tel" id="phone" placeholder="전화번호 (숫자만)" maxlength="11">
-    <input type="password" id="pw" placeholder="비밀번호 (6자 이상)">
-    <input type="text" id="nick" placeholder="닉네임 (25자 이하)" maxlength="25" style="display: none;">
-    <br>
-    <button class="btn-login" id="main-btn" onclick="handleAuth()">로그인</button>
-    <button class="btn-join" id="sub-btn" onclick="toggleMode()">계정 만들기</button>
-    <br>
-    <div class="info-text" id="mode-desc">
-        닉네임은 한글, 영문, 숫자만 가능합니다.<br>(공백/특수문자 불가, 최대 25자)
+    <div class="login-container">
+        <div class="logo">⚔️</div>
+        <h1>Up Sword</h1>
+        
+        <div class="input-group">
+            <input type="tel" id="phone" placeholder="전화번호 (숫자만 입력)" maxlength="11">
+        </div>
+        
+        <div class="input-group">
+            <input type="password" id="password" placeholder="비밀번호 (6자 이상)">
+        </div>
+        
+        <div class="input-group hidden" id="nicknameGroup">
+            <input type="text" id="nickname" placeholder="닉네임 (한글/영문/숫자만)" maxlength="25">
+        </div>
+        
+        <button class="btn btn-primary" id="mainBtn" onclick="handleAuth()">로그인</button>
+        <button class="btn btn-secondary" id="toggleBtn" onclick="toggleMode()">회원가입</button>
+        
+        <div class="info-text">
+            닉네임은 한글, 영문, 숫자만 가능합니다.<br>
+            (공백/특수문자 불가, 최대 25자)
+        </div>
     </div>
-</div>
 
-<script>
-    const SUPABASE_URL = 'https://glwpcuokjzfdwnsjhyuc.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdsd3BjdW9ranpmZHduc2poeXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNTQwMzEsImV4cCI6MjA4NDkzMDAzMX0.LE9VJ18US_MSkkCOzmNCxeRpJbEkpCGSlXp3wOTyAnA';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let isJoinMode = false;
-
-    async function checkLogin() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) {
-            location.href = "index.html";
-        }
-    }
-
-    function toggleMode() {
-        isJoinMode = !isJoinMode;
-        document.getElementById('nick').style.display = isJoinMode ? 'block' : 'none';
-        document.getElementById('main-btn').innerText = isJoinMode ? '회원가입' : '로그인';
-        document.getElementById('sub-btn').innerText = isJoinMode ? '로그인하러 가기' : '계정 만들기';
-    }
-
-    function validateNickname(nickname) {
-        const regex = /^[a-zA-Z0-9가-힣]+$/;
-        return regex.test(nickname);
-    }
-
-    async function handleAuth() {
-        const phone = document.getElementById('phone').value.trim().replace(/[^0-9]/g, "");
-        const pw = document.getElementById('pw').value;
-        const nick = document.getElementById('nick').value.trim();
-
-        if(!phone || phone.length < 10) return alert("올바른 전화번호를 입력하세요.");
-        if(pw.length < 6) return alert("비밀번호는 6자리 이상이어야 합니다.");
-
-        const userIdentifier = `${phone}@upsword.app`;
-
-        if (isJoinMode) {
-            if(!nick) return alert("닉네임을 입력하세요.");
-            if(nick.length > 25) return alert("닉네임은 최대 25자까지 가능합니다.");
-            if(!validateNickname(nick)) return alert("닉네임에 공백이나 특수문자를 사용할 수 없습니다.");
-
-            const { data: existingUser, error: checkError } = await supabaseClient
-                .from('profiles')
-                .select('nickname')
-                .eq('nickname', nick);
-
-            if (checkError) {
-                console.error('닉네임 확인 오류:', checkError);
-                return alert("데이터 확인 중 오류 발생");
+    <script>
+        const SUPABASE_URL = 'https://glwpcuokjzfdwnsjhyuc.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdsd3BjdW9ranpmZHduc2poeXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNTQwMzEsImV4cCI6MjA4NDkzMDAzMX0.LE9VJ18US_MSkkCOzmNCxeRpJbEkpCGSlXp3wOTyAnA';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        let isSignupMode = false;
+        
+        // 이미 로그인되어 있으면 메인으로
+        async function checkSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                window.location.href = 'index.html';
             }
-            if (existingUser && existingUser.length > 0) return alert("이미 존재하는 닉네임입니다.");
-
-            const { data, error } = await supabaseClient.auth.signUp({ 
-                email: userIdentifier, 
-                password: pw,
-                options: {
-                    emailRedirectTo: undefined,
-                    data: {
-                        nickname: nick,
-                        phone: phone
+        }
+        
+        function toggleMode() {
+            isSignupMode = !isSignupMode;
+            const nicknameGroup = document.getElementById('nicknameGroup');
+            const mainBtn = document.getElementById('mainBtn');
+            const toggleBtn = document.getElementById('toggleBtn');
+            
+            if (isSignupMode) {
+                nicknameGroup.classList.remove('hidden');
+                mainBtn.textContent = '회원가입';
+                toggleBtn.textContent = '로그인으로 돌아가기';
+            } else {
+                nicknameGroup.classList.add('hidden');
+                mainBtn.textContent = '로그인';
+                toggleBtn.textContent = '회원가입';
+            }
+        }
+        
+        function validateNickname(nickname) {
+            const regex = /^[a-zA-Z0-9가-힣]+$/;
+            return regex.test(nickname);
+        }
+        
+        async function handleAuth() {
+            const phone = document.getElementById('phone').value.trim().replace(/[^0-9]/g, '');
+            const password = document.getElementById('password').value;
+            const nickname = document.getElementById('nickname').value.trim();
+            
+            // 유효성 검사
+            if (!phone || phone.length < 10) {
+                alert('올바른 전화번호를 입력하세요 (10-11자리)');
+                return;
+            }
+            
+            if (password.length < 6) {
+                alert('비밀번호는 6자 이상이어야 합니다');
+                return;
+            }
+            
+            const email = `${phone}@upsword.app`;
+            
+            try {
+                if (isSignupMode) {
+                    // 회원가입
+                    if (!nickname) {
+                        alert('닉네임을 입력하세요');
+                        return;
                     }
+                    
+                    if (nickname.length > 25) {
+                        alert('닉네임은 최대 25자까지 가능합니다');
+                        return;
+                    }
+                    
+                    if (!validateNickname(nickname)) {
+                        alert('닉네임은 한글, 영문, 숫자만 사용 가능합니다');
+                        return;
+                    }
+                    
+                    // 닉네임 중복 확인
+                    const { data: existing } = await supabase
+                        .from('profiles')
+                        .select('id')
+                        .eq('nickname', nickname);
+                    
+                    if (existing && existing.length > 0) {
+                        alert('이미 사용 중인 닉네임입니다');
+                        return;
+                    }
+                    
+                    // 회원가입
+                    const { data: authData, error: authError } = await supabase.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            data: {
+                                nickname: nickname,
+                                phone: phone
+                            }
+                        }
+                    });
+                    
+                    if (authError) {
+                        alert('회원가입 실패: ' + authError.message);
+                        return;
+                    }
+                    
+                    // 프로필 생성
+                    const { error: profileError } = await supabase
+                        .from('profiles')
+                        .insert({
+                            id: authData.user.id,
+                            nickname: nickname,
+                            phone: phone,
+                            gold: 10000,
+                            money: 0,
+                            current_sword_lvl: 0
+                        });
+                    
+                    if (profileError) {
+                        console.error('프로필 생성 오류:', profileError);
+                        alert('프로필 생성 실패. 다시 시도해주세요.');
+                        return;
+                    }
+                    
+                    alert('회원가입 성공! 로그인해주세요.');
+                    toggleMode();
+                    
+                } else {
+                    // 로그인
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (error) {
+                        alert('로그인 실패: 전화번호 또는 비밀번호를 확인하세요');
+                        return;
+                    }
+                    
+                    window.location.href = 'index.html';
                 }
-            });
-
-            if (error) {
-                console.error('회원가입 오류:', error);
-                return alert("가입 실패: " + error.message);
+            } catch (err) {
+                console.error('오류:', err);
+                alert('오류가 발생했습니다: ' + err.message);
             }
-
-            const { error: profileError } = await supabaseClient.from('profiles').insert([
-                { id: data.user.id, nickname: nick, gold: 10000, current_sword_lvl: 0 }
-            ]);
-
-            if (profileError) {
-                console.error('프로필 생성 오류:', profileError);
-                return alert("프로필 생성 실패: " + profileError.message);
-            }
-
-            alert("회원가입 성공! 로그인해주세요.");
-            toggleMode();
-        } else {
-            const { error } = await supabaseClient.auth.signInWithPassword({ 
-                email: userIdentifier, 
-                password: pw 
-            });
-            if (error) {
-                console.error('로그인 오류:', error);
-                return alert("로그인 실패: 번호 또는 비밀번호 확인");
-            }
-            location.href = "index.html";
         }
-    }
-
-    checkLogin();
-</script>
+        
+        // Enter 키로 로그인/회원가입
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleAuth();
+            }
+        });
+        
+        checkSession();
+    </script>
 </body>
 </html>
