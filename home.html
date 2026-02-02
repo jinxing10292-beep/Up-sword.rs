@@ -378,28 +378,36 @@
                 const confirmMsg = `🎉 축하합니다!\n\n${reward.year}년 ${reward.month}월 랭킹 ${reward.rank}위 달성!\n보상: ${reward.reward_money}M\n\n보상을 받으시겠습니까?`;
                 
                 if (confirm(confirmMsg)) {
-                    const { data: result, error } = await supabaseClient.rpc('claim_monthly_ranking_reward', {
-                        reward_id: reward.id
-                    });
+                    // RPC 대신 직접 처리
+                    const { error: updateError } = await supabaseClient
+                        .from('monthly_ranking_rewards')
+                        .update({ claimed: true })
+                        .eq('id', reward.id);
 
-                    if (error) {
-                        console.error('보상 수령 오류:', error);
+                    if (updateError) {
+                        console.error('보상 수령 오류:', updateError);
                         alert('보상 수령 중 오류가 발생했습니다.');
                         return;
                     }
 
-                    if (result && result.success) {
-                        alert(`${result.message}\n+${result.reward_money}M\n현재 머니: ${result.new_money}M`);
-                        // UI 업데이트
-                        user.money = result.new_money;
+                    // 머니 업데이트
+                    const newMoney = (user.money || 0) + reward.reward_money;
+                    const { error: moneyError } = await supabaseClient
+                        .from('profiles')
+                        .update({ money: newMoney })
+                        .eq('id', user.id);
+
+                    if (!moneyError) {
+                        alert(`보상을 받았습니다!\n+${reward.reward_money}M\n현재 머니: ${newMoney}M`);
+                        user.money = newMoney;
                         updateUI();
                     } else {
-                        alert(result.message || '보상 수령에 실패했습니다.');
+                        alert('보상 수령에 실패했습니다.');
                     }
                 }
             }
         } catch (e) {
-            console.error('월간 보상 확인 오류:', e);
+            console.log('월간 보상 확인:', e.message);
         }
     }
 

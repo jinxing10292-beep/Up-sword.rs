@@ -87,12 +87,89 @@
         .log-fail { color: #e53e3e; }
         .log-destroy { color: #d69e2e; font-weight: bold; }
         .log-info { color: #3182ce; }
+        
+        /* 강화 히스토리 패널 */
+        .history-panel { margin: 20px; padding: 15px; background: #f8fafc; border-radius: 12px; }
+        .history-panel h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: #2d3748; }
+        .history-grid { display: flex; gap: 5px; flex-wrap: wrap; }
+        .history-item { width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; color: white; }
+        .history-success { background: #48bb78; }
+        .history-fail { background: #cbd5e0; }
+        .history-destroy { background: #f56565; }
+        
+        /* 콤보 효과 */
+        @keyframes comboAnim {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+        
+        /* 개선된 애니메이션 */
+        @keyframes successGlow {
+            0% { filter: drop-shadow(0 0 0 rgba(72, 187, 120, 0)); transform: scale(1); }
+            50% { filter: drop-shadow(0 0 30px rgba(72, 187, 120, 1)); transform: scale(1.1); }
+            100% { filter: drop-shadow(0 0 0 rgba(72, 187, 120, 0)); transform: scale(1); }
+        }
+        
+        @keyframes failShake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
+        }
+        
+        @keyframes destroyExplode {
+            0% { opacity: 1; transform: scale(1) rotate(0deg); }
+            50% { opacity: 0.5; transform: scale(1.5) rotate(180deg); }
+            100% { opacity: 0; transform: scale(0) rotate(360deg); }
+        }
+        
+        .success-effect { animation: successGlow 1s ease-out; }
+        .fail-effect { animation: failShake 0.5s ease-out; }
+        .destroy-effect { animation: destroyExplode 1s ease-out; }
+        
+        /* 이벤트 배너 */
+        .event-banner {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            z-index: 1000;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
+        }
+        
+        /* 콤보 카운터 */
+        .combo-counter {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 15px;
+            font-weight: 800;
+            font-size: 18px;
+            z-index: 999;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            display: none;
+        }
     </style>
 </head>
 <body>
 
 <div id="loading" style="margin-top: 50px;">데이터를 동기화 중입니다...</div>
 <div id="full-effect"></div>
+<div id="eventBanner" style="display: none;" class="event-banner"></div>
+<div id="comboCounter" class="combo-counter"></div>
 
 <div class="game-container" id="game-ui">
     <div class="header">
@@ -126,6 +203,14 @@
 
     <div class="btn-group">
         <button class="btn-items" onclick="location.href='items.html'">📦 아이템 사용</button>
+    </div>
+    
+    <!-- 강화 히스토리 패널 -->
+    <div class="history-panel">
+        <h3>📊 최근 강화 기록</h3>
+        <div id="enhanceHistory" class="history-grid">
+            <!-- 동적으로 추가됨 -->
+        </div>
     </div>
     
     <!-- 매크로 컨트롤 패널 -->
@@ -174,6 +259,13 @@
     let macroLog = [];
     let macroInterval = null;
     let hasMacro = false; // 매크로 구매 여부
+    
+    // 콤보 시스템
+    let comboCount = 0;
+    let comboMultiplier = 1.0;
+    
+    // 강화 히스토리
+    let enhanceHistory = [];
 
     async function getVariantName(weaponKey, level) {
         const cl = Math.max(0, Math.min(20, parseInt(level || 0, 10)));
@@ -273,6 +365,9 @@
             
             // 매크로 보유 확인
             checkMacroOwnership();
+            
+            // 이벤트 타임 체크
+            checkEventTime();
         } catch (e) { alert("로그인이 만료되었거나 데이터 오류가 발생했습니다."); }
     }
     
@@ -350,6 +445,9 @@
     
     function showItemUsageConfirm(itemId, userItemId) {
         const itemNames = {
+            'stone_basic': '기본 강화석',
+            'stone_advanced': '고급 강화석',
+            'stone_premium': '프리미엄 강화석',
             'enhance_scroll_1': '확정 강화권 (1~5강)',
             'enhance_scroll_2': '확정 강화권 (6~10강)',
             'enhance_scroll_3': '확정 강화권 (11~15강)',
@@ -387,12 +485,23 @@
             'protect_scroll_2': { min: 11, max: 15 },
             'protect_scroll_3': { min: 16, max: 20 },
             'maintain_scroll_1': { min: 11, max: 15 },
-            'maintain_scroll_2': { min: 16, max: 20 }
+            'maintain_scroll_2': { min: 16, max: 20 },
+            'stone_basic': { min: 0, max: 20 },
+            'stone_advanced': { min: 0, max: 20 },
+            'stone_premium': { min: 0, max: 20 }
         };
         
         const range = itemRanges[itemId];
         if (!range) {
             return { usable: false, reason: '알 수 없는 아이템입니다.' };
+        }
+        
+        // 강화석은 모든 레벨에서 사용 가능
+        if (itemId.startsWith('stone_')) {
+            if (currentLevel >= 20) {
+                return { usable: false, reason: '이미 최대 강화 레벨에 도달했습니다.' };
+            }
+            return { usable: true };
         }
         
         if (currentLevel < range.min || currentLevel > range.max) {
@@ -502,6 +611,30 @@
     
     function applyItemEffect(itemId) {
         const currentLevel = user.current_sword_lvl;
+        
+        // 강화석 - 성공률 증가 (다음 강화 시 적용)
+        if (itemId.startsWith('stone_')) {
+            const stoneData = {
+                'stone_basic': { bonus: 5, name: '기본 강화석' },
+                'stone_advanced': { bonus: 10, name: '고급 강화석' },
+                'stone_premium': { bonus: 20, name: '프리미엄 강화석' }
+            };
+            
+            const stone = stoneData[itemId];
+            if (!stone) {
+                return { success: false, message: '알 수 없는 강화석입니다.' };
+            }
+            
+            // 강화석 효과를 다음 강화에 적용하기 위해 임시 저장
+            sessionStorage.setItem('activeStone', itemId);
+            sessionStorage.setItem('stoneBonus', stone.bonus);
+            
+            return {
+                success: true,
+                newLevel: currentLevel,
+                message: `${stone.name} 사용! 다음 강화 시 성공률 +${stone.bonus}% 적용됩니다.`
+            };
+        }
         
         if (itemId.startsWith('enhance_scroll_')) {
             // 확정 강화권 - 무조건 100% 성공
@@ -670,6 +803,162 @@
             if (user.money < costInMoney) return alert(`머니가 부족합니다! (필요: ${costInMoney}M)`);
         } else {
             if (user.gold < upgradeCost) return alert("골드가 부족합니다!");
+        }
+        
+        isUpgrading = true; // Set upgrading flag
+
+        const img = document.getElementById('s-img');
+        img.classList.add('hammering');
+        
+        // 비용 차감
+        if (isHidden) {
+            user.money -= costInMoney;
+        } else {
+            user.gold -= upgradeCost;
+        }
+        
+        // 이벤트 타임 체크 및 성공률 보너스 적용
+        const eventMultiplier = getEventMultiplier();
+        if (eventMultiplier > 1) {
+            rates.success = Math.min(rates.success * eventMultiplier, 100);
+        }
+        
+        // 강화석 보너스 적용
+        const activeStone = sessionStorage.getItem('activeStone');
+        const stoneBonus = parseInt(sessionStorage.getItem('stoneBonus') || '0');
+        if (activeStone && stoneBonus > 0) {
+            rates.success = Math.min(rates.success + stoneBonus, 100);
+            // 강화석 사용 후 제거
+            sessionStorage.removeItem('activeStone');
+            sessionStorage.removeItem('stoneBonus');
+        }
+        
+        // Determine enhancement result
+        const result = determineEnhancementResult(rates);
+        let newLevel = currentLevel;
+        let message = "";
+        let nextWeaponType = getWeaponType();
+        let nextWeaponKey = user.current_weapon_key || 'sword_01';
+        let hiddenSwordBonus = false;
+        
+        switch(result) {
+            case 'success':
+                newLevel = currentLevel + 1;
+                
+                // 콤보 시스템 적용
+                comboCount++;
+                comboMultiplier = 1 + (comboCount * 0.1); // 10%씩 증가
+                
+                const bonusGold = Math.floor(upgradeCost * (comboMultiplier - 1));
+                if (bonusGold > 0) {
+                    user.gold += bonusGold;
+                    message = `강화 성공! [+${newLevel}레벨] 🔥 ${comboCount}콤보! (+${bonusGold.toLocaleString()}G 보너스)`;
+                } else {
+                    message = `강화 성공! [+${newLevel}레벨]`;
+                }
+                
+                // 콤보 UI 표시
+                if (comboCount >= 3) {
+                    showComboEffect(comboCount);
+                }
+                updateComboCounter();
+                
+                // 일반 강화 성공 시 확정 강화권 플래그 초기화
+                user.used_enhance_scroll = false;
+                break;
+            case 'maintain':
+                message = "강화 실패!";
+                // 콤보 초기화
+                comboCount = 0;
+                comboMultiplier = 1.0;
+                updateComboCounter();
+                break;
+            case 'destroy':
+                newLevel = 0;
+                // 히든 검 확률 체크 (1%)
+                if (Math.random() < 0.01) {
+                    nextWeaponType = 'hidden';
+                    const n = Math.floor(Math.random() * 3) + 1;
+                    nextWeaponKey = `hidden_sword_${String(n).padStart(2,'0')}`;
+                    user.money += 100; // 100머니 지급
+                    message = "강화 실패! (검 파괴) - 히든 검 획득! (+100M)";
+                    hiddenSwordBonus = true;
+                } else {
+                    nextWeaponType = 'normal';
+                    const n = Math.floor(Math.random() * 30) + 1;
+                    nextWeaponKey = `sword_${String(n).padStart(2,'0')}`;
+                    message = "강화 실패! (검 파괴)";
+                }
+                // 파괴 시에도 플래그 초기화
+                user.used_enhance_scroll = false;
+                // 콤보 초기화
+                comboCount = 0;
+                comboMultiplier = 1.0;
+                updateComboCounter();
+                break;
+            default:
+                // 예상치 못한 결과는 유지로 처리
+                message = "강화 실패!";
+                // 콤보 초기화
+                comboCount = 0;
+                comboMultiplier = 1.0;
+                updateComboCounter();
+                break;
+        }
+        
+        // 히스토리에 추가
+        addToHistory(result);
+        
+        // Update user data
+        // 안전장치: newLevel이 현재 레벨보다 낮아지는 것을 방지 (파괴 제외)
+        if (result !== 'destroy' && newLevel < currentLevel) {
+            console.warn('레벨 하락 방지: newLevel을 currentLevel로 설정');
+            newLevel = currentLevel;
+        }
+        
+        // 데이터베이스 업데이트 먼저 수행하고 에러 체크
+        const { error } = await supabaseClient
+            .from('profiles')
+            .update({ 
+                gold: user.gold,
+                money: user.money,
+                current_sword_lvl: newLevel,
+                current_weapon_type: nextWeaponType,
+                current_weapon_key: nextWeaponKey
+            })
+            .eq('id', user.id);
+
+        if (error) {
+            console.error('강화 업데이트 오류:', error);
+            alert('강화 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+            isUpgrading = false;
+            img.classList.remove('hammering');
+            return;
+        }
+
+        // 데이터베이스 업데이트 성공 확인을 위한 추가 검증
+        console.log('강화 결과 데이터베이스 업데이트 완료:', {
+            level: newLevel,
+            weaponType: nextWeaponType,
+            weaponKey: nextWeaponKey,
+            gold: user.gold
+        });
+
+        setTimeout(() => {
+            img.classList.remove('hammering');
+            // 데이터베이스 업데이트 성공 후 로컬 변수 업데이트
+            user.current_sword_lvl = newLevel;
+            user.current_weapon_type = nextWeaponType;
+            user.current_weapon_key = nextWeaponKey;
+            
+            // 개선된 애니메이션 재생
+            playEnhanceAnimation(result);
+            
+            showEffect(result === 'success', message);
+            updateUI();
+            isUpgrading = false; // Reset upgrading flag after completion
+        }, 600);
+    }!");
         }
         
         isUpgrading = true; // Set upgrading flag
@@ -1095,6 +1384,158 @@
     }
 
     init();
+
+    // 강화 히스토리 관련 함수들
+    function addToHistory(result) {
+        enhanceHistory.unshift(result); // 맨 앞에 추가
+        if (enhanceHistory.length > 10) {
+            enhanceHistory.pop(); // 10개 초과 시 제거
+        }
+        renderHistory();
+    }
+
+    function renderHistory() {
+        const historyEl = document.getElementById('enhanceHistory');
+        if (!historyEl) return;
+        
+        historyEl.innerHTML = enhanceHistory.map(result => {
+            let className = 'history-item ';
+            let icon = '';
+            
+            if (result === 'success') {
+                className += 'history-success';
+                icon = '✓';
+            } else if (result === 'destroy') {
+                className += 'history-destroy';
+                icon = '✗';
+            } else {
+                className += 'history-fail';
+                icon = '−';
+            }
+            
+            return `<div class="${className}">${icon}</div>`;
+        }).join('');
+    }
+    
+    // 콤보 시스템 함수들
+    function showComboEffect(combo) {
+        const comboEl = document.createElement('div');
+        comboEl.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: 900;
+            color: #ff6b6b;
+            text-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
+            animation: comboAnim 1s ease-out;
+            z-index: 1000;
+            pointer-events: none;
+        `;
+        comboEl.textContent = `🔥 ${combo} COMBO! 🔥`;
+        document.body.appendChild(comboEl);
+        
+        setTimeout(() => comboEl.remove(), 1000);
+    }
+    
+    function updateComboCounter() {
+        const counterEl = document.getElementById('comboCounter');
+        if (!counterEl) return;
+        
+        if (comboCount >= 2) {
+            counterEl.style.display = 'block';
+            counterEl.textContent = `🔥 ${comboCount} COMBO`;
+        } else {
+            counterEl.style.display = 'none';
+        }
+    }
+    
+    // 이벤트 타임 시스템
+    function isEventTime() {
+        const now = new Date();
+        const hour = now.getHours();
+        
+        // 이벤트 시간: 12시~13시, 20시~21시
+        return (hour >= 12 && hour < 13) || (hour >= 20 && hour < 21);
+    }
+    
+    function getEventMultiplier() {
+        return isEventTime() ? 2.0 : 1.0;
+    }
+    
+    function checkEventTime() {
+        const banner = document.getElementById('eventBanner');
+        if (!banner) return;
+        
+        if (isEventTime()) {
+            banner.style.display = 'block';
+            banner.textContent = '⚡ 이벤트 타임! 성공률 2배! ⚡';
+        } else {
+            banner.style.display = 'none';
+        }
+        
+        // 1분마다 체크
+        setTimeout(checkEventTime, 60000);
+    }
+    
+    // 개선된 애니메이션
+    function playEnhanceAnimation(result) {
+        const img = document.getElementById('s-img');
+        if (!img) return;
+        
+        // 기존 애니메이션 제거
+        img.className = 'sword-img';
+        
+        // 새 애니메이션 추가
+        setTimeout(() => {
+            if (result === 'success') {
+                img.classList.add('success-effect');
+                createParticles('success');
+            } else if (result === 'destroy') {
+                img.classList.add('destroy-effect');
+                createParticles('destroy');
+            } else {
+                img.classList.add('fail-effect');
+            }
+        }, 10);
+    }
+    
+    function createParticles(type) {
+        const colors = type === 'success' ? 
+            ['#48bb78', '#38a169', '#2f855a'] : 
+            ['#f56565', '#e53e3e', '#c53030'];
+        
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.style.cssText = `
+                position: fixed;
+                width: 10px;
+                height: 10px;
+                background: ${colors[Math.floor(Math.random() * colors.length)]};
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 1000;
+                left: 50%;
+                top: 50%;
+            `;
+            
+            document.body.appendChild(particle);
+            
+            const angle = (Math.PI * 2 * i) / 20;
+            const velocity = 100 + Math.random() * 100;
+            const tx = Math.cos(angle) * velocity;
+            const ty = Math.sin(angle) * velocity;
+            
+            particle.animate([
+                { transform: 'translate(0, 0)', opacity: 1 },
+                { transform: `translate(${tx}px, ${ty}px)`, opacity: 0 }
+            ], {
+                duration: 1000,
+                easing: 'cubic-bezier(0, 0.5, 0.5, 1)'
+            }).onfinish = () => particle.remove();
+        }
+    }
 
     // 히든 검 확률 체크 함수
     async function checkForHiddenSword() {

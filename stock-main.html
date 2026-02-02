@@ -192,6 +192,79 @@
         .hidden {
             display: none;
         }
+        
+        .help-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .help-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: #333;
+            position: relative;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 30px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .modal h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .modal h3 {
+            color: #764ba2;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .modal p, .modal ul {
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        
+        .highlight {
+            background: #667eea;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -200,6 +273,7 @@
             <h1>📊 트레이딩 센터</h1>
             <div class="user-info">
                 <div class="balance">💰 <span id="userGold">0</span>G</div>
+                <button class="help-btn" onclick="openHelp()">❓ 도움말</button>
                 <button class="back-btn" onclick="location.href='minigames.html'">← 돌아가기</button>
             </div>
         </div>
@@ -213,6 +287,58 @@
         <div id="stocksTab" class="market-grid"></div>
         <div id="metalsTab" class="market-grid hidden"></div>
         <div id="luxuryTab" class="market-grid hidden"></div>
+    </div>
+    
+    <div class="modal" id="helpModal" onclick="closeHelp()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="modal-close" onclick="closeHelp()">&times;</span>
+            <h2>📊 트레이딩 센터 가이드</h2>
+            
+            <h3>📈 주식</h3>
+            <p>6개의 기업 주식을 거래할 수 있습니다. 각 기업마다 다른 변동성과 가격을 가지고 있습니다.</p>
+            <ul>
+                <li><strong>SWORD Inc.:</strong> 기본 변동성, 중간 가격</li>
+                <li><strong>TechVision:</strong> 높은 변동성, 고가</li>
+                <li><strong>GreenPower:</strong> 낮은 변동성, 안정적</li>
+                <li><strong>LifeCure:</strong> 높은 변동성, 최고가</li>
+                <li><strong>AutoDrive:</strong> 중간 변동성</li>
+                <li><strong>FoodKing:</strong> 낮은 변동성, 저가</li>
+            </ul>
+            
+            <h3>💎 귀금속</h3>
+            <p><span class="highlight">1000피스 = 1g</span> 단위로 거래됩니다.</p>
+            <ul>
+                <li><strong>금 (🥇):</strong> 안정적인 투자처</li>
+                <li><strong>은 (🥈):</strong> 저가, 높은 변동성</li>
+                <li><strong>백금 (⚪):</strong> 중간 가격대</li>
+                <li><strong>다이아몬드 (💎):</strong> 고가, 중간 변동성</li>
+            </ul>
+            
+            <h3>👜 명품</h3>
+            <p><span class="highlight">1,000,000피스 = 1개</span> 단위로 거래됩니다.</p>
+            <ul>
+                <li><strong>에르메스 버킨백:</strong> 최고가, 낮은 변동성</li>
+                <li><strong>샤넬 클래식:</strong> 중간 가격</li>
+                <li><strong>루이비통 스피디:</strong> 저가</li>
+                <li><strong>롤렉스 서브마리너:</strong> 고가, 안정적</li>
+            </ul>
+            
+            <h3>🎯 거래 방법</h3>
+            <ol>
+                <li>원하는 종목 카드를 클릭하여 거래 페이지로 이동</li>
+                <li>실시간 차트와 가격 변동 확인</li>
+                <li>거래 수량 입력</li>
+                <li><span class="highlight">매수</span> 또는 <span class="highlight">매도</span> 버튼 클릭</li>
+            </ol>
+            
+            <h3>💡 투자 팁</h3>
+            <ul>
+                <li>변동성이 높은 종목은 위험하지만 수익도 큽니다</li>
+                <li>차트의 추세를 보고 매수/매도 타이밍을 잡으세요</li>
+                <li>분산 투자로 리스크를 줄이세요</li>
+                <li>키보드 단축키: <strong>B</strong> = 매수, <strong>S</strong> = 매도</li>
+            </ul>
+        </div>
     </div>
 
     <script>
@@ -385,6 +511,14 @@
         
         function goToTrade(id, category) {
             location.href = `stock-trade.html?id=${id}&category=${category}`;
+        }
+        
+        function openHelp() {
+            document.getElementById('helpModal').style.display = 'flex';
+        }
+        
+        function closeHelp() {
+            document.getElementById('helpModal').style.display = 'none';
         }
         
         init();
