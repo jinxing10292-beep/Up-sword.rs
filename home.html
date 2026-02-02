@@ -287,13 +287,13 @@
         const { error } = await supabaseClient
             .from('profiles')
             .update({ 
-                gold: currentGold + 10000
+                gold: currentGold + 1000 // 10,000 → 1,000으로 감소
             })
             .eq('id', user.id);
             
         if (!error) {
             localStorage.setItem(`daily_chk_${user.id}`, today);
-            alert("출석체크 완료!\n10,000G가 지급되었습니다.");
+            alert("출석체크 완료!\n1,000G가 지급되었습니다.");
             location.reload();
         }
     }

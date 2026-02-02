@@ -532,7 +532,7 @@
         async function endGame() {
             gameRunning = false;
             const survivalTime = Math.floor((Date.now() - startTime) / 1000);
-            const earnedGold = Math.floor(survivalTime * 100 * combo * difficulty);
+            const earnedGold = Math.floor(survivalTime * 10 * combo * difficulty); // 100 → 10으로 감소
             
             document.getElementById('finalTime').textContent = survivalTime;
             document.getElementById('earnedGold').textContent = earnedGold.toLocaleString();

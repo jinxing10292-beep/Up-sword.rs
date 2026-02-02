@@ -65,7 +65,14 @@
         <button class="grid-btn btn-gray" onclick="location.href='inventory.html'">인벤토리</button>
         <button class="grid-btn btn-gray" onclick="location.href='shop.html'">상점</button>
         <button class="grid-btn btn-gray" onclick="location.href='achievements.html'">업적</button>
+        <button class="grid-btn btn-gray" onclick="location.href='minigames.html'">미니게임</button>
+    </div>
+
+    <div class="button-grid-container" style="margin-top: 15px;">
         <button class="grid-btn btn-gray" onclick="location.href='sword_collection.html'">검도감</button>
+        <button class="grid-btn btn-gray" onclick="location.href='missions.html'">미션</button>
+        <button class="grid-btn btn-gray" style="opacity: 0.5; cursor: not-allowed;">준비중</button>
+        <button class="grid-btn btn-gray" style="opacity: 0.5; cursor: not-allowed;">준비중</button>
     </div>
 
     <div class="game-selection">
@@ -243,7 +250,7 @@
         if (lastCheck === today) return alert("이미 오늘 출석하셨습니다.");
         
         const currentGold = user.gold || 0;
-        let updateData = { gold: currentGold + 10000 };
+        let updateData = { gold: currentGold + 1000 }; // 10,000 → 1,000으로 감소
         
         // Only include credits in the update if it exists in the user object
         if (user.credits !== undefined) {

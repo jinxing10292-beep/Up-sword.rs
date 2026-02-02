@@ -345,7 +345,7 @@
         
         async function endGame() {
             gameRunning = false;
-            const earnedGold = score;
+            const earnedGold = Math.floor(score / 10); // score → score/10으로 감소
             
             document.getElementById('earnedGold').textContent = earnedGold;
             document.getElementById('gameOver').style.display = 'block';
