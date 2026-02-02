@@ -70,7 +70,7 @@
         .from('user_achievements')
         .select('*')
         .eq('user_id', me.id)
-        .eq('unlocked', true);
+        .eq('completed', true);
 
       const unlockedCount = (userAchievements || []).length;
 

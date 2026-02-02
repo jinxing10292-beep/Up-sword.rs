@@ -3,132 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 게임 - Up Sword</title>
+    <title>주식 트레이딩 PRO - Up Sword</title>
     <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            margin: 0;
+            background: #0f172a;
+            font-family: 'Inter', sans-serif;
+            color: #e2e8f0;
             padding: 20px;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            font-family: 'Pretendard', sans-serif;
             min-height: 100vh;
         }
+        
         .back-btn {
-            background: white;
-            border: 2px solid #333;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             padding: 10px 20px;
-            font-size: 16px;
-            font-weight: bold;
+            color: white;
+            font-weight: 600;
             cursor: pointer;
             margin-bottom: 20px;
+            transition: all 0.3s;
         }
+        
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
+        
         h1 {
             text-align: center;
-            margin: 0 0 20px 0;
-            color: #333;
+            font-size: 36px;
+            font-weight: 900;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .stats {
+        
+        .dashboard {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 24px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #f1f5f9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 15px;
             margin-bottom: 20px;
         }
+        
         .stat-box {
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 16px;
         }
+        
         .stat-label {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 5px;
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
+        
         .stat-value {
             font-size: 24px;
-            font-weight: bold;
-            color: #333;
+            font-weight: 900;
+            color: #f1f5f9;
         }
+        
+        .stat-value.positive { color: #10b981; }
+        .stat-value.negative { color: #ef4444; }
+        
         .chart-container {
-            background: #f9f9f9;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            height: 200px;
             position: relative;
+            height: 300px;
+            margin-bottom: 20px;
         }
-        canvas {
-            width: 100%;
-            height: 100%;
-        }
-        .stock-info {
+        
+        .stock-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-            padding: 15px;
-            background: #f5f5f5;
-            border-radius: 10px;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border-radius: 12px;
+            border: 1px solid #334155;
         }
-        .price {
-            font-size: 32px;
-            font-weight: bold;
+        
+        .stock-name {
+            font-size: 24px;
+            font-weight: 900;
         }
-        .price.up { color: #e74c3c; }
-        .price.down { color: #3498db; }
-        .controls {
+        
+        .stock-price {
+            font-size: 36px;
+            font-weight: 900;
+        }
+        
+        .stock-price.up { color: #10b981; }
+        .stock-price.down { color: #ef4444; }
+        
+        .price-change {
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+        
+        .trading-panel {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
         }
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        input {
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 16px;
-        }
-        button {
-            padding: 15px;
+        
+        .trade-btn {
+            padding: 16px;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             font-size: 18px;
-            font-weight: bold;
+            font-weight: 700;
             cursor: pointer;
-            transition: 0.2s;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .buy-btn {
-            background: #e74c3c;
+        
+        .trade-btn.buy {
+            background: linear-gradient(135deg, #10b981, #059669);
             color: white;
         }
-        .sell-btn {
-            background: #3498db;
+        
+        .trade-btn.buy:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .trade-btn.sell {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
             color: white;
         }
-        .buy-btn:hover { background: #c0392b; }
-        .sell-btn:hover { background: #2980b9; }
-        .holdings {
-            margin-top: 20px;
-            padding: 15px;
-            background: #fff3cd;
-            border-radius: 10px;
-            text-align: center;
+        
+        .trade-btn.sell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+        }
+        
+        .trade-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .amount-input {
+            width: 100%;
+            padding: 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        
+        .news-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .news-item {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .news-item:hover {
+            border-color: #3b82f6;
+            transform: translateX(5px);
+        }
+        
+        .news-time {
+            font-size: 11px;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+        
+        .news-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 5px;
+        }
+        
+        .news-impact {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .news-impact.positive {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        
+        .news-impact.negative {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        .portfolio {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 15px;
+        }
+        
+        .portfolio-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .portfolio-item:last-child {
+            border-bottom: none;
+        }
+        
+        .indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        .indicator.live {
+            background: #10b981;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -136,59 +292,103 @@
     <button class="back-btn" onclick="location.href='minigames.html'">← 돌아가기</button>
     
     <div class="container">
-        <h1>📈 주식 게임</h1>
+        <h1>📈 주식 트레이딩 PRO</h1>
         
-        <div class="stats">
-            <div class="stat-box">
-                <div class="stat-label">보유 골드</div>
-                <div class="stat-value" id="userGold">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">보유 주식</div>
-                <div class="stat-value" id="holdings">0</div>
-            </div>
-        </div>
-        
-        <div class="chart-container">
-            <canvas id="chart"></canvas>
-        </div>
-        
-        <div class="stock-info">
+        <div class="dashboard">
             <div>
-                <div style="font-size: 14px; color: #666;">현재 주가</div>
-                <div class="price" id="currentPrice">1000</div>
+                <div class="card">
+                    <div class="stock-header">
+                        <div>
+                            <div class="stock-name">
+                                <span class="indicator live"></span>
+                                <span id="stockName">SWORD Inc.</span>
+                            </div>
+                            <div class="price-change" id="priceChange">+0.00 (0.00%)</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="stock-price" id="currentPrice">1000</div>
+                            <div style="font-size: 12px; color: #64748b;">KRW</div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="stockChart"></canvas>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">보유 주식</div>
+                            <div class="stat-value" id="ownedShares">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">평균 매수가</div>
+                            <div class="stat-value" id="avgPrice">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">평가 금액</div>
+                            <div class="stat-value" id="totalValue">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">수익률</div>
+                            <div class="stat-value" id="profitRate">0%</div>
+                        </div>
+                    </div>
+                    
+                    <input type="number" class="amount-input" id="tradeAmount" placeholder="거래 수량 입력" min="1" value="1">
+                    
+                    <div class="trading-panel">
+                        <button class="trade-btn buy" onclick="buyStock()">매수</button>
+                        <button class="trade-btn sell" onclick="sellStock()">매도</button>
+                    </div>
+                </div>
             </div>
-            <div style="text-align: right;">
-                <div style="font-size: 14px; color: #666;">변동</div>
-                <div id="priceChange" style="font-size: 18px; font-weight: bold;">0</div>
+            
+            <div>
+                <div class="card">
+                    <div class="card-title">💰 내 자산</div>
+                    <div class="stat-box" style="margin-bottom: 15px;">
+                        <div class="stat-label">보유 골드</div>
+                        <div class="stat-value" id="userGold">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">총 자산</div>
+                        <div class="stat-value" id="totalAssets">0</div>
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-title">📰 실시간 뉴스</div>
+                    <div class="news-feed" id="newsFeed"></div>
+                </div>
             </div>
-        </div>
-        
-        <div class="controls">
-            <div class="control-group">
-                <input type="number" id="buyAmount" placeholder="구매 수량" min="1" value="1">
-                <button class="buy-btn" onclick="buyStock()">매수</button>
-            </div>
-            <div class="control-group">
-                <input type="number" id="sellAmount" placeholder="판매 수량" min="1" value="1">
-                <button class="sell-btn" onclick="sellStock()">매도</button>
-            </div>
-        </div>
-        
-        <div class="holdings">
-            <strong>평가 손익:</strong> <span id="profit">0</span>G
         </div>
     </div>
 
     <script>
-        let user = null;
-        let stockPrice = 1000;
-        let priceHistory = [1000];
-        let holdings = 0;
-        let avgBuyPrice = 0;
+        const SUPABASE_URL = 'https://tcixevutegeimzxmwabu.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjaXhldnV0ZWdlaW16eG13YWJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MzE0MjgsImV4cCI6MjA4NTQwNzQyOH0.-5Byh95HgE2yPM0m24LPEERZu6KJFe7eD0VSBGf_Ukk';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
-        const canvas = document.getElementById('chart');
-        const ctx = canvas.getContext('2d');
+        let user = null;
+        let currentPrice = 1000;
+        let priceHistory = [];
+        let ownedShares = 0;
+        let avgBuyPrice = 0;
+        let chart = null;
+        let newsItems = [];
+        
+        const NEWS_TEMPLATES = [
+            { text: "SWORD Inc. 신제품 출시 발표", impact: 1.05, type: "positive" },
+            { text: "CEO 긍정적 실적 전망", impact: 1.03, type: "positive" },
+            { text: "대규모 투자 유치 성공", impact: 1.07, type: "positive" },
+            { text: "시장 점유율 확대", impact: 1.04, type: "positive" },
+            { text: "경쟁사 제품 리콜 사태", impact: 1.06, type: "positive" },
+            { text: "규제 당국 조사 착수", impact: 0.95, type: "negative" },
+            { text: "실적 부진 우려", impact: 0.93, type: "negative" },
+            { text: "주요 임원 사퇴", impact: 0.92, type: "negative" },
+            { text: "경쟁 심화로 수익성 악화", impact: 0.94, type: "negative" },
+            { text: "공급망 차질 발생", impact: 0.96, type: "negative" }
+        ];
         
         async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -204,78 +404,167 @@
                 .single();
             
             user = p;
-            updateDisplay();
-            startPriceUpdates();
+            updateUI();
+            initChart();
+            startSimulation();
+            generateNews();
         }
         
-        function startPriceUpdates() {
+        function initChart() {
+            const ctx = document.getElementById('stockChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '주가',
+                        data: [],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: '#1e293b',
+                            titleColor: '#f1f5f9',
+                            bodyColor: '#f1f5f9',
+                            borderColor: '#334155',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            grid: {
+                                color: '#334155'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        }
+        
+        function startSimulation() {
+            // 초기 가격 히스토리 생성
+            for (let i = 0; i < 50; i++) {
+                priceHistory.push(currentPrice);
+            }
+            
             setInterval(() => {
-                const change = (Math.random() - 0.5) * 100;
-                stockPrice = Math.max(100, Math.min(5000, stockPrice + change));
-                priceHistory.push(stockPrice);
-                if (priceHistory.length > 50) priceHistory.shift();
-                
-                updateDisplay();
-                drawChart();
+                updatePrice();
+                updateChart();
+                updateUI();
             }, 2000);
         }
         
-        function updateDisplay() {
-            document.getElementById('userGold').textContent = user.gold + 'G';
-            document.getElementById('holdings').textContent = holdings + '주';
+        function updatePrice() {
+            // 복잡한 가격 변동 알고리즘
+            const volatility = 0.02;
+            const trend = (Math.random() - 0.48) * volatility;
+            const momentum = priceHistory.length > 1 ? 
+                (priceHistory[priceHistory.length - 1] - priceHistory[priceHistory.length - 2]) / priceHistory[priceHistory.length - 2] : 0;
             
-            const priceEl = document.getElementById('currentPrice');
-            priceEl.textContent = Math.floor(stockPrice) + 'G';
+            // 모멘텀 효과 추가
+            const momentumEffect = momentum * 0.3;
             
-            if (priceHistory.length > 1) {
-                const change = stockPrice - priceHistory[priceHistory.length - 2];
-                const changeEl = document.getElementById('priceChange');
-                changeEl.textContent = (change >= 0 ? '+' : '') + Math.floor(change) + 'G';
-                changeEl.style.color = change >= 0 ? '#e74c3c' : '#3498db';
-                priceEl.className = 'price ' + (change >= 0 ? 'up' : 'down');
+            // 평균 회귀 효과
+            const meanPrice = priceHistory.reduce((a, b) => a + b, 0) / priceHistory.length;
+            const meanReversion = (meanPrice - currentPrice) / meanPrice * 0.1;
+            
+            // 최종 변동률 계산
+            const change = trend + momentumEffect + meanReversion;
+            currentPrice = Math.max(100, currentPrice * (1 + change));
+            
+            priceHistory.push(currentPrice);
+            if (priceHistory.length > 100) {
+                priceHistory.shift();
             }
-            
-            const profit = holdings > 0 ? Math.floor((stockPrice - avgBuyPrice) * holdings) : 0;
-            const profitEl = document.getElementById('profit');
-            profitEl.textContent = (profit >= 0 ? '+' : '') + profit;
-            profitEl.style.color = profit >= 0 ? '#27ae60' : '#e74c3c';
         }
         
-        function drawChart() {
-            const width = canvas.width;
-            const height = canvas.height;
-            ctx.clearRect(0, 0, width, height);
+        function updateChart() {
+            const labels = priceHistory.map((_, i) => i);
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = priceHistory;
             
-            if (priceHistory.length < 2) return;
+            // 차트 색상 동적 변경
+            const isUp = priceHistory[priceHistory.length - 1] > priceHistory[priceHistory.length - 2];
+            chart.data.datasets[0].borderColor = isUp ? '#10b981' : '#ef4444';
+            chart.data.datasets[0].backgroundColor = isUp ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
             
-            const max = Math.max(...priceHistory);
-            const min = Math.min(...priceHistory);
-            const range = max - min || 1;
+            chart.update('none');
+        }
+        
+        function updateUI() {
+            const priceElement = document.getElementById('currentPrice');
+            const changeElement = document.getElementById('priceChange');
             
-            ctx.strokeStyle = '#3498db';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
+            priceElement.textContent = Math.floor(currentPrice).toLocaleString();
             
-            priceHistory.forEach((price, i) => {
-                const x = (i / (priceHistory.length - 1)) * width;
-                const y = height - ((price - min) / range) * height;
+            if (priceHistory.length > 1) {
+                const prevPrice = priceHistory[priceHistory.length - 2];
+                const change = currentPrice - prevPrice;
+                const changePercent = (change / prevPrice * 100).toFixed(2);
                 
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            });
+                const isUp = change >= 0;
+                priceElement.className = 'stock-price ' + (isUp ? 'up' : 'down');
+                changeElement.className = 'price-change ' + (isUp ? 'up' : 'down');
+                changeElement.textContent = `${isUp ? '+' : ''}${change.toFixed(0)} (${isUp ? '+' : ''}${changePercent}%)`;
+            }
             
-            ctx.stroke();
+            document.getElementById('ownedShares').textContent = ownedShares.toLocaleString();
+            document.getElementById('avgPrice').textContent = Math.floor(avgBuyPrice).toLocaleString();
+            
+            const totalValue = ownedShares * currentPrice;
+            document.getElementById('totalValue').textContent = Math.floor(totalValue).toLocaleString();
+            
+            if (ownedShares > 0 && avgBuyPrice > 0) {
+                const profitRate = ((currentPrice - avgBuyPrice) / avgBuyPrice * 100).toFixed(2);
+                const profitElement = document.getElementById('profitRate');
+                profitElement.textContent = `${profitRate >= 0 ? '+' : ''}${profitRate}%`;
+                profitElement.className = 'stat-value ' + (profitRate >= 0 ? 'positive' : 'negative');
+            }
+            
+            if (user) {
+                document.getElementById('userGold').textContent = Math.floor(user.gold).toLocaleString();
+                const totalAssets = user.gold + totalValue;
+                document.getElementById('totalAssets').textContent = Math.floor(totalAssets).toLocaleString();
+            }
         }
         
         async function buyStock() {
-            const amount = parseInt(document.getElementById('buyAmount').value) || 0;
-            if (amount <= 0) return alert('수량을 입력하세요');
+            const amount = parseInt(document.getElementById('tradeAmount').value) || 1;
+            const cost = currentPrice * amount;
             
-            const cost = Math.floor(stockPrice * amount);
-            if (user.gold < cost) return alert('골드가 부족합니다');
+            if (!user || user.gold < cost) {
+                alert('골드가 부족합니다!');
+                return;
+            }
             
-            avgBuyPrice = (avgBuyPrice * holdings + stockPrice * amount) / (holdings + amount);
-            holdings += amount;
+            // 평균 매수가 계산
+            const totalCost = (avgBuyPrice * ownedShares) + (currentPrice * amount);
+            ownedShares += amount;
+            avgBuyPrice = totalCost / ownedShares;
+            
             user.gold -= cost;
             
             await supabaseClient
@@ -283,33 +572,96 @@
                 .update({ gold: user.gold })
                 .eq('id', user.id);
             
-            updateDisplay();
+            updateUI();
+            showNotification(`${amount}주 매수 완료! (${Math.floor(cost).toLocaleString()}G)`, 'success');
         }
         
         async function sellStock() {
-            const amount = parseInt(document.getElementById('sellAmount').value) || 0;
-            if (amount <= 0) return alert('수량을 입력하세요');
-            if (holdings < amount) return alert('보유 주식이 부족합니다');
+            const amount = parseInt(document.getElementById('tradeAmount').value) || 1;
             
-            const revenue = Math.floor(stockPrice * amount);
-            holdings -= amount;
+            if (ownedShares < amount) {
+                alert('보유 주식이 부족합니다!');
+                return;
+            }
+            
+            const revenue = currentPrice * amount;
+            ownedShares -= amount;
+            
+            if (ownedShares === 0) {
+                avgBuyPrice = 0;
+            }
+            
             user.gold += revenue;
-            
-            if (holdings === 0) avgBuyPrice = 0;
             
             await supabaseClient
                 .from('profiles')
                 .update({ gold: user.gold })
                 .eq('id', user.id);
             
-            updateDisplay();
+            updateUI();
+            showNotification(`${amount}주 매도 완료! (+${Math.floor(revenue).toLocaleString()}G)`, 'success');
+        }
+        
+        function generateNews() {
+            setInterval(() => {
+                const news = NEWS_TEMPLATES[Math.floor(Math.random() * NEWS_TEMPLATES.length)];
+                const time = new Date().toLocaleTimeString('ko-KR');
+                
+                newsItems.unshift({
+                    time,
+                    text: news.text,
+                    impact: news.impact,
+                    type: news.type
+                });
+                
+                if (newsItems.length > 10) {
+                    newsItems.pop();
+                }
+                
+                // 뉴스가 주가에 영향
+                currentPrice *= news.impact;
+                
+                renderNews();
+            }, 15000);
+        }
+        
+        function renderNews() {
+            const feed = document.getElementById('newsFeed');
+            feed.innerHTML = newsItems.map(item => `
+                <div class="news-item">
+                    <div class="news-time">${item.time}</div>
+                    <div class="news-title">${item.text}</div>
+                    <span class="news-impact ${item.type}">
+                        ${item.type === 'positive' ? '📈 호재' : '📉 악재'}
+                    </span>
+                </div>
+            `).join('');
+        }
+        
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+                color: white;
+                padding: 16px 24px;
+                border-radius: 12px;
+                font-weight: 600;
+                z-index: 1000;
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         }
         
         init();
-        
-        // Set canvas size
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
     </script>
 </body>
 </html>

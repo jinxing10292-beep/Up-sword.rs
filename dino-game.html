@@ -163,9 +163,18 @@
                 dino.grounded = true;
             }
             
-            // Draw dino
-            ctx.fillStyle = '#333';
+            // Draw dino (더 눈에 띄는 색상과 모양)
+            ctx.fillStyle = '#2ecc71';
             ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+            
+            // 공룡 눈 추가
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(dino.x + 25, dino.y + 5, 5, 5);
+            
+            // 공룡 다리
+            ctx.fillStyle = '#27ae60';
+            ctx.fillRect(dino.x + 5, dino.y + dino.height, 8, 5);
+            ctx.fillRect(dino.x + 25, dino.y + dino.height, 8, 5);
             
             // Spawn obstacles
             frameCount++;

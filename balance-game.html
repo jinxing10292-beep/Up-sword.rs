@@ -3,91 +3,235 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>균형 잡기 - Up Sword</title>
+    <title>균형 잡기 PRO - Up Sword</title>
     <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            font-family: 'Pretendard', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Orbitron', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            flex-direction: column;
+            overflow: hidden;
+            position: relative;
         }
+        
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            animation: float 3s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            50% { opacity: 1; }
+        }
+        
         .back-btn {
             position: absolute;
             top: 20px;
             left: 20px;
-            background: white;
-            border: 2px solid #333;
-            border-radius: 10px;
-            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 12px 24px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
+            color: white;
+            transition: all 0.3s;
+            z-index: 10;
         }
+        
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
         .game-container {
-            background: white;
-            border: 3px solid #333;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             text-align: center;
+            z-index: 5;
+            position: relative;
         }
+        
+        h1 {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
         #gameCanvas {
-            border: 2px solid #333;
+            border: 3px solid #667eea;
+            border-radius: 20px;
             display: block;
-            background: #fff;
+            background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
             margin: 0 auto;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-        .score-display {
+        
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 15px;
+            border-radius: 15px;
+            color: white;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
             font-size: 24px;
-            font-weight: bold;
-            margin-top: 15px;
-            color: #333;
+            font-weight: 900;
         }
+        
         .controls {
             margin-top: 15px;
             color: #666;
+            font-size: 14px;
+            font-family: 'Pretendard', sans-serif;
         }
+        
         .game-over {
             display: none;
             margin-top: 20px;
-        }
-        .restart-btn {
-            background: #4CAF50;
+            padding: 20px;
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            border-radius: 20px;
             color: white;
+        }
+        
+        .game-over h2 {
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+        
+        .reward-display {
+            font-size: 36px;
+            font-weight: 900;
+            margin: 15px 0;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .restart-btn {
+            background: white;
+            color: #f5576c;
             border: none;
-            padding: 15px 30px;
+            padding: 15px 40px;
             font-size: 18px;
             font-weight: bold;
-            border-radius: 10px;
+            border-radius: 15px;
             cursor: pointer;
             margin-top: 10px;
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        .restart-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .difficulty-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .pulse {
+            animation: pulse 0.5s ease-in-out;
         }
     </style>
 </head>
 <body>
+    <div class="particles" id="particles"></div>
+    
     <button class="back-btn" onclick="location.href='minigames.html'">← 돌아가기</button>
     
     <div class="game-container">
-        <h1 style="margin: 0 0 15px 0;">⚖️ 균형 잡기</h1>
+        <h1>⚖️ 균형 잡기 PRO</h1>
         <canvas id="gameCanvas" width="400" height="500"></canvas>
-        <div class="score-display">시간: <span id="score">0</span>초</div>
-        <div class="controls">마우스나 터치로 막대를 움직이세요!</div>
+        
+        <div class="stats-panel">
+            <div class="stat-box">
+                <div class="stat-label">시간</div>
+                <div class="stat-value" id="timeDisplay">0.0s</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">난이도</div>
+                <div class="stat-value" id="difficultyDisplay">1</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">콤보</div>
+                <div class="stat-value" id="comboDisplay">x1</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            마우스나 터치로 막대를 움직이세요!<br>
+            <span class="difficulty-badge">난이도는 시간에 따라 증가합니다</span>
+        </div>
+        
         <div class="game-over" id="gameOver">
-            <h2>게임 오버!</h2>
-            <p>획득 골드: <span id="earnedGold">0</span>G</p>
-            <button class="restart-btn" onclick="restartGame()">다시 시작</button>
+            <h2>🎮 게임 오버!</h2>
+            <p style="font-size: 18px;">생존 시간: <span id="finalTime">0</span>초</p>
+            <div class="reward-display">💰 <span id="earnedGold">0</span>G</div>
+            <button class="restart-btn" onclick="restartGame()">다시 도전</button>
         </div>
     </div>
 
     <script>
+        const SUPABASE_URL = 'https://tcixevutegeimzxmwabu.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjaXhldnV0ZWdlaW16eG13YWJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MzE0MjgsImV4cCI6MjA4NTQwNzQyOH0.-5Byh95HgE2yPM0m24LPEERZu6KJFe7eD0VSBGf_Ukk';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
@@ -95,15 +239,29 @@
         let gameRunning = false;
         let score = 0;
         let startTime = 0;
+        let difficulty = 1;
+        let combo = 1;
+        let lastBalanceTime = 0;
+        
+        // 물리 엔진 상수
+        const PHYSICS = {
+            gravity: 0.5,
+            friction: 0.98,
+            airResistance: 0.99,
+            stickDamping: 0.95,
+            ballBounce: 0.7,
+            maxAngle: Math.PI / 3
+        };
         
         const stick = {
             x: 200,
             y: 400,
-            width: 10,
+            width: 12,
             height: 150,
             angle: 0,
             targetAngle: 0,
-            angularVelocity: 0
+            angularVelocity: 0,
+            color: '#667eea'
         };
         
         const ball = {
@@ -111,10 +269,27 @@
             y: 250,
             radius: 15,
             vx: 0,
-            vy: 0
+            vy: 0,
+            color: '#f5576c',
+            trail: []
         };
         
         let mouseX = 200;
+        let particles = [];
+        
+        // 파티클 생성
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 3 + 's';
+                particle.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
         
         async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -130,21 +305,59 @@
                 .single();
             
             user = p;
+            createParticles();
             startGame();
         }
         
         function startGame() {
             gameRunning = true;
             score = 0;
+            difficulty = 1;
+            combo = 1;
             startTime = Date.now();
+            lastBalanceTime = Date.now();
             stick.angle = 0;
+            stick.angularVelocity = 0;
             stick.x = 200;
             ball.x = 200;
             ball.y = 250;
-            ball.vx = 0;
+            ball.vx = Math.random() * 2 - 1;
             ball.vy = 0;
+            ball.trail = [];
+            particles = [];
             document.getElementById('gameOver').style.display = 'none';
             gameLoop();
+        }
+        
+        function updateDifficulty() {
+            const elapsed = (Date.now() - startTime) / 1000;
+            difficulty = 1 + Math.floor(elapsed / 10);
+            
+            // 난이도에 따라 물리 변화
+            PHYSICS.gravity = 0.5 + (difficulty - 1) * 0.1;
+            
+            document.getElementById('difficultyDisplay').textContent = difficulty;
+        }
+        
+        function updateCombo() {
+            const now = Date.now();
+            if (now - lastBalanceTime < 1000) {
+                combo = Math.min(combo + 0.1, 5);
+            } else {
+                combo = Math.max(1, combo - 0.05);
+            }
+            lastBalanceTime = now;
+            document.getElementById('comboDisplay').textContent = 'x' + combo.toFixed(1);
+        }
+        
+        function createGameParticle(x, y, color) {
+            particles.push({
+                x, y,
+                vx: (Math.random() - 0.5) * 4,
+                vy: (Math.random() - 0.5) * 4,
+                life: 1,
+                color
+            });
         }
         
         function gameLoop() {
@@ -152,75 +365,185 @@
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Update stick position
-            stick.x += (mouseX - stick.x) * 0.1;
+            // 배경 그라데이션
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#f8f9fa');
+            gradient.addColorStop(1, '#e9ecef');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Update stick angle
-            const targetAngle = (mouseX - stick.x) * 0.05;
-            stick.angle += (targetAngle - stick.angle) * 0.1;
-            stick.angle = Math.max(-0.5, Math.min(0.5, stick.angle));
+            // 난이도 업데이트
+            updateDifficulty();
+            updateCombo();
             
-            // Calculate stick top position
+            // 막대 물리 계산
+            const targetAngle = ((mouseX - stick.x) / 200) * PHYSICS.maxAngle;
+            const angleDiff = targetAngle - stick.angle;
+            stick.angularVelocity += angleDiff * 0.02;
+            stick.angularVelocity *= PHYSICS.stickDamping;
+            stick.angle += stick.angularVelocity;
+            stick.angle = Math.max(-PHYSICS.maxAngle, Math.min(PHYSICS.maxAngle, stick.angle));
+            
+            // 막대 그리기 (3D 효과)
+            ctx.save();
+            ctx.translate(stick.x, stick.y);
+            ctx.rotate(stick.angle);
+            
+            // 그림자
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(-stick.width / 2 + 3, -stick.height + 3, stick.width, stick.height);
+            
+            // 막대 본체
+            const stickGradient = ctx.createLinearGradient(-stick.width / 2, 0, stick.width / 2, 0);
+            stickGradient.addColorStop(0, '#764ba2');
+            stickGradient.addColorStop(0.5, '#667eea');
+            stickGradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = stickGradient;
+            ctx.fillRect(-stick.width / 2, -stick.height, stick.width, stick.height);
+            
+            // 막대 하이라이트
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(-stick.width / 2 + 2, -stick.height, 3, stick.height);
+            
+            ctx.restore();
+            
+            // 막대 끝 위치 계산
             const stickTopX = stick.x + Math.sin(stick.angle) * stick.height;
             const stickTopY = stick.y - Math.cos(stick.angle) * stick.height;
             
-            // Update ball physics
-            ball.vy += 0.3; // gravity
-            ball.x += ball.vx;
-            ball.y += ball.vy;
-            
-            // Ball collision with stick
+            // 공 물리 계산
             const dx = ball.x - stickTopX;
             const dy = ball.y - stickTopY;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
-            if (dist < ball.radius + 5) {
-                ball.y = stickTopY - ball.radius;
-                ball.vy = 0;
-                ball.vx = Math.sin(stick.angle) * 2;
+            if (dist < ball.radius + stick.width / 2) {
+                // 막대와 충돌
+                const angle = Math.atan2(dy, dx);
+                ball.x = stickTopX + Math.cos(angle) * (ball.radius + stick.width / 2);
+                ball.y = stickTopY + Math.sin(angle) * (ball.radius + stick.width / 2);
+                
+                const normalX = dx / dist;
+                const normalY = dy / dist;
+                const relativeVelocity = ball.vx * normalX + ball.vy * normalY;
+                
+                ball.vx -= normalX * relativeVelocity * (1 + PHYSICS.ballBounce);
+                ball.vy -= normalY * relativeVelocity * (1 + PHYSICS.ballBounce);
+                
+                // 막대 회전 영향
+                ball.vx += stick.angularVelocity * 20;
+                
+                createGameParticle(ball.x, ball.y, ball.color);
             }
             
-            // Check if ball fell
-            if (ball.y > canvas.height + 50) {
+            // 중력 적용
+            ball.vy += PHYSICS.gravity * difficulty;
+            
+            // 공기 저항
+            ball.vx *= PHYSICS.airResistance;
+            ball.vy *= PHYSICS.airResistance;
+            
+            // 위치 업데이트
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+            
+            // 벽 충돌
+            if (ball.x - ball.radius < 0) {
+                ball.x = ball.radius;
+                ball.vx *= -PHYSICS.ballBounce;
+                createGameParticle(ball.x, ball.y, ball.color);
+            }
+            if (ball.x + ball.radius > canvas.width) {
+                ball.x = canvas.width - ball.radius;
+                ball.vx *= -PHYSICS.ballBounce;
+                createGameParticle(ball.x, ball.y, ball.color);
+            }
+            if (ball.y - ball.radius < 0) {
+                ball.y = ball.radius;
+                ball.vy *= -PHYSICS.ballBounce;
+                createGameParticle(ball.x, ball.y, ball.color);
+            }
+            
+            // 게임 오버 체크
+            if (ball.y + ball.radius > canvas.height) {
                 endGame();
                 return;
             }
             
-            // Draw stick
-            ctx.save();
-            ctx.translate(stick.x, stick.y);
-            ctx.rotate(stick.angle);
-            ctx.fillStyle = '#8B4513';
-            ctx.fillRect(-stick.width / 2, -stick.height, stick.width, stick.height);
-            ctx.restore();
+            // 공 궤적
+            ball.trail.push({ x: ball.x, y: ball.y });
+            if (ball.trail.length > 10) ball.trail.shift();
             
-            // Draw ball
-            ctx.fillStyle = '#e74c3c';
+            // 궤적 그리기
+            ctx.strokeStyle = 'rgba(245, 87, 108, 0.3)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ball.trail.forEach((point, i) => {
+                if (i === 0) ctx.moveTo(point.x, point.y);
+                else ctx.lineTo(point.x, point.y);
+            });
+            ctx.stroke();
+            
+            // 공 그리기 (3D 효과)
+            const ballGradient = ctx.createRadialGradient(
+                ball.x - ball.radius / 3, ball.y - ball.radius / 3, 0,
+                ball.x, ball.y, ball.radius
+            );
+            ballGradient.addColorStop(0, '#ff8fa3');
+            ballGradient.addColorStop(1, '#f5576c');
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.beginPath();
+            ctx.arc(ball.x + 2, ball.y + 2, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = ballGradient;
             ctx.beginPath();
             ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
             ctx.fill();
             
-            // Update score
-            score = Math.floor((Date.now() - startTime) / 1000);
-            document.getElementById('score').textContent = score;
+            // 하이라이트
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.beginPath();
+            ctx.arc(ball.x - ball.radius / 3, ball.y - ball.radius / 3, ball.radius / 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 파티클 업데이트
+            particles = particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2;
+                p.life -= 0.02;
+                
+                ctx.fillStyle = p.color.replace(')', `, ${p.life})`).replace('rgb', 'rgba');
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                return p.life > 0;
+            });
+            
+            // 시간 업데이트
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            document.getElementById('timeDisplay').textContent = elapsed + 's';
             
             requestAnimationFrame(gameLoop);
         }
         
         async function endGame() {
             gameRunning = false;
-            const earnedGold = score * 10;
+            const survivalTime = Math.floor((Date.now() - startTime) / 1000);
+            const earnedGold = Math.floor(survivalTime * 100 * combo * difficulty);
             
-            document.getElementById('earnedGold').textContent = earnedGold;
+            document.getElementById('finalTime').textContent = survivalTime;
+            document.getElementById('earnedGold').textContent = earnedGold.toLocaleString();
             document.getElementById('gameOver').style.display = 'block';
             
-            if (earnedGold > 0 && user) {
+            if (user && earnedGold > 0) {
                 const newGold = user.gold + earnedGold;
                 await supabaseClient
                     .from('profiles')
                     .update({ gold: newGold })
                     .eq('id', user.id);
-                
                 user.gold = newGold;
             }
         }
@@ -229,13 +552,12 @@
             startGame();
         }
         
-        // Mouse controls
+        // 마우스/터치 이벤트
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             mouseX = e.clientX - rect.left;
         });
         
-        // Touch controls
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
             const rect = canvas.getBoundingClientRect();
