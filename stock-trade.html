@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>트레이딩 - Up Sword</title>
+    <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-radius: 20px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 900;
+        }
+        
+        .balance {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 700;
+        }
+        
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            color: #333;
+        }
+        
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .stock-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .stock-icon {
+            font-size: 48px;
+        }
+        
+        .stock-name {
+            font-size: 28px;
+            font-weight: 900;
+        }
+        
+        .stock-code {
+            color: #999;
+            font-size: 14px;
+        }
+        
+        .price-info {
+            text-align: right;
+        }
+        
+        .current-price {
+            font-size: 42px;
+            font-weight: 900;
+        }
+        
+        .current-price.up { color: #f43f5e; }
+        .current-price.down { color: #3b82f6; }
+        
+        .price-change {
+            font-size: 16px;
+            font-weight: 700;
+            margin-top: 5px;
+        }
+        
+        .price-change.up { color: #f43f5e; }
+        .price-change.down { color: #3b82f6; }
+        
+        .chart-container {
+            height: 350px;
+            margin-bottom: 30px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 900;
+        }
+        
+        .trading-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .trade-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .trade-btn {
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: white;
+        }
+        
+        .trade-btn.buy {
+            background: linear-gradient(135deg, #f43f5e, #e11d48);
+        }
+        
+        .trade-btn.sell {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+        
+        .trade-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .portfolio-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        .portfolio-summary h3 {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+        
+        .portfolio-summary .value {
+            font-size: 36px;
+            font-weight: 900;
+        }
+        
+        .portfolio-summary .profit {
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+        
+        .info-text {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 10px;
+            color: #856404;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="pageTitle">트레이딩</h1>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div class="balance">💰 <span id="userGold">0</span>G</div>
+                <button class="back-btn" onclick="location.href='stock-main.html'">← 목록</button>
+            </div>
+        </div>
+        
+        <div class="main-grid">
+            <div>
+                <div class="card">
+                    <div class="stock-header">
+                        <div class="stock-info">
+                            <div class="stock-icon" id="stockIcon">📈</div>
+                            <div>
+                                <div class="stock-name" id="stockName">Loading...</div>
+                                <div class="stock-code" id="stockCode">-</div>
+                            </div>
+                        </div>
+                        <div class="price-info">
+                            <div class="current-price" id="currentPrice">0</div>
+                            <div class="price-change" id="priceChange">+0 (0.00%)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="stockChart"></canvas>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">보유량</div>
+                            <div class="stat-value" id="ownedAmount">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">평균 단가</div>
+                            <div class="stat-value" id="avgPrice">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">평가 금액</div>
+                            <div class="stat-value" id="totalValue">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">수익률</div>
+                            <div class="stat-value" id="profitRate">0%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="trading-section">
+                        <div class="input-group">
+                            <label>거래 수량</label>
+                            <input type="number" id="tradeAmount" min="1" value="1" placeholder="수량 입력">
+                        </div>
+                        <div class="trade-buttons">
+                            <button class="trade-btn buy" onclick="buy()">매수</button>
+                            <button class="trade-btn sell" onclick="sell()">매도</button>
+                        </div>
+                        <div class="info-text" id="infoText"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="card">
+                    <div class="portfolio-summary">
+                        <h3>총 자산</h3>
+                        <div class="value" id="totalAssets">0</div>
+                        <div class="profit" id="totalProfit">+0 (0%)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let user = null;
+        let marketData = null;
+        let currentPrice = 0;
+        let priceHistory = [];
+        let ownedAmount = 0;
+        let avgBuyPrice = 0;
+        let chart = null;
+        
+        const MARKETS = {
+            stocks: [
+                { id: 'SWORD', name: 'SWORD Inc.', icon: '⚔️', code: 'KRX:999999', basePrice: 1000, volatility: 0.03 },
+                { id: 'TECH', name: 'TechVision', icon: '💻', code: 'KRX:100001', basePrice: 2500, volatility: 0.04 },
+                { id: 'ENERGY', name: 'GreenPower', icon: '⚡', code: 'KRX:100002', basePrice: 1800, volatility: 0.025 },
+                { id: 'PHARMA', name: 'LifeCure', icon: '💊', code: 'KRX:100003', basePrice: 3200, volatility: 0.035 },
+                { id: 'AUTO', name: 'AutoDrive', icon: '🚗', code: 'KRX:100004', basePrice: 1500, volatility: 0.028 },
+                { id: 'FOOD', name: 'FoodKing', icon: '🍔', code: 'KRX:100005', basePrice: 900, volatility: 0.02 }
+            ],
+            metals: [
+                { id: 'GOLD', name: '금', icon: '🥇', code: 'METAL:GOLD', basePrice: 80, volatility: 0.015, unit: '피스', realUnit: '1000피스 = 1g' },
+                { id: 'SILVER', name: '은', icon: '🥈', code: 'METAL:SILVER', basePrice: 1.2, volatility: 0.02, unit: '피스', realUnit: '1000피스 = 1g' },
+                { id: 'PLATINUM', name: '백금', icon: '⚪', code: 'METAL:PLATINUM', basePrice: 45, volatility: 0.018, unit: '피스', realUnit: '1000피스 = 1g' },
+                { id: 'DIAMOND', name: '다이아몬드', icon: '💎', code: 'METAL:DIAMOND', basePrice: 150, volatility: 0.025, unit: '피스', realUnit: '1000피스 = 1g' }
+            ],
+            luxury: [
+                { id: 'HERMES', name: '에르메스 버킨백', icon: '👜', code: 'LUXURY:HERMES', basePrice: 15, volatility: 0.012, unit: '피스', realUnit: '1000000피스 = 1개' },
+                { id: 'CHANEL', name: '샤넬 클래식', icon: '💼', code: 'LUXURY:CHANEL', basePrice: 8, volatility: 0.015, unit: '피스', realUnit: '1000000피스 = 1개' },
+                { id: 'LV', name: '루이비통 스피디', icon: '🎒', code: 'LUXURY:LV', basePrice: 5, volatility: 0.018, unit: '피스', realUnit: '1000000피스 = 1개' },
+                { id: 'ROLEX', name: '롤렉스 서브마리너', icon: '⌚', code: 'LUXURY:ROLEX', basePrice: 12, volatility: 0.014, unit: '피스', realUnit: '1000000피스 = 1개' }
+            ]
+        };
+
+        
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                alert('로그인이 필요합니다');
+                location.href = 'login.html';
+                return;
+            }
+            
+            const { data: profile } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+            
+            user = profile;
+            
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            const category = params.get('category');
+            
+            if (!id || !category) {
+                location.href = 'stock-main.html';
+                return;
+            }
+            
+            marketData = MARKETS[category].find(m => m.id === id);
+            if (!marketData) {
+                location.href = 'stock-main.html';
+                return;
+            }
+            
+            currentPrice = marketData.basePrice;
+            
+            for (let i = 0; i < 50; i++) {
+                const change = (Math.random() - 0.5) * marketData.volatility;
+                currentPrice *= (1 + change);
+                priceHistory.push(currentPrice);
+            }
+            
+            document.getElementById('stockIcon').textContent = marketData.icon;
+            document.getElementById('stockName').textContent = marketData.name;
+            document.getElementById('stockCode').textContent = marketData.code;
+            document.getElementById('pageTitle').textContent = marketData.name;
+            
+            if (marketData.realUnit) {
+                document.getElementById('infoText').textContent = `💡 ${marketData.realUnit}`;
+            }
+            
+            initChart();
+            updateUI();
+            startPriceUpdate();
+        }
+        
+        function initChart() {
+            const ctx = document.getElementById('stockChart').getContext('2d');
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+            gradient.addColorStop(0, 'rgba(102, 126, 234, 0.4)');
+            gradient.addColorStop(1, 'rgba(118, 75, 162, 0.0)');
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: priceHistory.map((_, i) => ''),
+                    datasets: [{
+                        label: '가격',
+                        data: priceHistory,
+                        borderColor: '#667eea',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            callbacks: {
+                                label: (context) => `${context.parsed.y.toFixed(2)}G`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: {
+                                color: '#999',
+                                callback: (value) => `${value.toFixed(2)}`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function startPriceUpdate() {
+            setInterval(() => {
+                updatePrice();
+                updateChart();
+                updateUI();
+            }, 2000);
+        }
+        
+        function updatePrice() {
+            const trend = (Math.random() - 0.48) * marketData.volatility;
+            
+            const momentum = priceHistory.length > 1 ? 
+                (priceHistory[priceHistory.length - 1] - priceHistory[priceHistory.length - 2]) / priceHistory[priceHistory.length - 2] : 0;
+            const momentumEffect = momentum * 0.4;
+            
+            const recentAvg = priceHistory.slice(-20).reduce((a, b) => a + b, 0) / 20;
+            const meanReversion = (recentAvg - currentPrice) / recentAvg * 0.15;
+            
+            const totalChange = trend + momentumEffect + meanReversion;
+            currentPrice = Math.max(marketData.basePrice * 0.1, currentPrice * (1 + totalChange));
+            
+            priceHistory.push(currentPrice);
+            if (priceHistory.length > 100) {
+                priceHistory.shift();
+            }
+        }
+        
+        function updateChart() {
+            chart.data.labels = priceHistory.map((_, i) => '');
+            chart.data.datasets[0].data = priceHistory;
+            
+            const isUp = priceHistory[priceHistory.length - 1] > priceHistory[priceHistory.length - 2];
+            chart.data.datasets[0].borderColor = isUp ? '#f43f5e' : '#3b82f6';
+            
+            chart.update('none');
+        }
+        
+        function updateUI() {
+            const priceEl = document.getElementById('currentPrice');
+            priceEl.textContent = currentPrice.toFixed(2);
+            
+            if (priceHistory.length > 1) {
+                const prevPrice = priceHistory[priceHistory.length - 2];
+                const change = currentPrice - prevPrice;
+                const changePercent = (change / prevPrice * 100).toFixed(2);
+                
+                const isUp = change >= 0;
+                priceEl.className = 'current-price ' + (isUp ? 'up' : 'down');
+                
+                const changeEl = document.getElementById('priceChange');
+                changeEl.className = 'price-change ' + (isUp ? 'up' : 'down');
+                changeEl.textContent = `${isUp ? '▲' : '▼'} ${Math.abs(change).toFixed(2)} (${isUp ? '+' : ''}${changePercent}%)`;
+            }
+            
+            document.getElementById('ownedAmount').textContent = ownedAmount.toLocaleString();
+            document.getElementById('avgPrice').textContent = avgBuyPrice.toFixed(2);
+            
+            const totalValue = ownedAmount * currentPrice;
+            document.getElementById('totalValue').textContent = Math.floor(totalValue).toLocaleString();
+            
+            if (ownedAmount > 0 && avgBuyPrice > 0) {
+                const profitRate = ((currentPrice - avgBuyPrice) / avgBuyPrice * 100).toFixed(2);
+                document.getElementById('profitRate').textContent = `${profitRate >= 0 ? '+' : ''}${profitRate}%`;
+            }
+            
+            if (user) {
+                document.getElementById('userGold').textContent = Math.floor(user.gold).toLocaleString();
+                
+                const totalAssets = user.gold + totalValue;
+                document.getElementById('totalAssets').textContent = Math.floor(totalAssets).toLocaleString();
+                
+                const totalProfit = totalValue - (avgBuyPrice * ownedAmount);
+                const totalProfitRate = avgBuyPrice > 0 ? (totalProfit / (avgBuyPrice * ownedAmount) * 100).toFixed(2) : 0;
+                document.getElementById('totalProfit').textContent = `${totalProfit >= 0 ? '+' : ''}${Math.floor(totalProfit).toLocaleString()} (${totalProfitRate >= 0 ? '+' : ''}${totalProfitRate}%)`;
+            }
+        }
+        
+        async function buy() {
+            const amount = parseInt(document.getElementById('tradeAmount').value) || 1;
+            
+            if (amount <= 0) {
+                showNotification('올바른 수량을 입력하세요', 'error');
+                return;
+            }
+            
+            const cost = currentPrice * amount;
+            
+            if (!user || user.gold < cost) {
+                showNotification('골드가 부족합니다!', 'error');
+                return;
+            }
+            
+            const totalCost = (avgBuyPrice * ownedAmount) + (currentPrice * amount);
+            ownedAmount += amount;
+            avgBuyPrice = totalCost / ownedAmount;
+            
+            user.gold -= cost;
+            
+            await supabaseClient
+                .from('profiles')
+                .update({ gold: user.gold })
+                .eq('id', user.id);
+            
+            updateUI();
+            showNotification(`${amount}${marketData.unit || '주'} 매수 완료! (-${Math.floor(cost).toLocaleString()}G)`, 'success');
+        }
+        
+        async function sell() {
+            const amount = parseInt(document.getElementById('tradeAmount').value) || 1;
+            
+            if (amount <= 0) {
+                showNotification('올바른 수량을 입력하세요', 'error');
+                return;
+            }
+            
+            if (ownedAmount < amount) {
+                showNotification('보유량이 부족합니다!', 'error');
+                return;
+            }
+            
+            const revenue = currentPrice * amount;
+            const profit = (currentPrice - avgBuyPrice) * amount;
+            
+            ownedAmount -= amount;
+            
+            if (ownedAmount === 0) {
+                avgBuyPrice = 0;
+            }
+            
+            user.gold += revenue;
+            
+            await supabaseClient
+                .from('profiles')
+                .update({ gold: user.gold })
+                .eq('id', user.id);
+            
+            updateUI();
+            showNotification(`${amount}${marketData.unit || '주'} 매도 완료! (+${Math.floor(revenue).toLocaleString()}G, ${profit >= 0 ? '수익' : '손실'}: ${Math.floor(profit).toLocaleString()}G)`, 'success');
+        }
+        
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 30px;
+                right: 30px;
+                background: ${type === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)'};
+                color: white;
+                padding: 20px 30px;
+                border-radius: 15px;
+                font-weight: 700;
+                font-size: 16px;
+                z-index: 10000;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100px)';
+                notification.style.transition = 'all 0.3s';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'b' || e.key === 'B') {
+                buy();
+            } else if (e.key === 's' || e.key === 'S') {
+                sell();
+            }
+        });
+        
+        init();
+    </script>
+</body>
+</html>
