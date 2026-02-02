@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GM 패널 - 검강화 게임</title>
+    <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -358,30 +359,29 @@
                 document.getElementById('logModalTitle').innerText = `${nickname}님의 활동 로그`;
                 document.getElementById('logModal').style.display = 'block';
                 
-                // 통계 로드
-                const { data: stats, error: statsError } = await client.rpc('get_user_activity_stats', {
-                    target_user_id: userId
-                });
+                // 통계는 일단 빈 배열로 처리 (RPC 함수 없음)
+                renderLogStats([]);
                 
-                if (statsError) {
-                    console.error('통계 로드 오류:', statsError);
+                // 최근 활동 로드 - user_activities 테이블이 있다면 직접 조회
+                // 테이블이 없으면 빈 배열 표시
+                try {
+                    const { data: logs, error: logsError } = await client
+                        .from('user_activities')
+                        .select('*')
+                        .eq('user_id', userId)
+                        .order('created_at', { ascending: false })
+                        .limit(200);
+                    
+                    if (logsError) {
+                        console.log('활동 로그 테이블 없음 또는 조회 실패:', logsError.message);
+                        renderLogs([]);
+                    } else {
+                        renderLogs(logs || []);
+                    }
+                } catch (err) {
+                    console.log('활동 로그 조회 중 에러:', err);
+                    renderLogs([]);
                 }
-                
-                renderLogStats(stats || []);
-                
-                // 최근 활동 로드
-                const { data: logs, error: logsError } = await client.rpc('get_recent_user_activities', {
-                    target_user_id: userId,
-                    limit_count: 200
-                });
-                
-                if (logsError) {
-                    console.error('로그 로드 오류:', logsError);
-                    showNotification('로그 로드 실패: ' + logsError.message, 'error');
-                    return;
-                }
-                
-                renderLogs(logs || []);
             } catch (error) {
                 console.error('로그 표시 오류:', error);
                 showNotification('로그 표시 실패: ' + error.message, 'error');
