@@ -416,13 +416,14 @@
             const dy = ball.y - stickTopY;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
-            if (dist < ball.radius + stick.width / 2) {
+            if (dist < ball.radius + stick.width / 2 && dist > 0.001) { // dist가 0이 아닌지 확인
                 // 막대와 충돌
                 const angle = Math.atan2(dy, dx);
                 ball.x = stickTopX + Math.cos(angle) * (ball.radius + stick.width / 2);
                 ball.y = stickTopY + Math.sin(angle) * (ball.radius + stick.width / 2);
                 
                 const normalX = dx / dist;
+                const normalY = dy / dist;
                 const normalY = dy / dist;
                 const relativeVelocity = ball.vx * normalX + ball.vy * normalY;
                 
@@ -484,6 +485,16 @@
             ctx.stroke();
             
             // 공 그리기 (3D 효과)
+            // NaN이나 Infinity 체크
+            if (!isFinite(ball.x) || !isFinite(ball.y) || !isFinite(ball.radius)) {
+                console.error('Invalid ball values:', ball);
+                ball.x = canvas.width / 2;
+                ball.y = canvas.height / 2;
+                ball.radius = 15;
+                ball.vx = 0;
+                ball.vy = 0;
+            }
+            
             const ballGradient = ctx.createRadialGradient(
                 ball.x - ball.radius / 3, ball.y - ball.radius / 3, 0,
                 ball.x, ball.y, ball.radius
