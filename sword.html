@@ -986,28 +986,8 @@
             isUpgrading = false; // Reset upgrading flag after completion
         }, 600);
     }
-        
-        // Determine enhancement result
-        const result = determineEnhancementResult(rates);
-        let newLevel = currentLevel;
-        let message = "";
-        let nextWeaponType = getWeaponType();
-        let nextWeaponKey = user.current_weapon_key || 'sword_01';
-        let hiddenSwordBonus = false;
-        
-        switch(result) {
-            case 'success':
-                newLevel = currentLevel + 1;
-                message = `강화 성공! [+${newLevel}레벨]`;
-                // 일반 강화 성공 시 확정 강화권 플래그 초기화
-                user.used_enhance_scroll = false;
-                break;
-            case 'maintain':
-                message = "강화 실패!";
-                break;
-            case 'destroy':
-                newLevel = 0;
-                // 히든 검 확률 체크 (1%)
+
+    async function handleStore() {
                 if (Math.random() < 0.01) {
                     nextWeaponType = 'hidden';
                     const n = Math.floor(Math.random() * 3) + 1;
@@ -1017,66 +997,6 @@
                     hiddenSwordBonus = true;
                 } else {
                     nextWeaponType = 'normal';
-                    const n = Math.floor(Math.random() * 30) + 1;
-                    nextWeaponKey = `sword_${String(n).padStart(2,'0')}`;
-                    message = "강화 실패! (검 파괴)";
-                }
-                // 파괴 시에도 플래그 초기화
-                user.used_enhance_scroll = false;
-                break;
-            default:
-                // 예상치 못한 결과는 유지로 처리
-                message = "강화 실패!";
-                break;
-        }
-        
-        // Update user data
-        // 안전장치: newLevel이 현재 레벨보다 낮아지는 것을 방지 (파괴 제외)
-        if (result !== 'destroy' && newLevel < currentLevel) {
-            console.warn('레벨 하락 방지: newLevel을 currentLevel로 설정');
-            newLevel = currentLevel;
-        }
-        
-        // 데이터베이스 업데이트 먼저 수행하고 에러 체크
-        const { error } = await supabaseClient
-            .from('profiles')
-            .update({ 
-                gold: user.gold,
-                money: user.money,
-                current_sword_lvl: newLevel,
-                current_weapon_type: nextWeaponType,
-                current_weapon_key: nextWeaponKey
-            })
-            .eq('id', user.id);
-
-        if (error) {
-            console.error('강화 업데이트 오류:', error);
-            alert('강화 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
-            isUpgrading = false;
-            img.classList.remove('hammering');
-            return;
-        }
-
-        // 데이터베이스 업데이트 성공 확인을 위한 추가 검증
-        console.log('강화 결과 데이터베이스 업데이트 완료:', {
-            level: newLevel,
-            weaponType: nextWeaponType,
-            weaponKey: nextWeaponKey,
-            gold: user.gold
-        });
-
-        setTimeout(() => {
-            img.classList.remove('hammering');
-            // 데이터베이스 업데이트 성공 후 로컬 변수 업데이트
-            user.current_sword_lvl = newLevel;
-            user.current_weapon_type = nextWeaponType;
-            user.current_weapon_key = nextWeaponKey;
-            showEffect(result === 'success', message);
-            updateUI();
-            isUpgrading = false; // Reset upgrading flag after completion
-        }, 600);
-    }
-
     async function handleStore() {
         if (isUpgrading) return alert("강화 중에는 보관할 수 없습니다.");
         const level = parseInt(user.current_sword_lvl || 0, 10);
