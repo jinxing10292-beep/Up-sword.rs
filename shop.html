@@ -425,7 +425,8 @@
             const { error: updateError } = await supabaseClient
                 .from('profiles')
                 .update({ gold: newGold, money: newMoney })
-                .eq('id', user.id);
+                .eq('id', user.id)
+                .select();
             
             if (updateError) throw updateError;
             
@@ -445,7 +446,8 @@
                         quantity: existingItem.quantity + selectedQuantity,
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', existingItem.id);
+                    .eq('id', existingItem.id)
+                    .select();
                 
                 if (itemError) throw itemError;
             } else {
@@ -458,7 +460,8 @@
                         item_name: selectedItem.name,
                         quantity: selectedQuantity,
                         item_type: currentCategory
-                    });
+                    })
+                    .select();
                 
                 if (itemError) throw itemError;
             }
@@ -528,7 +531,7 @@
             // 화폐 차감 및 매크로 소유 설정 (원자적 업데이트)
             const newGold = latestUser.gold - totalGold;
             
-            const { error: updateError } = await supabaseClient
+            const { data: updateData, error: updateError } = await supabaseClient
                 .from('profiles')
                 .update({ 
                     gold: newGold, 
@@ -536,7 +539,8 @@
                 })
                 .eq('id', user.id)
                 .eq('gold', latestUser.gold) // 낙관적 잠금: 골드가 변경되지 않았을 때만 업데이트
-                .eq('has_macro', false); // 매크로를 아직 소유하지 않았을 때만 업데이트
+                .eq('has_macro', false) // 매크로를 아직 소유하지 않았을 때만 업데이트
+                .select();
             
             if (updateError) {
                 console.error('매크로 구매 데이터베이스 오류:', updateError);

@@ -149,11 +149,15 @@
             allSwords.forEach(s => swordDataMap[s.id] = s);
             
             // 사용자 검 로드
-            const { data: swords } = await supabaseClient
+            const { data: swords, error: swordsError } = await supabaseClient
                 .from('user_swords')
                 .select('*')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false });
+            
+            if (swordsError) {
+                console.error('검 로드 오류:', swordsError);
+            }
             
             userSwords = swords || [];
             filteredSwords = userSwords;

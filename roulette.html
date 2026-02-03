@@ -441,7 +441,7 @@
             
             // 룰렛 게임 기록 저장
             const { error: gameError } = await supabaseClient
-                .from('roulette_games')
+                .from('roulette_history')
                 .insert({
                     user_id: user.id,
                     winning_number: winningNumber,

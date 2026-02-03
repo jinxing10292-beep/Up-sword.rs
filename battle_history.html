@@ -2,82 +2,80 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>배틀 기록 - Up Sword</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #f4f7f6; font-family: 'Pretendard', sans-serif; padding: 20px 10px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         
-        .container { width: 100%; max-width: 420px; margin: 0 auto; }
-        .header { background: #1a202c; color: white; padding: 16px 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-size: 20px; font-weight: 800; }
-        .header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        .container { max-width: 800px; margin: 0 auto; }
         
-        .content { background: white; padding: 20px; border-radius: 0 0 20px 20px; }
+        .header { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; font-weight: 900; color: #2d3748; }
+        .back-btn { background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: 700; }
         
-        .battle-list { display: flex; flex-direction: column; gap: 12px; }
-        .battle-item { background: #f8fafc; border-radius: 12px; padding: 15px; border: 2px solid #e2e8f0; cursor: pointer; transition: 0.2s; }
-        .battle-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .battle-item.win { border-color: #48bb78; background: #f0fff4; }
-        .battle-item.lose { border-color: #f56565; background: #fff5f5; }
-        .battle-item.draw { border-color: #ed8936; background: #fffaf0; }
+        .stats-summary { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .stat-box { text-align: center; padding: 15px; background: #f8fafc; border-radius: 12px; }
+        .stat-label { font-size: 12px; color: #718096; margin-bottom: 5px; }
+        .stat-value { font-size: 24px; font-weight: 900; color: #2d3748; }
         
-        .battle-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .battle-result { font-size: 14px; font-weight: 700; }
-        .battle-date { font-size: 12px; color: #718096; }
+        .history-list { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .history-item { padding: 15px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .history-item:last-child { border-bottom: none; }
+        .history-left { flex: 1; }
+        .history-result { font-size: 20px; margin-right: 15px; }
+        .history-info { font-size: 14px; color: #2d3748; font-weight: 600; margin-bottom: 5px; }
+        .history-detail { font-size: 12px; color: #718096; }
+        .history-right { text-align: right; }
+        .history-reward { font-size: 12px; color: #48bb78; font-weight: 700; }
+        .history-time { font-size: 11px; color: #a0aec0; margin-top: 5px; }
         
-        .battle-info { font-size: 13px; color: #4a5568; }
-        .vs-text { font-weight: 600; margin: 0 8px; }
+        .win { color: #48bb78; }
+        .lose { color: #f56565; }
         
-        .loading { text-align: center; padding: 40px 20px; }
-        .spinner { border: 4px solid #f3f4f6; border-top: 4px solid #2d3748; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .empty-state { text-align: center; padding: 40px 20px; color: #718096; }
-        .empty-icon { font-size: 48px; margin-bottom: 10px; }
-        
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: white; width: 90%; max-width: 400px; border-radius: 20px; padding: 25px; position: relative; max-height: 80vh; overflow-y: auto; }
-        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; }
-        
-        .battle-log { background: #f8fafc; border-radius: 12px; padding: 15px; margin-top: 15px; max-height: 300px; overflow-y: auto; }
-        .log-entry { font-size: 12px; color: #4a5568; padding: 4px 0; line-height: 1.4; }
-        .log-entry.result { background: #edf2f7; padding: 8px; border-radius: 8px; margin-top: 8px; font-weight: 700; text-align: center; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #718096; }
+        .empty-icon { font-size: 60px; margin-bottom: 15px; opacity: 0.5; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>⚔️ 배틀 기록</h1>
-        <button onclick="location.href='battle.html'" title="배틀하기"><i class="fa-solid fa-plus"></i></button>
+        <h1>📜 배틀 기록</h1>
+        <button class="back-btn" onclick="location.href='battle.html'">
+            <i class="fas fa-arrow-left"></i> 돌아가기
+        </button>
     </div>
     
-    <div class="content">
-        <div id="loadingDiv" class="loading">
-            <div class="spinner"></div>
-            <p>배틀 기록을 불러오는 중...</p>
-        </div>
-        
-        <div id="contentDiv" style="display: none;">
-            <div class="battle-list" id="battleList"></div>
-            <div class="empty-state" id="emptyState" style="display: none;">
-                <div class="empty-icon">⚔️</div>
-                <p>배틀 기록이 없습니다.</p>
-                <button onclick="location.href='battle.html'" style="margin-top: 15px; padding: 10px 20px; background: #2d3748; color: white; border: none; border-radius: 10px; cursor: pointer;">첫 배틀 시작하기</button>
+    <div class="stats-summary">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">총 전투</div>
+                <div class="stat-value" id="totalBattles">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">승리</div>
+                <div class="stat-value win" id="totalWins">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">패배</div>
+                <div class="stat-value lose" id="totalLoses">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">승률</div>
+                <div class="stat-value" id="winRate">0%</div>
             </div>
         </div>
     </div>
-</div>
-
-<div id="detailModal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn" onclick="closeModal()">&times;</span>
-        <h2 style="text-align: center; margin-bottom: 15px;">배틀 상세</h2>
-        <div id="detailContent"></div>
+    
+    <div class="history-list">
+        <h3 style="margin-bottom: 15px; color: #2d3748;">최근 전투 기록</h3>
+        <div id="historyContent"></div>
     </div>
 </div>
 
@@ -86,124 +84,83 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsa2doZW5yZml6cWpmaWd2a3FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NzM5MDksImV4cCI6MjA4NTU0OTkwOX0.L6oh-I5EKTyxkTtjzm95q-hBQaUwIq34RaE6UXV6gJg';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     
-    let user = null;
-    let battles = [];
-    
     async function init() {
         try {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) { location.href = "login.html"; return; }
-            
-            const { data: p } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
-            user = p;
+            if (!session) {
+                location.href = 'login.html';
+                return;
+            }
             
             // 배틀 기록 로드
-            const { data: battleData } = await supabaseClient
-                .from('battles')
-                .select(`
-                    *,
-                    player1:player1_id(nickname),
-                    player2:player2_id(nickname),
-                    player1_sword:player1_sword_id(sword_name, sword_level),
-                    player2_sword:player2_sword_id(sword_name, sword_level)
-                `)
-                .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+            const { data: history, error } = await supabaseClient
+                .from('battle_history')
+                .select('*')
+                .eq('user_id', session.user.id)
                 .order('created_at', { ascending: false })
                 .limit(50);
             
-            battles = battleData || [];
+            if (error) throw error;
             
-            document.getElementById('loadingDiv').style.display = 'none';
-            document.getElementById('contentDiv').style.display = 'block';
-            renderBattles();
-        } catch (e) {
-            console.error(e);
-            document.getElementById('loadingDiv').innerHTML = '<p>오류가 발생했습니다.</p>';
-        }
-    }
-    
-    function renderBattles() {
-        const list = document.getElementById('battleList');
-        const empty = document.getElementById('emptyState');
-        
-        if (battles.length === 0) {
-            list.innerHTML = '';
-            empty.style.display = 'block';
-            return;
-        }
-        
-        empty.style.display = 'none';
-        list.innerHTML = battles.map(battle => {
-            const isPlayer1 = battle.player1_id === user.id;
-            const opponent = isPlayer1 ? battle.player2 : battle.player1;
-            const myResult = battle.winner_id === user.id ? 'win' : 
-                           battle.winner_id === null ? 'draw' : 'lose';
-            
-            const resultText = myResult === 'win' ? '🎉 승리' : 
-                             myResult === 'lose' ? '😢 패배' : '⏰ 무승부';
-            
-            const date = new Date(battle.created_at).toLocaleDateString('ko-KR', {
-                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-            });
-            
-            return `
-                <div class="battle-item ${myResult}" onclick="showBattleDetail(${battle.id})">
-                    <div class="battle-header">
-                        <div class="battle-result">${resultText}</div>
-                        <div class="battle-date">${date}</div>
+            if (!history || history.length === 0) {
+                document.getElementById('historyContent').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚔️</div>
+                        <p>아직 배틀 기록이 없습니다.</p>
                     </div>
-                    <div class="battle-info">
-                        ${isPlayer1 ? battle.player1_sword?.sword_name : battle.player2_sword?.sword_name}
-                        <span class="vs-text">vs</span>
-                        ${opponent?.nickname || '익명'}의 ${isPlayer1 ? battle.player2_sword?.sword_name : battle.player1_sword?.sword_name}
+                `;
+                return;
+            }
+            
+            // 통계 계산
+            const totalBattles = history.length;
+            const totalWins = history.filter(h => h.result === 'win').length;
+            const totalLoses = history.filter(h => h.result === 'lose').length;
+            const winRate = totalBattles > 0 ? ((totalWins / totalBattles) * 100).toFixed(1) : 0;
+            
+            document.getElementById('totalBattles').textContent = totalBattles;
+            document.getElementById('totalWins').textContent = totalWins;
+            document.getElementById('totalLoses').textContent = totalLoses;
+            document.getElementById('winRate').textContent = winRate + '%';
+            
+            // 기록 렌더링
+            const content = document.getElementById('historyContent');
+            content.innerHTML = history.map(h => {
+                const isWin = h.result === 'win';
+                const date = new Date(h.created_at);
+                const timeStr = date.toLocaleString('ko-KR');
+                
+                return `
+                    <div class="history-item">
+                        <div style="display: flex; align-items: center;">
+                            <div class="history-result">${isWin ? '🎉' : '💀'}</div>
+                            <div class="history-left">
+                                <div class="history-info ${isWin ? 'win' : 'lose'}">
+                                    ${isWin ? '승리' : '패배'} - Lv.${h.dummy_level} 허수아비
+                                </div>
+                                <div class="history-detail">
+                                    검 레벨: +${h.user_sword_level} | 공격력: ${h.user_attack} | 허수아비 HP: ${h.dummy_hp.toLocaleString()}
+                                </div>
+                                <div class="history-time">${timeStr}</div>
+                            </div>
+                        </div>
+                        <div class="history-right">
+                            ${isWin ? `
+                                <div class="history-reward">+${h.exp_gained} EXP</div>
+                                <div class="history-reward">+${h.coins_gained} 💎</div>
+                            ` : '<div style="color: #a0aec0; font-size: 12px;">보상 없음</div>'}
+                        </div>
                     </div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    async function showBattleDetail(battleId) {
-        const battle = battles.find(b => b.id === battleId);
-        if (!battle) return;
-        
-        const isPlayer1 = battle.player1_id === user.id;
-        const opponent = isPlayer1 ? battle.player2 : battle.player1;
-        const myResult = battle.winner_id === user.id ? 'win' : 
-                       battle.winner_id === null ? 'draw' : 'lose';
-        
-        const resultText = myResult === 'win' ? '🎉 승리' : 
-                         myResult === 'lose' ? '😢 패배' : '⏰ 무승부';
-        
-        let battleLog = [];
-        try {
-            battleLog = JSON.parse(battle.battle_log || '[]');
+                `;
+            }).join('');
+            
         } catch (e) {
-            battleLog = ['배틀 로그를 불러올 수 없습니다.'];
+            console.error('로드 오류:', e);
+            alert('데이터 로드 실패: ' + e.message);
         }
-        
-        const detailContent = document.getElementById('detailContent');
-        detailContent.innerHTML = `
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h3>${resultText}</h3>
-                <p style="color: #718096; margin: 5px 0;">
-                    ${new Date(battle.created_at).toLocaleString('ko-KR')}
-                </p>
-            </div>
-            <div class="battle-log">
-                ${battleLog.map(entry => `
-                    <div class="log-entry ${entry.includes('승리') || entry.includes('무승부') ? 'result' : ''}">${entry}</div>
-                `).join('')}
-            </div>
-        `;
-        
-        document.getElementById('detailModal').style.display = 'flex';
     }
     
-    function closeModal() {
-        document.getElementById('detailModal').style.display = 'none';
-    }
-    
-    init();
+    window.onload = init;
 </script>
 </body>
 </html>

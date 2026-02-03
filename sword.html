@@ -552,12 +552,14 @@
                     await supabaseClient
                         .from('user_items')
                         .update({ quantity: item.quantity - 1 })
-                        .eq('id', userItemId);
+                        .eq('id', userItemId)
+                        .select();
                 } else {
                     await supabaseClient
                         .from('user_items')
                         .delete()
-                        .eq('id', userItemId);
+                        .eq('id', userItemId)
+                        .select();
                 }
                 
                 // 확정 강화권 사용 시 판매가 페널티 플래그 설정
@@ -980,20 +982,7 @@
             updateUI();
             isUpgrading = false; // Reset upgrading flag after completion
         }, 600);
-    }!");
-        }
-        
-        isUpgrading = true; // Set upgrading flag
-
-        const img = document.getElementById('s-img');
-        img.classList.add('hammering');
-        
-        // 비용 차감
-        if (isHidden) {
-            user.money -= costInMoney;
-        } else {
-            user.gold -= upgradeCost;
-        }
+    }
         
         // Determine enhancement result
         const result = determineEnhancementResult(rates);
@@ -1083,7 +1072,6 @@
             updateUI();
             isUpgrading = false; // Reset upgrading flag after completion
         }, 600);
-    }
 
     async function handleStore() {
         if (isUpgrading) return alert("강화 중에는 보관할 수 없습니다.");

@@ -169,7 +169,8 @@
         const { error: updateError } = await supabaseClient
           .from('profiles')
           .update({ gold: newGold, money: newMoney })
-          .eq('id', me.id);
+          .eq('id', me.id)
+          .select();
 
         if (updateError) throw updateError;
 

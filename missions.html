@@ -104,7 +104,8 @@
       await supabaseClient
         .from('profiles')
         .update({ gold: (prof?.gold || 0) + (rewardGold || 0) })
-        .eq('id', me.id);
+        .eq('id', me.id)
+        .select();
 
       await supabaseClient
         .from('user_missions')

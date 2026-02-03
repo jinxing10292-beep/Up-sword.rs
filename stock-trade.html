@@ -565,10 +565,18 @@
             
             user.gold -= cost;
             
-            await supabaseClient
+            const { error } = await supabaseClient
                 .from('profiles')
                 .update({ gold: user.gold })
-                .eq('id', user.id);
+                .eq('id', user.id)
+                .select();
+            
+            if (error) {
+                console.error('골드 업데이트 실패:', error);
+                user.gold += cost; // 롤백
+                showNotification('골드 업데이트 실패: ' + error.message, 'error');
+                return;
+            }
             
             updateUI();
             showNotification(`${amount}${marketData.unit || '주'} 매수 완료! (-${Math.floor(cost).toLocaleString()}G)`, 'success');
@@ -598,10 +606,19 @@
             
             user.gold += revenue;
             
-            await supabaseClient
+            const { error } = await supabaseClient
                 .from('profiles')
                 .update({ gold: user.gold })
-                .eq('id', user.id);
+                .eq('id', user.id)
+                .select();
+            
+            if (error) {
+                console.error('골드 업데이트 실패:', error);
+                user.gold -= revenue; // 롤백
+                ownedAmount += amount; // 롤백
+                showNotification('골드 업데이트 실패: ' + error.message, 'error');
+                return;
+            }
             
             updateUI();
             showNotification(`${amount}${marketData.unit || '주'} 매도 완료! (+${Math.floor(revenue).toLocaleString()}G, ${profit >= 0 ? '수익' : '손실'}: ${Math.floor(profit).toLocaleString()}G)`, 'success');

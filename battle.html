@@ -2,99 +2,177 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>배틀 - Up Sword</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #f4f7f6; font-family: 'Pretendard', sans-serif; padding: 20px 10px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         
-        .container { width: 100%; max-width: 420px; margin: 0 auto; }
-        .header { background: #1a202c; color: white; padding: 16px 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-size: 20px; font-weight: 800; }
-        .header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        .container { max-width: 800px; margin: 0 auto; }
         
-        .content { background: white; padding: 20px; border-radius: 0 0 20px 20px; }
+        .header { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .header h1 { font-size: 28px; font-weight: 900; color: #2d3748; }
+        .home-btn { background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: 700; }
         
-        .battle-setup { display: flex; flex-direction: column; gap: 15px; }
-        .form-group { display: flex; flex-direction: column; gap: 8px; }
-        .form-label { font-size: 14px; font-weight: 700; color: #2d3748; }
-        .form-select { padding: 10px; border: 2px solid #ddd; border-radius: 10px; font-size: 14px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .stat-card { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px; border-radius: 12px; text-align: center; }
+        .stat-label { font-size: 12px; opacity: 0.9; margin-bottom: 5px; }
+        .stat-value { font-size: 24px; font-weight: 900; }
         
-        .btn-start { width: 100%; padding: 15px; background: #2d3748; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.2s; }
-        .btn-start:hover { background: #1a202c; }
-        .btn-start:disabled { background: #cbd5e0; cursor: not-allowed; }
+        .main-content { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         
-        .battle-log { background: #f8fafc; border-radius: 12px; padding: 15px; margin-top: 20px; max-height: 400px; overflow-y: auto; }
-        .log-title { font-size: 14px; font-weight: 700; color: #2d3748; margin-bottom: 10px; }
-        .log-entry { font-size: 12px; color: #4a5568; padding: 8px; border-bottom: 1px solid #e2e8f0; line-height: 1.5; }
-        .log-entry:last-child { border-bottom: none; }
-        .log-entry.player1 { color: #2d3748; font-weight: 600; }
-        .log-entry.player2 { color: #718096; }
-        .log-entry.result { background: #edf2f7; padding: 10px; border-radius: 8px; margin-top: 10px; font-weight: 700; text-align: center; }
+        .user-info { background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .user-info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .user-info-row:last-child { margin-bottom: 0; }
+        .info-label { font-size: 14px; color: #718096; font-weight: 600; }
+        .info-value { font-size: 16px; color: #2d3748; font-weight: 700; }
         
-        .battle-result { background: #f0fff4; border: 2px solid #48bb78; border-radius: 12px; padding: 15px; margin-top: 20px; text-align: center; }
-        .result-title { font-size: 18px; font-weight: 800; color: #22543d; margin-bottom: 10px; }
-        .result-detail { font-size: 14px; color: #22543d; margin-bottom: 5px; }
+        .exp-bar-container { margin-top: 10px; }
+        .exp-bar-bg { background: #e2e8f0; height: 20px; border-radius: 10px; overflow: hidden; position: relative; }
+        .exp-bar-fill { background: linear-gradient(90deg, #48bb78, #38a169); height: 100%; transition: width 0.5s; }
+        .exp-bar-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
         
-        .loading { text-align: center; padding: 20px; }
-        .spinner { border: 4px solid #f3f4f6; border-top: 4px solid #2d3748; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .dummy-selection { margin-bottom: 20px; }
+        .dummy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px; background: #f8fafc; border-radius: 12px; }
+        .dummy-card { background: white; border: 3px solid #e2e8f0; border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .dummy-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .dummy-card.selected { border-color: #667eea; background: #f0f4ff; }
+        .dummy-card.locked { opacity: 0.5; cursor: not-allowed; }
+        .dummy-level { font-size: 20px; font-weight: 900; color: #2d3748; margin-bottom: 5px; }
+        .dummy-hp { font-size: 12px; color: #718096; }
+        .dummy-reward { font-size: 11px; color: #48bb78; font-weight: 700; margin-top: 5px; }
         
-        .empty-state { text-align: center; padding: 30px 20px; color: #718096; }
-        .empty-icon { font-size: 40px; margin-bottom: 10px; }
+        .battle-btn { width: 100%; padding: 18px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 15px; font-size: 18px; font-weight: 900; cursor: pointer; transition: 0.2s; margin-top: 20px; }
+        .battle-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); }
+        .battle-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        .battle-arena { display: none; }
+        .battle-field { display: flex; justify-content: space-around; align-items: center; padding: 30px; background: linear-gradient(135deg, #f8fafc, #edf2f7); border-radius: 15px; margin-bottom: 20px; }
+        .fighter { text-align: center; }
+        .fighter-icon { font-size: 60px; margin-bottom: 10px; }
+        .fighter-name { font-size: 16px; font-weight: 700; color: #2d3748; margin-bottom: 5px; }
+        .fighter-hp-bar { width: 150px; height: 25px; background: #e2e8f0; border-radius: 12px; overflow: hidden; position: relative; margin: 10px auto; }
+        .fighter-hp-fill { background: linear-gradient(90deg, #f56565, #e53e3e); height: 100%; transition: width 0.3s; }
+        .fighter-hp-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: 700; color: white; }
+        
+        .battle-log { background: #2d3748; color: white; padding: 20px; border-radius: 12px; max-height: 300px; overflow-y: auto; font-size: 13px; line-height: 1.8; margin-bottom: 20px; }
+        .log-entry { margin-bottom: 8px; padding: 5px; border-left: 3px solid #667eea; padding-left: 10px; }
+        .log-player { color: #48bb78; }
+        .log-dummy { color: #f56565; }
+        .log-result { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; text-align: center; font-weight: 700; margin-top: 10px; }
+        
+        .result-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .result-content { background: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 400px; animation: slideUp 0.3s; }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .result-icon { font-size: 80px; margin-bottom: 20px; }
+        .result-title { font-size: 32px; font-weight: 900; margin-bottom: 15px; }
+        .result-win { color: #48bb78; }
+        .result-lose { color: #f56565; }
+        .result-rewards { background: #f8fafc; padding: 20px; border-radius: 12px; margin: 20px 0; }
+        .reward-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 16px; }
+        .reward-item:last-child { margin-bottom: 0; }
+        .reward-label { color: #718096; }
+        .reward-value { font-weight: 700; color: #2d3748; }
+        .close-btn { width: 100%; padding: 15px; background: #667eea; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>⚔️ 배틀</h1>
-        <div style="display: flex; gap: 10px;">
-            <button onclick="location.href='battle_history.html'" title="배틀 기록"><i class="fa-solid fa-history"></i></button>
-            <button onclick="location.href='index.html'" title="홈으로"><i class="fa-solid fa-house"></i></button>
+        <div class="header-top">
+            <h1>⚔️ 배틀 아레나</h1>
+            <button class="home-btn" onclick="location.href='home.html'">
+                <i class="fas fa-home"></i> 홈
+            </button>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">배틀 레벨</div>
+                <div class="stat-value" id="battleLevel">1</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">배틀 코인</div>
+                <div class="stat-value" id="battleCoins">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">최고 격파</div>
+                <div class="stat-value" id="highestDummy">0</div>
+            </div>
         </div>
     </div>
     
-    <div class="content">
-        <div id="setupDiv" class="battle-setup">
-            <div class="form-group">
-                <label class="form-label">내 검 선택</label>
-                <select id="mySwordSelect" class="form-select">
-                    <option value="">검을 선택하세요</option>
-                </select>
+    <div class="main-content">
+        <div class="user-info">
+            <div class="user-info-row">
+                <span class="info-label">내 검 레벨</span>
+                <span class="info-value" id="mySwordLevel">0</span>
             </div>
-            
-            <div class="form-group">
-                <label class="form-label">상대 플레이어 선택</label>
-                <select id="opponentSelect" class="form-select">
-                    <option value="">플레이어를 선택하세요</option>
-                </select>
+            <div class="user-info-row">
+                <span class="info-label">공격력</span>
+                <span class="info-value" id="myAttack">0</span>
             </div>
-            
-            <button class="btn-start" id="startBtn" onclick="startBattle()" disabled>배틀 시작</button>
+            <div class="exp-bar-container">
+                <div class="exp-bar-bg">
+                    <div class="exp-bar-fill" id="expBarFill" style="width: 0%"></div>
+                    <div class="exp-bar-text" id="expBarText">EXP: 0 / 100</div>
+                </div>
+            </div>
         </div>
         
-        <div id="battleDiv" style="display: none;">
-            <div class="battle-log">
-                <div class="log-title">⚔️ 배틀 로그</div>
-                <div id="logContent"></div>
-            </div>
-            
-            <div id="resultDiv" style="display: none;" class="battle-result">
-                <div class="result-title" id="resultTitle"></div>
-                <div class="result-detail" id="resultDetail"></div>
-            </div>
-            
-            <button class="btn-start" onclick="location.reload()" style="margin-top: 20px;">다시 배틀하기</button>
+        <div id="setupArea">
+            <h3 style="margin-bottom: 15px; color: #2d3748;">허수아비 선택</h3>
+            <div class="dummy-grid" id="dummyGrid"></div>
+            <button class="battle-btn" id="startBattleBtn" onclick="startBattle()" disabled>
+                <i class="fas fa-sword"></i> 배틀 시작
+            </button>
         </div>
         
-        <div id="loadingDiv" class="loading" style="display: none;">
-            <div class="spinner"></div>
-            <p>데이터를 불러오는 중...</p>
+        <div id="battleArea" class="battle-arena">
+            <div class="battle-field">
+                <div class="fighter">
+                    <div class="fighter-icon">🗡️</div>
+                    <div class="fighter-name" id="playerName">나</div>
+                    <div class="fighter-hp-bar">
+                        <div class="fighter-hp-fill" id="playerHpFill" style="width: 100%"></div>
+                        <div class="fighter-hp-text" id="playerHpText">100 / 100</div>
+                    </div>
+                    <div style="font-size: 12px; color: #718096;">공격력: <span id="playerAtk">0</span></div>
+                </div>
+                
+                <div style="font-size: 40px; color: #cbd5e0;">⚔️</div>
+                
+                <div class="fighter">
+                    <div class="fighter-icon">🎯</div>
+                    <div class="fighter-name" id="dummyName">허수아비</div>
+                    <div class="fighter-hp-bar">
+                        <div class="fighter-hp-fill" id="dummyHpFill" style="width: 100%; background: linear-gradient(90deg, #667eea, #764ba2);"></div>
+                        <div class="fighter-hp-text" id="dummyHpText">100 / 100</div>
+                    </div>
+                    <div style="font-size: 12px; color: #718096;">HP: <span id="dummyHp">0</span></div>
+                </div>
+            </div>
+            
+            <div class="battle-log" id="battleLog"></div>
+            
+            <button class="battle-btn" onclick="location.reload()">
+                <i class="fas fa-redo"></i> 다시 도전하기
+            </button>
         </div>
+    </div>
+</div>
+
+<div class="result-modal" id="resultModal">
+    <div class="result-content">
+        <div class="result-icon" id="resultIcon"></div>
+        <div class="result-title" id="resultTitle"></div>
+        <div class="result-rewards" id="resultRewards"></div>
+        <button class="close-btn" onclick="closeResult()">확인</button>
     </div>
 </div>
 
@@ -104,282 +182,373 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     
     let user = null;
-    let userSwords = [];
-    let allUsers = [];
-    let swordDataMap = {};
+    let selectedDummy = null;
+    let battleLog = [];
+    
+    // 허수아비 데이터 (레벨 1~30)
+    function getDummyData(level) {
+        const baseHp = 50;
+        const hpMultiplier = 1.5;
+        const hp = Math.floor(baseHp * Math.pow(hpMultiplier, level - 1));
+        
+        const baseExp = 10;
+        const expMultiplier = 1.3;
+        const exp = Math.floor(baseExp * Math.pow(expMultiplier, level - 1));
+        
+        const baseCoins = 5;
+        const coinsMultiplier = 1.4;
+        const coins = Math.floor(baseCoins * Math.pow(coinsMultiplier, level - 1));
+        
+        return {
+            level: level,
+            name: `Lv.${level} 허수아비`,
+            hp: hp,
+            maxHp: hp,
+            exp: exp,
+            coins: coins
+        };
+    }
+    
+    // 레벨업에 필요한 경험치
+    function getRequiredExp(level) {
+        return Math.floor(100 * Math.pow(1.5, level - 1));
+    }
     
     async function init() {
         try {
-            document.getElementById('loadingDiv').style.display = 'block';
-            
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) { location.href = "login.html"; return; }
-            
-            const { data: p } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
-            user = p;
-            
-            // 검 데이터 로드
-            const swordData = await fetch('sword_names.json').then(r => r.json());
-            swordData.swords.forEach(s => swordDataMap[s.id] = s);
-            
-            // 사용자 검 로드
-            const { data: swords } = await supabaseClient
-                .from('user_swords')
-                .select('*')
-                .eq('user_id', user.id);
-            
-            userSwords = swords || [];
-            
-            // 검을 가진 플레이어만 로드
-            try {
-                // 먼저 user_swords에서 검을 가진 유저 ID 목록 가져오기
-                const { data: swordOwners, error: swordError } = await supabaseClient
-                    .from('user_swords')
-                    .select('user_id')
-                    .neq('user_id', user.id);
-                
-                if (swordError) throw swordError;
-                
-                // 중복 제거
-                const uniqueUserIds = [...new Set((swordOwners || []).map(s => s.user_id))];
-                
-                if (uniqueUserIds.length === 0) {
-                    allUsers = [];
-                } else {
-                    // 해당 유저들의 프로필 정보 가져오기
-                    const { data: profiles, error: profileError } = await supabaseClient
-                        .from('profiles')
-                        .select('id, nickname')
-                        .in('id', uniqueUserIds)
-                        .limit(100);
-                    
-                    if (profileError) throw profileError;
-                    
-                    allUsers = (profiles || []).map(p => ({
-                        id: p.id,
-                        nickname: p.nickname || p.id
-                    }));
-                }
-            } catch (error) {
-                console.error('유저 로드 오류:', error);
-                // 오류 발생 시 모든 유저 표시
-                const { data: allProfiles } = await supabaseClient
-                    .from('profiles')
-                    .select('id, nickname')
-                    .neq('id', user.id)
-                    .limit(50);
-                
-                allUsers = (allProfiles || []).map(p => ({
-                    id: p.id,
-                    nickname: p.nickname || p.id
-                }));
+            if (!session) {
+                location.href = 'login.html';
+                return;
             }
             
-            document.getElementById('loadingDiv').style.display = 'none';
-            populateSelects();
+            const { data: profile, error } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+            
+            if (error) throw error;
+            
+            user = profile;
+            
+            // 배틀 관련 필드 초기화
+            if (user.battle_level === null || user.battle_level === undefined) user.battle_level = 1;
+            if (user.battle_exp === null || user.battle_exp === undefined) user.battle_exp = 0;
+            if (user.battle_coins === null || user.battle_coins === undefined) user.battle_coins = 0;
+            if (user.highest_dummy_defeated === null || user.highest_dummy_defeated === undefined) user.highest_dummy_defeated = 0;
+            
+            updateUI();
+            renderDummies();
+            
         } catch (e) {
-            console.error(e);
-            document.getElementById('loadingDiv').innerHTML = '<p>오류가 발생했습니다.</p>';
+            console.error('초기화 오류:', e);
+            alert('데이터 로드 실패: ' + e.message);
         }
     }
     
-    function populateSelects() {
-        // 내 검 선택
-        const mySwordSelect = document.getElementById('mySwordSelect');
-        if (userSwords.length === 0) {
-            mySwordSelect.innerHTML = '<option value="">보유한 검이 없습니다</option>';
-        } else {
-            mySwordSelect.innerHTML = '<option value="">검을 선택하세요</option>' + userSwords.map(s => 
-                `<option value="${s.id}">${s.sword_name} (Lv. ${s.sword_level})</option>`
-            ).join('');
-        }
+    function updateUI() {
+        document.getElementById('battleLevel').textContent = user.battle_level;
+        document.getElementById('battleCoins').textContent = user.battle_coins.toLocaleString();
+        document.getElementById('highestDummy').textContent = user.highest_dummy_defeated;
         
-        // 상대 플레이어 선택
-        const opponentSelect = document.getElementById('opponentSelect');
-        if (allUsers.length === 0) {
-            opponentSelect.innerHTML = '<option value="">검을 가진 플레이어가 없습니다</option>';
-        } else {
-            opponentSelect.innerHTML = '<option value="">플레이어를 선택하세요</option>' + allUsers.map(u => 
-                `<option value="${u.id}">${u.nickname || '익명'}</option>`
-            ).join('');
-        }
+        document.getElementById('mySwordLevel').textContent = `+${user.current_sword_lvl}`;
+        const attack = 10 + (user.current_sword_lvl * 5);
+        document.getElementById('myAttack').textContent = attack;
         
-        // 선택 이벤트
-        mySwordSelect.addEventListener('change', updateStartBtn);
-        opponentSelect.addEventListener('change', updateStartBtn);
+        // 경험치 바 업데이트
+        const requiredExp = getRequiredExp(user.battle_level);
+        const expPercent = (user.battle_exp / requiredExp) * 100;
+        document.getElementById('expBarFill').style.width = expPercent + '%';
+        document.getElementById('expBarText').textContent = `EXP: ${user.battle_exp} / ${requiredExp}`;
     }
     
-    function updateStartBtn() {
-        const mySword = document.getElementById('mySwordSelect').value;
-        const opponent = document.getElementById('opponentSelect').value;
-        document.getElementById('startBtn').disabled = !mySword || !opponent;
+    function renderDummies() {
+        const grid = document.getElementById('dummyGrid');
+        grid.innerHTML = '';
+        
+        for (let i = 1; i <= 30; i++) {
+            const dummy = getDummyData(i);
+            const isLocked = i > user.highest_dummy_defeated + 1;
+            
+            const card = document.createElement('div');
+            card.className = 'dummy-card' + (isLocked ? ' locked' : '');
+            card.innerHTML = `
+                <div class="dummy-level">Lv.${dummy.level}</div>
+                <div class="dummy-hp">HP: ${dummy.hp.toLocaleString()}</div>
+                <div class="dummy-reward">
+                    💎 ${dummy.coins} 코인<br>
+                    ⭐ ${dummy.exp} EXP
+                </div>
+                ${isLocked ? '<div style="margin-top: 5px; font-size: 20px;">🔒</div>' : ''}
+            `;
+            
+            if (!isLocked) {
+                card.onclick = () => selectDummy(dummy);
+            }
+            
+            grid.appendChild(card);
+        }
+    }
+    
+    function selectDummy(dummy) {
+        selectedDummy = dummy;
+        
+        // 모든 카드 선택 해제
+        document.querySelectorAll('.dummy-card').forEach(c => c.classList.remove('selected'));
+        
+        // 선택된 카드 표시
+        event.target.closest('.dummy-card').classList.add('selected');
+        
+        document.getElementById('startBattleBtn').disabled = false;
     }
     
     async function startBattle() {
-        const mySwordId = parseInt(document.getElementById('mySwordSelect').value);
-        const opponentId = document.getElementById('opponentSelect').value;
+        if (!selectedDummy) return;
         
-        const mySword = userSwords.find(s => s.id === mySwordId);
-        if (!mySword) return alert('검을 선택하세요');
+        // UI 전환
+        document.getElementById('setupArea').style.display = 'none';
+        document.getElementById('battleArea').style.display = 'block';
         
-        // 상대 검 랜덤 선택
-        const { data: opponentSwords } = await supabaseClient
-            .from('user_swords')
-            .select('*')
-            .eq('user_id', opponentId);
+        // 전투 초기화
+        const playerAttack = 10 + (user.current_sword_lvl * 5);
+        const playerMaxHp = 100 + (user.battle_level * 20);
+        let playerHp = playerMaxHp;
+        let dummyHp = selectedDummy.hp;
         
-        if (!opponentSwords || opponentSwords.length === 0) {
-            return alert('상대 플레이어가 검을 보유하지 않았습니다.');
-        }
+        battleLog = [];
         
-        const opponentSword = opponentSwords[Math.floor(Math.random() * opponentSwords.length)];
+        // UI 업데이트
+        document.getElementById('playerName').textContent = user.nickname || '플레이어';
+        document.getElementById('playerAtk').textContent = playerAttack;
+        document.getElementById('dummyName').textContent = selectedDummy.name;
+        document.getElementById('dummyHp').textContent = selectedDummy.hp.toLocaleString();
         
-        // 배틀 시뮬레이션
-        document.getElementById('setupDiv').style.display = 'none';
-        document.getElementById('battleDiv').style.display = 'block';
+        updateBattleUI(playerHp, playerMaxHp, dummyHp, selectedDummy.maxHp);
         
-        const battleResult = generateBattleLog(mySword, opponentSword);
-        await saveBattleResult(mySword, opponentSword, opponentId, battleResult);
-        displayBattleLog(battleResult.log, battleResult.winner);
-    }
-    
-    function generateBattleLog(sword1, sword2) {
-        const log = [];
-        const actions = [
-            '강력한 베기',
-            '재빠른 찌르기',
-            '회전 베기',
-            '내려찍기',
-            '옆 베기',
-            '연속 공격',
-            '필살기 발동'
-        ];
+        // 전투 시작
+        addLog(`⚔️ ${selectedDummy.name}과(와)의 전투가 시작되었습니다!`);
         
-        let hp1 = 100 + sword1.sword_level * 10;
-        let hp2 = 100 + sword2.sword_level * 10;
-        let turn = 0;
-        let winner = null;
+        let turn = 1;
+        const maxTurns = 50; // 무한 루프 방지
         
-        log.push(`⚔️ ${sword1.sword_name} (Lv. ${sword1.sword_level}) vs ${sword2.sword_name} (Lv. ${sword2.sword_level})`);
-        log.push(`HP: ${hp1} vs ${hp2}`);
-        log.push('---');
-        
-        while (hp1 > 0 && hp2 > 0 && turn < 20) {
-            // 플레이어 1 공격
-            const action1 = actions[Math.floor(Math.random() * actions.length)];
-            const damage1 = Math.floor(Math.random() * 20) + 10 + sword1.sword_level * 2;
-            hp2 -= damage1;
-            log.push(`[턴 ${turn + 1}] ${sword1.sword_name}: ${action1}! (${damage1} 데미지)`);
-            log.push(`${sword2.sword_name} HP: ${Math.max(0, hp2)}`);
+        while (playerHp > 0 && dummyHp > 0 && turn <= maxTurns) {
+            await sleep(800);
             
-            if (hp2 <= 0) {
-                winner = 'player1';
-                break;
+            // 플레이어 공격
+            const playerDamage = Math.floor(playerAttack * (0.9 + Math.random() * 0.2)); // 90~110%
+            dummyHp -= playerDamage;
+            addLog(`🗡️ 당신의 공격! ${playerDamage} 데미지!`, 'player');
+            updateBattleUI(playerHp, playerMaxHp, Math.max(0, dummyHp), selectedDummy.maxHp);
+            
+            if (dummyHp <= 0) {
+                await sleep(500);
+                addLog(`🎉 ${selectedDummy.name}을(를) 격파했습니다!`, 'result');
+                await handleVictory();
+                return;
             }
             
-            // 플레이어 2 공격
-            const action2 = actions[Math.floor(Math.random() * actions.length)];
-            const damage2 = Math.floor(Math.random() * 20) + 10 + sword2.sword_level * 2;
-            hp1 -= damage2;
-            log.push(`[턴 ${turn + 1}] ${sword2.sword_name}: ${action2}! (${damage2} 데미지)`);
-            log.push(`${sword1.sword_name} HP: ${Math.max(0, hp1)}`);
+            await sleep(800);
             
-            if (hp1 <= 0) {
-                winner = 'player2';
-                break;
+            // 허수아비 반격 (약한 고정 데미지)
+            const dummyDamage = Math.floor(5 + selectedDummy.level * 2);
+            playerHp -= dummyDamage;
+            addLog(`🎯 허수아비의 반격! ${dummyDamage} 데미지!`, 'dummy');
+            updateBattleUI(Math.max(0, playerHp), playerMaxHp, dummyHp, selectedDummy.maxHp);
+            
+            if (playerHp <= 0) {
+                await sleep(500);
+                addLog(`💀 패배했습니다...`, 'result');
+                await handleDefeat();
+                return;
             }
             
             turn++;
         }
         
-        log.push('---');
-        if (winner === 'player1') {
-            log.push(`🎉 ${sword1.sword_name} 승리!`);
-        } else if (winner === 'player2') {
-            log.push(`🎉 ${sword2.sword_name} 승리!`);
-        } else {
-            log.push('⏰ 무승부! (시간 초과)');
+        // 최대 턴 도달 (무승부 처리 - 패배로 간주)
+        if (turn > maxTurns) {
+            addLog(`⏱️ 시간 초과! 패배했습니다.`, 'result');
+            await handleDefeat();
         }
-        
-        return { log, winner, finalHp1: Math.max(0, hp1), finalHp2: Math.max(0, hp2) };
     }
     
-    async function saveBattleResult(mySword, opponentSword, opponentId, battleResult) {
+    function updateBattleUI(playerHp, playerMaxHp, dummyHp, dummyMaxHp) {
+        const playerPercent = (playerHp / playerMaxHp) * 100;
+        const dummyPercent = (dummyHp / dummyMaxHp) * 100;
+        
+        document.getElementById('playerHpFill').style.width = playerPercent + '%';
+        document.getElementById('playerHpText').textContent = `${Math.max(0, playerHp)} / ${playerMaxHp}`;
+        
+        document.getElementById('dummyHpFill').style.width = dummyPercent + '%';
+        document.getElementById('dummyHpText').textContent = `${Math.max(0, dummyHp)} / ${dummyMaxHp}`;
+    }
+    
+    function addLog(message, type = '') {
+        battleLog.push({ message, type });
+        const logDiv = document.getElementById('battleLog');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        if (type === 'player') entry.classList.add('log-player');
+        if (type === 'dummy') entry.classList.add('log-dummy');
+        if (type === 'result') entry.classList.add('log-result');
+        entry.textContent = message;
+        logDiv.appendChild(entry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    async function handleVictory() {
         try {
-            const winnerId = battleResult.winner === 'player1' ? user.id : 
-                           battleResult.winner === 'player2' ? opponentId : null;
+            const expGained = selectedDummy.exp;
+            const coinsGained = selectedDummy.coins;
+            
+            let newExp = user.battle_exp + expGained;
+            let newLevel = user.battle_level;
+            let leveledUp = false;
+            
+            // 레벨업 체크
+            let requiredExp = getRequiredExp(newLevel);
+            while (newExp >= requiredExp) {
+                newExp -= requiredExp;
+                newLevel++;
+                leveledUp = true;
+                requiredExp = getRequiredExp(newLevel);
+            }
+            
+            const newCoins = user.battle_coins + coinsGained;
+            const newHighest = Math.max(user.highest_dummy_defeated, selectedDummy.level);
+            
+            // 데이터베이스 업데이트
+            const { error: updateError } = await supabaseClient
+                .from('profiles')
+                .update({
+                    battle_exp: newExp,
+                    battle_level: newLevel,
+                    battle_coins: newCoins,
+                    highest_dummy_defeated: newHighest
+                })
+                .eq('id', user.id)
+                .select();
+            
+            if (updateError) throw updateError;
             
             // 배틀 기록 저장
-            const { data: battle, error: battleError } = await supabaseClient
-                .from('battles')
+            const { error: historyError } = await supabaseClient
+                .from('battle_history')
                 .insert({
-                    player1_id: user.id,
-                    player2_id: opponentId,
-                    player1_sword_id: mySword.id,
-                    player2_sword_id: opponentSword.id,
-                    winner_id: winnerId,
-                    battle_log: JSON.stringify(battleResult.log)
+                    user_id: user.id,
+                    dummy_level: selectedDummy.level,
+                    user_sword_level: user.current_sword_lvl,
+                    user_attack: 10 + (user.current_sword_lvl * 5),
+                    dummy_hp: selectedDummy.hp,
+                    result: 'win',
+                    exp_gained: expGained,
+                    coins_gained: coinsGained,
+                    battle_log: battleLog
                 })
-                .select()
-                .single();
+                .select();
             
-            if (battleError) throw battleError;
+            if (historyError) console.error('기록 저장 실패:', historyError);
             
-            // 배틀 로그 상세 저장
-            const logEntries = battleResult.log.map((entry, index) => ({
-                battle_id: battle.id,
-                step: index,
-                action: entry,
-                damage: 0, // 데미지 파싱 로직 추가 가능
-                result: index === battleResult.log.length - 1 ? battleResult.winner : null
-            }));
+            // 로컬 데이터 업데이트
+            user.battle_exp = newExp;
+            user.battle_level = newLevel;
+            user.battle_coins = newCoins;
+            user.highest_dummy_defeated = newHighest;
             
-            const { error: logError } = await supabaseClient
-                .from('battle_logs')
-                .insert(logEntries);
+            updateUI();
             
-            if (logError) throw logError;
+            // 결과 모달 표시
+            showResultModal(true, expGained, coinsGained, leveledUp, newLevel);
             
-            console.log('배틀 결과가 저장되었습니다.');
         } catch (e) {
-            console.error('배틀 저장 오류:', e);
+            console.error('승리 처리 오류:', e);
+            alert('보상 지급 중 오류 발생: ' + e.message);
         }
     }
     
-    function displayBattleLog(log, winner) {
-        const logContent = document.getElementById('logContent');
-        logContent.innerHTML = log.map((entry, idx) => {
-            let className = '';
-            if (entry.includes('vs')) className = 'log-entry';
-            else if (entry.includes('턴')) className = 'log-entry player1';
-            else if (entry.includes('HP:')) className = 'log-entry player2';
-            else if (entry.includes('승리') || entry.includes('무승부')) className = 'log-entry result';
-            else className = 'log-entry';
+    async function handleDefeat() {
+        try {
+            // 패배 시 보상 없음, 기록만 저장
+            const { error: historyError } = await supabaseClient
+                .from('battle_history')
+                .insert({
+                    user_id: user.id,
+                    dummy_level: selectedDummy.level,
+                    user_sword_level: user.current_sword_lvl,
+                    user_attack: 10 + (user.current_sword_lvl * 5),
+                    dummy_hp: selectedDummy.hp,
+                    result: 'lose',
+                    exp_gained: 0,
+                    coins_gained: 0,
+                    battle_log: battleLog
+                })
+                .select();
             
-            return `<div class="${className}">${entry}</div>`;
-        }).join('');
-        
-        // 결과 표시
-        const winnerText = log[log.length - 1];
-        const resultTitle = document.getElementById('resultTitle');
-        const resultDetail = document.getElementById('resultDetail');
-        
-        resultTitle.innerText = winnerText;
-        if (winner === 'player1') {
-            resultDetail.innerText = '🎉 승리했습니다!';
-            resultTitle.style.color = '#22543d';
-        } else if (winner === 'player2') {
-            resultDetail.innerText = '😢 패배했습니다...';
-            resultTitle.style.color = '#e53e3e';
-        } else {
-            resultDetail.innerText = '⏰ 무승부입니다.';
-            resultTitle.style.color = '#718096';
+            if (historyError) console.error('기록 저장 실패:', historyError);
+            
+            // 결과 모달 표시
+            showResultModal(false, 0, 0, false, 0);
+            
+        } catch (e) {
+            console.error('패배 처리 오류:', e);
         }
-        
-        document.getElementById('resultDiv').style.display = 'block';
     }
     
-    init();
+    function showResultModal(isWin, exp, coins, leveledUp, newLevel) {
+        const modal = document.getElementById('resultModal');
+        const icon = document.getElementById('resultIcon');
+        const title = document.getElementById('resultTitle');
+        const rewards = document.getElementById('resultRewards');
+        
+        if (isWin) {
+            icon.textContent = '🎉';
+            title.textContent = '승리!';
+            title.className = 'result-title result-win';
+            
+            let rewardsHTML = `
+                <div class="reward-item">
+                    <span class="reward-label">획득 경험치</span>
+                    <span class="reward-value">+${exp} EXP</span>
+                </div>
+                <div class="reward-item">
+                    <span class="reward-label">획득 코인</span>
+                    <span class="reward-value">+${coins} 💎</span>
+                </div>
+            `;
+            
+            if (leveledUp) {
+                rewardsHTML += `
+                    <div class="reward-item" style="background: linear-gradient(135deg, #ffd700, #ffed4e); padding: 10px; border-radius: 8px; margin-top: 10px;">
+                        <span class="reward-label" style="color: #2d3748;">🎊 레벨 업!</span>
+                        <span class="reward-value" style="color: #2d3748;">Lv.${newLevel}</span>
+                    </div>
+                `;
+            }
+            
+            rewards.innerHTML = rewardsHTML;
+        } else {
+            icon.textContent = '💀';
+            title.textContent = '패배...';
+            title.className = 'result-title result-lose';
+            rewards.innerHTML = `
+                <p style="color: #718096; margin: 20px 0;">더 강한 검으로 다시 도전하세요!</p>
+            `;
+        }
+        
+        modal.style.display = 'flex';
+    }
+    
+    function closeResult() {
+        document.getElementById('resultModal').style.display = 'none';
+        location.reload();
+    }
+    
+    window.onload = init;
 </script>
 </body>
 </html>
