@@ -784,16 +784,38 @@
     }
 
     async function handleUpgrade() {
-        if (isUpgrading) return;
+        console.log('=== 강화 시작 ===');
+        console.log('isUpgrading:', isUpgrading);
+        console.log('user:', user);
+        
+        if (isUpgrading) {
+            console.log('이미 강화 중');
+            return;
+        }
+        
+        if (!user) {
+            console.error('user 데이터 없음');
+            alert('사용자 데이터를 불러올 수 없습니다. 페이지를 새로고침해주세요.');
+            return;
+        }
         
         const currentLevel = user.current_sword_lvl;
         const currentSword = swords[currentLevel];
         const isHidden = user.current_weapon_type === 'hidden';
         
+        console.log('현재 레벨:', currentLevel);
+        console.log('현재 검:', currentSword);
+        console.log('히든 검 여부:', isHidden);
+        
         // Get enhancement rates and cost based on current level
         const rates = getEnhancementRates(currentLevel);
         const upgradeCost = getEnhancementCost(currentLevel);
         const costInMoney = Math.ceil(upgradeCost / 1000); // 1000G = 1M
+        
+        console.log('강화 확률:', rates);
+        console.log('강화 비용:', upgradeCost);
+        console.log('보유 골드:', user.gold);
+        console.log('보유 머니:', user.money);
         
         if (upgradeCost <= 0) return alert("이미 최대 강화 레벨에 도달했습니다!");
         if (currentLevel >= 20) return alert("최대 강화 레벨(20)에 도달했습니다!");

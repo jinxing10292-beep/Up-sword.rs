@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>골드 업데이트 테스트</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .log {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success { color: #27ae60; }
+        .error { color: #e74c3c; }
+        .info-text { color: #3498db; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 골드 업데이트 테스트</h1>
+        
+        <div class="info">
+            <strong>현재 상태:</strong><br>
+            사용자 ID: <span id="userId">로딩 중...</span><br>
+            현재 골드: <span id="currentGold">로딩 중...</span><br>
+            이메일: <span id="userEmail">로딩 중...</span>
+        </div>
+        
+        <div>
+            <button onclick="testAddGold(100)">+100 골드 추가</button>
+            <button onclick="testAddGold(1000)">+1000 골드 추가</button>
+            <button onclick="testAddGold(-100)">-100 골드 차감</button>
+            <button onclick="refreshData()">새로고침</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://blkghenrfizqjfigvkql.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsa2doZW5yZml6cWpmaWd2a3FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NzM5MDksImV4cCI6MjA4NTU0OTkwOX0.L6oh-I5EKTyxkTtjzm95q-hBQaUwIq34RaE6UXV6gJg';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        let user = null;
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info-text';
+            logDiv.innerHTML += `<div class="${className}">[${time}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        async function init() {
+            try {
+                log('초기화 시작...');
+                
+                // 세션 확인
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                
+                if (sessionError) {
+                    log('세션 오류: ' + sessionError.message, 'error');
+                    throw sessionError;
+                }
+                
+                if (!session) {
+                    log('로그인되지 않음. login.html로 이동합니다.', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                    return;
+                }
+                
+                log('세션 확인 완료: ' + session.user.email, 'success');
+                
+                // 프로필 로드
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+                
+                if (profileError) {
+                    log('프로필 로드 오류: ' + profileError.message, 'error');
+                    log('오류 상세: ' + JSON.stringify(profileError), 'error');
+                    throw profileError;
+                }
+                
+                if (!profile) {
+                    log('프로필 데이터 없음', 'error');
+                    return;
+                }
+                
+                user = profile;
+                log('프로필 로드 성공', 'success');
+                
+                // UI 업데이트
+                document.getElementById('userId').textContent = user.id;
+                document.getElementById('currentGold').textContent = user.gold.toLocaleString() + 'G';
+                document.getElementById('userEmail').textContent = session.user.email;
+                
+                log('초기화 완료!', 'success');
+                
+            } catch (e) {
+                log('초기화 실패: ' + e.message, 'error');
+                console.error('초기화 오류:', e);
+            }
+        }
+        
+        async function testAddGold(amount) {
+            if (!user) {
+                log('사용자 데이터가 없습니다.', 'error');
+                return;
+            }
+            
+            try {
+                const oldGold = user.gold;
+                const newGold = oldGold + amount;
+                
+                log(`골드 업데이트 시도: ${oldGold} → ${newGold} (${amount > 0 ? '+' : ''}${amount})`);
+                
+                // 업데이트 실행
+                const { data, error } = await supabaseClient
+                    .from('profiles')
+                    .update({ gold: newGold })
+                    .eq('id', user.id)
+                    .select();
+                
+                if (error) {
+                    log('업데이트 실패: ' + error.message, 'error');
+                    log('오류 코드: ' + error.code, 'error');
+                    log('오류 상세: ' + JSON.stringify(error), 'error');
+                    
+                    // RLS 오류인지 확인
+                    if (error.code === '42501' || error.message.includes('policy')) {
+                        log('⚠️ RLS 정책 문제로 보입니다. SUPABASE-RLS-FIX.sql을 실행해주세요.', 'error');
+                    }
+                    
+                    return;
+                }
+                
+                log('업데이트 성공!', 'success');
+                log('반환된 데이터: ' + JSON.stringify(data), 'success');
+                
+                // 로컬 데이터 업데이트
+                user.gold = newGold;
+                document.getElementById('currentGold').textContent = newGold.toLocaleString() + 'G';
+                
+            } catch (e) {
+                log('예외 발생: ' + e.message, 'error');
+                console.error('골드 업데이트 오류:', e);
+            }
+        }
+        
+        async function refreshData() {
+            log('데이터 새로고침 중...');
+            await init();
+        }
+        
+        window.onload = init;
+    </script>
+</body>
+</html>

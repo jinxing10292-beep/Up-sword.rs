@@ -86,10 +86,19 @@
         const S_URL = 'https://blkghenrfizqjfigvkql.supabase.co';
         const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsa2doZW5yZml6cWpmaWd2a3FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NzM5MDksImV4cCI6MjA4NTU0OTkwOX0.L6oh-I5EKTyxkTtjzm95q-hBQaUwIq34RaE6UXV6gJg';
         
+        // GM 승인 이메일 목록 (gm-login.html과 동일하게 유지)
+        const APPROVED_GM_EMAILS = [
+            'your-email@example.com',  // 여기에 본인 이메일 입력
+            'admin@codetbase.com'
+        ];
+        
+        // 세션 만료 시간 (1시간)
+        const SESSION_TIMEOUT = 60 * 60 * 1000;
+        
         let client;
         let allUsers = [];
 
-        async function init() {
+        async function checkAuthentication() {
             try {
                 if (typeof supabase !== 'undefined' && supabase.createClient) {
                     client = supabase.createClient(S_URL, S_KEY);
@@ -97,13 +106,77 @@
                     throw new Error("Supabase 라이브러리가 로드되지 않았습니다.");
                 }
 
+                // 1. Supabase 세션 확인
+                const { data: { session }, error } = await client.auth.getSession();
+                
+                if (error || !session) {
+                    console.log('세션 없음, 로그인 페이지로 이동');
+                    redirectToLogin();
+                    return false;
+                }
+
+                // 2. 승인된 이메일인지 확인
+                const userEmail = session.user.email;
+                if (!APPROVED_GM_EMAILS.includes(userEmail)) {
+                    alert('GM 권한이 없습니다. 승인된 이메일이 아닙니다.');
+                    await client.auth.signOut();
+                    redirectToLogin();
+                    return false;
+                }
+
+                // 3. 세션 타임아웃 확인
+                const loginTime = sessionStorage.getItem('gmLoginTime');
+                if (loginTime) {
+                    const elapsed = Date.now() - parseInt(loginTime);
+                    if (elapsed > SESSION_TIMEOUT) {
+                        alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+                        await client.auth.signOut();
+                        sessionStorage.clear();
+                        redirectToLogin();
+                        return false;
+                    }
+                }
+
+                // 4. 세션 갱신
+                sessionStorage.setItem('gmAuthenticated', 'true');
+                sessionStorage.setItem('gmEmail', userEmail);
+                
+                return true;
+            } catch (e) {
+                console.error('인증 확인 오류:', e);
+                redirectToLogin();
+                return false;
+            }
+        }
+
+        function redirectToLogin() {
+            window.location.href = 'gm-login.html';
+        }
+
+        async function init() {
+            try {
+                // 인증 확인
+                const isAuthenticated = await checkAuthentication();
+                if (!isAuthenticated) {
+                    return;
+                }
+
                 document.getElementById('logoutBtn').onclick = handleLogout;
                 document.getElementById('searchInput').oninput = filterUsers;
+
+                // 세션 타임아웃 체크 (5분마다)
+                setInterval(async () => {
+                    const isStillValid = await checkAuthentication();
+                    if (!isStillValid) {
+                        alert('세션이 만료되었습니다.');
+                    }
+                }, 5 * 60 * 1000);
 
                 await loadUsers();
             } catch (e) {
                 console.error(e);
                 alert(e.message);
+                redirectToLogin();
             }
         }
 
@@ -481,7 +554,6 @@
 
         async function handleLogout() {
             try {
-                // Initialize auth client if not already done
                 if (!client) {
                     if (typeof supabase !== 'undefined' && supabase.createClient) {
                         client = supabase.createClient(S_URL, S_KEY);
@@ -490,17 +562,18 @@
                     }
                 }
                 
-                // Clear any existing session
+                // Supabase 세션 종료
                 await client.auth.signOut();
                 
-                // Clear session storage
-                sessionStorage.removeItem('gmAuthenticated');
+                // 세션 스토리지 완전 삭제
+                sessionStorage.clear();
                 
-                // Redirect to index
-                window.location.href = 'index.html';
+                // 로그인 페이지로 리다이렉트
+                window.location.href = 'gm-login.html';
             } catch (error) {
                 console.error('로그아웃 오류:', error);
-                alert('로그아웃 중 오류가 발생했습니다: ' + (error.message || error));
+                sessionStorage.clear();
+                window.location.href = 'gm-login.html';
             }
         }
 

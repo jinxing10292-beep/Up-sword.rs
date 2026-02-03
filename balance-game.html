@@ -539,12 +539,32 @@
             document.getElementById('gameOver').style.display = 'block';
             
             if (user && earnedGold > 0) {
-                const newGold = user.gold + earnedGold;
-                await supabaseClient
-                    .from('profiles')
-                    .update({ gold: newGold })
-                    .eq('id', user.id);
-                user.gold = newGold;
+                try {
+                    const newGold = user.gold + earnedGold;
+                    console.log('밸런스게임 골드 업데이트 시도:', {
+                        userId: user.id,
+                        oldGold: user.gold,
+                        earnedGold: earnedGold,
+                        newGold: newGold
+                    });
+                    
+                    const { data, error } = await supabaseClient
+                        .from('profiles')
+                        .update({ gold: newGold })
+                        .eq('id', user.id)
+                        .select();
+                    
+                    if (error) {
+                        console.error('골드 업데이트 실패:', error);
+                        alert('골드 저장 실패: ' + error.message);
+                    } else {
+                        console.log('골드 업데이트 성공:', data);
+                        user.gold = newGold;
+                    }
+                } catch (e) {
+                    console.error('골드 업데이트 오류:', e);
+                    alert('골드 저장 중 오류 발생: ' + e.message);
+                }
             }
         }
         
