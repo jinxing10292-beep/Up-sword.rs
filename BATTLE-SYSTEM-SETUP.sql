@@ -1,11 +1,33 @@
 -- 배틀 시스템 테이블 생성 SQL
 
 -- 1. profiles 테이블에 배틀 관련 컬럼 추가
-ALTER TABLE profiles 
-ADD COLUMN IF NOT EXISTS battle_exp INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS battle_level INTEGER DEFAULT 1,
-ADD COLUMN IF NOT EXISTS battle_coins INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS highest_dummy_defeated INTEGER DEFAULT 0;
+-- 먼저 컬럼이 존재하는지 확인하고 없으면 추가
+DO $$ 
+BEGIN
+    -- battle_exp 컬럼 추가
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name='profiles' AND column_name='battle_exp') THEN
+        ALTER TABLE profiles ADD COLUMN battle_exp INTEGER DEFAULT 0;
+    END IF;
+    
+    -- battle_level 컬럼 추가
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name='profiles' AND column_name='battle_level') THEN
+        ALTER TABLE profiles ADD COLUMN battle_level INTEGER DEFAULT 1;
+    END IF;
+    
+    -- battle_coins 컬럼 추가
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name='profiles' AND column_name='battle_coins') THEN
+        ALTER TABLE profiles ADD COLUMN battle_coins INTEGER DEFAULT 0;
+    END IF;
+    
+    -- highest_dummy_defeated 컬럼 추가
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name='profiles' AND column_name='highest_dummy_defeated') THEN
+        ALTER TABLE profiles ADD COLUMN highest_dummy_defeated INTEGER DEFAULT 0;
+    END IF;
+END $$;
 
 -- 2. 배틀 기록 테이블 생성
 CREATE TABLE IF NOT EXISTS battle_history (

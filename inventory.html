@@ -153,7 +153,7 @@
                 .from('user_swords')
                 .select('*')
                 .eq('user_id', user.id)
-                .order('created_at', { ascending: false });
+                .order('sword_level', { ascending: false }); // created_at 대신 sword_level로 정렬
             
             if (swordsError) {
                 console.error('검 로드 오류:', swordsError);

@@ -552,7 +552,7 @@
                 return;
             }
             
-            const cost = currentPrice * amount;
+            const cost = Math.floor(currentPrice * amount); // 정수로 변환
             
             if (!user || user.gold < cost) {
                 showNotification('골드가 부족합니다!', 'error');
@@ -563,7 +563,7 @@
             ownedAmount += amount;
             avgBuyPrice = totalCost / ownedAmount;
             
-            user.gold -= cost;
+            user.gold = Math.floor(user.gold - cost); // 정수로 변환
             
             const { error } = await supabaseClient
                 .from('profiles')
@@ -573,13 +573,13 @@
             
             if (error) {
                 console.error('골드 업데이트 실패:', error);
-                user.gold += cost; // 롤백
+                user.gold = Math.floor(user.gold + cost); // 롤백도 정수로
                 showNotification('골드 업데이트 실패: ' + error.message, 'error');
                 return;
             }
             
             updateUI();
-            showNotification(`${amount}${marketData.unit || '주'} 매수 완료! (-${Math.floor(cost).toLocaleString()}G)`, 'success');
+            showNotification(`${amount}${marketData.unit || '주'} 매수 완료! (-${cost.toLocaleString()}G)`, 'success');
         }
         
         async function sell() {
@@ -595,8 +595,8 @@
                 return;
             }
             
-            const revenue = currentPrice * amount;
-            const profit = (currentPrice - avgBuyPrice) * amount;
+            const revenue = Math.floor(currentPrice * amount); // 정수로 변환
+            const profit = Math.floor((currentPrice - avgBuyPrice) * amount); // 정수로 변환
             
             ownedAmount -= amount;
             
@@ -604,7 +604,7 @@
                 avgBuyPrice = 0;
             }
             
-            user.gold += revenue;
+            user.gold = Math.floor(user.gold + revenue); // 정수로 변환
             
             const { error } = await supabaseClient
                 .from('profiles')
@@ -614,14 +614,14 @@
             
             if (error) {
                 console.error('골드 업데이트 실패:', error);
-                user.gold -= revenue; // 롤백
+                user.gold = Math.floor(user.gold - revenue); // 롤백도 정수로
                 ownedAmount += amount; // 롤백
                 showNotification('골드 업데이트 실패: ' + error.message, 'error');
                 return;
             }
             
             updateUI();
-            showNotification(`${amount}${marketData.unit || '주'} 매도 완료! (+${Math.floor(revenue).toLocaleString()}G, ${profit >= 0 ? '수익' : '손실'}: ${Math.floor(profit).toLocaleString()}G)`, 'success');
+            showNotification(`${amount}${marketData.unit || '주'} 매도 완료! (+${revenue.toLocaleString()}G, ${profit >= 0 ? '수익' : '손실'}: ${profit.toLocaleString()}G)`, 'success');
         }
         
         function showNotification(message, type) {

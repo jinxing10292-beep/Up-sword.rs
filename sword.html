@@ -677,7 +677,7 @@
         };
     }
 
-    function updateUI() {
+    async function updateUI() {
         const currentLevel = user.current_sword_lvl;
         const item = getSwordDataForLevel(currentLevel);
         const upgradeCost = getEnhancementCost(currentLevel);
@@ -691,12 +691,15 @@
         document.getElementById('u-nick').innerText = ((user.nickname && user.nickname.trim()) ? user.nickname : '플레이어') + '님';
         document.getElementById('u-gold').innerText = (user.gold || 0).toLocaleString() + "G";
         document.getElementById('u-money').innerText = (user.money || 0).toLocaleString() + "M";
-        getVariantName(weaponKey, currentLevel).then(name => {
+        
+        try {
+            const name = await getVariantName(weaponKey, currentLevel);
             document.getElementById('s-name').innerText = `[+${currentLevel}] ${weaponType === 'hidden' ? '[HIDDEN] ' : ''}${name}`;
-        }).catch(() => {
+        } catch (e) {
             // Fallback if name loading fails
             document.getElementById('s-name').innerText = `[+${currentLevel}] ${weaponType === 'hidden' ? '[HIDDEN] ' : ''}검`;
-        });
+        }
+        
         document.getElementById('s-desc').innerText = item.description;
         
         // 히든 검은 머니로 비용 표시
