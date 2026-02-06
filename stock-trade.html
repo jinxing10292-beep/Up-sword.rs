@@ -340,6 +340,32 @@
         let avgBuyPrice = 0;
         let chart = null;
         
+        // 주식 상태 저장/로드 함수
+        function saveStockState() {
+            if (!user || !marketData) return;
+            const state = {
+                marketId: marketData.id,
+                ownedAmount: ownedAmount,
+                avgBuyPrice: avgBuyPrice,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(`stock_${user.id}_${marketData.id}`, JSON.stringify(state));
+        }
+        
+        function loadStockState() {
+            if (!user || !marketData) return;
+            const saved = localStorage.getItem(`stock_${user.id}_${marketData.id}`);
+            if (saved) {
+                try {
+                    const state = JSON.parse(saved);
+                    ownedAmount = state.ownedAmount || 0;
+                    avgBuyPrice = state.avgBuyPrice || 0;
+                } catch (e) {
+                    console.error('주식 상태 로드 실패:', e);
+                }
+            }
+        }
+        
         const MARKETS = {
             stocks: [
                 { id: 'SWORD', name: 'SWORD Inc.', icon: '⚔️', code: 'KRX:999999', basePrice: 1000, volatility: 0.03 },
@@ -402,6 +428,9 @@
                 currentPrice *= (1 + change);
                 priceHistory.push(currentPrice);
             }
+            
+            // 저장된 주식 상태 로드
+            loadStockState();
             
             document.getElementById('stockIcon').textContent = marketData.icon;
             document.getElementById('stockName').textContent = marketData.name;
@@ -578,6 +607,7 @@
                 return;
             }
             
+            saveStockState(); // 상태 저장
             updateUI();
             showNotification(`${amount}${marketData.unit || '주'} 매수 완료! (-${cost.toLocaleString()}G)`, 'success');
         }
@@ -620,6 +650,7 @@
                 return;
             }
             
+            saveStockState(); // 상태 저장
             updateUI();
             showNotification(`${amount}${marketData.unit || '주'} 매도 완료! (+${revenue.toLocaleString()}G, ${profit >= 0 ? '수익' : '손실'}: ${profit.toLocaleString()}G)`, 'success');
         }
