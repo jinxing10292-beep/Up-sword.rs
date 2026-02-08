@@ -988,16 +988,6 @@
     }
 
     async function handleStore() {
-                if (Math.random() < 0.01) {
-                    nextWeaponType = 'hidden';
-                    const n = Math.floor(Math.random() * 3) + 1;
-                    nextWeaponKey = `hidden_sword_${String(n).padStart(2,'0')}`;
-                    user.money += 100; // 100머니 지급
-                    message = "강화 실패! (검 파괴) - 히든 검 획득! (+100M)";
-                    hiddenSwordBonus = true;
-                } else {
-                    nextWeaponType = 'normal';
-    async function handleStore() {
         if (isUpgrading) return alert("강화 중에는 보관할 수 없습니다.");
         const level = parseInt(user.current_sword_lvl || 0, 10);
         if (level <= 0) return alert("0강 상태는 보관할 수 없습니다.");
@@ -1778,14 +1768,6 @@
             }
         }
     });
-</script>
-</body>
-</html>
-        
-        logContent.scrollTop = logContent.scrollHeight;
-    }
-
-    window.onload = init;
 </script>
 </body>
 </html>

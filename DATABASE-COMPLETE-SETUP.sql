@@ -79,6 +79,18 @@ CREATE TABLE IF NOT EXISTS battle_history (
 );
 
 -- ========================================
+-- 4.5 ROULETTE_HISTORY 테이블 생성
+-- ========================================
+CREATE TABLE IF NOT EXISTS roulette_history (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    result TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    multiplier DECIMAL(5,2) DEFAULT 1.0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ========================================
 -- 5. 인덱스 생성
 -- ========================================
 CREATE INDEX IF NOT EXISTS idx_user_swords_user_id ON user_swords(user_id);
@@ -89,6 +101,9 @@ CREATE INDEX IF NOT EXISTS idx_user_items_item_id ON user_items(item_id);
 
 CREATE INDEX IF NOT EXISTS idx_battle_history_user_id ON battle_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_battle_history_created_at ON battle_history(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_roulette_history_user_id ON roulette_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_roulette_history_created_at ON roulette_history(created_at DESC);
 
 -- ========================================
 -- 6. RLS 정책 설정
@@ -161,6 +176,22 @@ ON battle_history FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = user_id);
 
+-- ROULETTE_HISTORY 테이블
+ALTER TABLE roulette_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own roulette history" ON roulette_history;
+DROP POLICY IF EXISTS "Users can insert own roulette history" ON roulette_history;
+
+CREATE POLICY "Users can view own roulette history"
+ON roulette_history FOR SELECT
+TO authenticated
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own roulette history"
+ON roulette_history FOR INSERT
+TO authenticated
+WITH CHECK (auth.uid() = user_id);
+
 -- PROFILES 테이블
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
@@ -216,5 +247,5 @@ SELECT
     roles,
     cmd
 FROM pg_policies 
-WHERE tablename IN ('profiles', 'user_swords', 'user_items', 'battle_history')
+WHERE tablename IN ('profiles', 'user_swords', 'user_items', 'battle_history', 'roulette_history')
 ORDER BY tablename, policyname;
