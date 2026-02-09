@@ -85,7 +85,11 @@
     <script>
         const S_URL = 'https://blkghenrfizqjfigvkql.supabase.co';
         const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsa2doZW5yZml6cWpmaWd2a3FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NzM5MDksImV4cCI6MjA4NTU0OTkwOX0.L6oh-I5EKTyxkTtjzm95q-hBQaUwIq34RaE6UXV6gJg';
-        
+
+        // Initialize Supabase client reliably so GM page works like other pages
+        let client = null;
+        try { client = supabase.createClient(S_URL, S_KEY); } catch (e) { console.warn('supabase client init failed, will attempt lazy init', e); }
+
         // GM 승인 이메일 목록 (gm-login.html과 동일하게 유지)
         const APPROVED_GM_EMAILS = [
             'pigppig@gmail.com',  // 여기에 본인 이메일 입력

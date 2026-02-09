@@ -1,0 +1,40 @@
+/* Common responsive helpers for mini-games */
+:root{
+    --max-game-width:1200px;
+}
+html,body{ -webkit-text-size-adjust:100%; }
+
+/* Make containers and canvases scale nicely on small screens */
+.container, .game-container, .roulette-container {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--max-game-width);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+canvas, #gameCanvas, .roulette-wheel, .next-piece {
+    max-width: 100%;
+    height: auto !important;
+    width: 100% !important;
+    display: block;
+}
+
+.games-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+
+.back-btn { z-index: 9999; }
+
+/* Utility for smaller screens */
+@media (max-width: 600px) {
+    body { padding: 8px; }
+    .header h1, .game-title { font-size: 18px !important; }
+    .game-card { padding: 12px !important; }
+    .panel, .market-card { padding: 12px !important; min-width: 0; }
+    .stat-item { font-size: 14px; }
+    .roulette-wheel { width: 90vw !important; height: 90vw !important; }
+}
+
+/* Keep input/buttons usable on touch devices */
+button, .bet-btn, .action-btn, .restart-btn { touch-action: manipulation; }

@@ -126,33 +126,6 @@
     const SHOP_ITEMS = {
         enhancement: [
             {
-                id: 'stone_basic',
-                name: '기본 강화석',
-                icon: '💎',
-                description: '강화 성공률 +5% 증가. 강화 시 자동으로 소모됩니다.',
-                priceGold: 500,
-                priceMoney: 0,
-                successBonus: 5
-            },
-            {
-                id: 'stone_advanced',
-                name: '고급 강화석',
-                icon: '💠',
-                description: '강화 성공률 +10% 증가. 강화 시 자동으로 소모됩니다.',
-                priceGold: 1500,
-                priceMoney: 0,
-                successBonus: 10
-            },
-            {
-                id: 'stone_premium',
-                name: '프리미엄 강화석',
-                icon: '💫',
-                description: '강화 성공률 +20% 증가. 강화 시 자동으로 소모됩니다.',
-                priceGold: 5000,
-                priceMoney: 0,
-                successBonus: 20
-            },
-            {
                 id: 'enhance_scroll_1',
                 name: '확정 강화권 (1~5강)',
                 icon: '📜',
@@ -242,7 +215,7 @@
                 name: '자동 강화 매크로',
                 icon: '🤖',
                 description: '목표 레벨까지 자동으로 강화를 진행합니다. 강화 로그를 실시간으로 확인할 수 있습니다.',
-                priceGold: 100000000000, // 100억 골드 (1000억)
+                priceGold: 100000000, // 1억 골드
                 priceMoney: 0,
                 levels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
             }
@@ -284,6 +257,18 @@
                 priceGold: 0,
                 priceMoney: 0,
                 priceCoins: 35
+            }
+        ]
+        ,
+        // Currency purchase helper: buy battle coins with gold (rate configurable)
+        currency: [
+            {
+                id: 'buy_battle_coin',
+                name: '배틀 코인 구매',
+                icon: '💎',
+                description: '골드로 배틀 코인을 구매합니다. 원하는 수량을 입력하세요.',
+                // priceGold here is treated as per-coin cost in UI
+                priceGold: 10000
             }
         ]
     };
@@ -356,7 +341,9 @@
     }
     
     function showPurchaseModal(itemId) {
-        const item = [...SHOP_ITEMS.enhancement, ...SHOP_ITEMS.protection, ...SHOP_ITEMS.macro].find(i => i.id === itemId);
+        // allow lookup across all categories including currency & battle
+        const allItems = [].concat(...Object.values(SHOP_ITEMS));
+        const item = allItems.find(i => i.id === itemId);
         if (!item) return;
         
         // 매크로는 이미 소유하고 있는지 확인
@@ -370,6 +357,7 @@
         
         const content = document.getElementById('purchaseContent');
         const isMacro = item.id === 'auto_macro';
+        const isCurrency = item.id === 'buy_battle_coin';
         
         content.innerHTML = `
             <div style="text-align: center; margin-bottom: 20px;">
@@ -379,7 +367,12 @@
                 ${isMacro ? '<p style="color: #e53e3e; font-weight: 600; font-size: 12px;">※ 매크로는 영구적으로 사용할 수 있습니다</p>' : ''}
             </div>
             
-            ${!isMacro ? `
+            ${isCurrency ? `
+            <div style="margin-bottom:12px; text-align:center;">
+                <label style="font-weight:700;">구매 수량(코인):</label>
+                <input type="number" id="buyCoinQty" value="1" min="1" style="width:80px; margin-left:8px; padding:6px; border-radius:6px; border:1px solid #e2e8f0;">
+            </div>
+            ` : (!isMacro ? `
             <div class="quantity-selector">
                 <span style="font-weight: 600;">수량:</span>
                 <button class="qty-btn" onclick="changeQuantity(-1)">-</button>
@@ -397,7 +390,13 @@
                         ${item.priceCoins > 0 ? `<span style="color:#7b3fe4; font-weight:800;">${item.priceCoins.toLocaleString()}💎</span>` : ''}
                     </span>
                 </div>
-                ${!isMacro ? `
+                ${isCurrency ? `
+                <div style="display:flex; justify-content:space-between; font-weight:700; font-size:16px;">
+                    <span>총 가격:</span>
+                    <span id="totalPriceCurrency">${(item.priceGold).toLocaleString()}G per coin</span>
+                </div>
+                ` : ''}
+                ${!isMacro && !isCurrency ? `
                 <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px;">
                     <span>총 가격:</span>
                     <span id="totalPrice">
@@ -450,6 +449,30 @@
     
     async function purchaseItem() {
         if (!selectedItem) return;
+        // Currency purchase flow (buy battle coins with gold)
+        if (selectedItem.id === 'buy_battle_coin') {
+            const qty = Math.max(1, parseInt(document.getElementById('buyCoinQty').value) || 1);
+            const perCost = selectedItem.priceGold || 10000;
+            const total = perCost * qty;
+            if (user.gold < total) return alert('골드가 부족합니다.');
+
+            if (!confirm(`${qty}개의 배틀 코인을 ${total.toLocaleString()}G에 구매하시겠습니까?`)) return;
+
+            try {
+                const newGold = user.gold - total;
+                const newCoins = (user.battle_coins || 0) + qty;
+                const { error } = await supabaseClient.from('profiles').update({ gold: newGold, battle_coins: newCoins }).eq('id', user.id).select();
+                if (error) throw error;
+                user.gold = newGold;
+                user.battle_coins = newCoins;
+                updateCurrency();
+                closeModal();
+                alert('배틀 코인을 구매했습니다!');
+            } catch (e) {
+                alert('구매 중 오류가 발생했습니다: ' + e.message);
+            }
+            return;
+        }
         
         // 매크로는 특별 처리
         if (selectedItem.id === 'auto_macro') {

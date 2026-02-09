@@ -1087,18 +1087,37 @@
             };
 
             let inserted = null;
+            // Try inserting with full payload, but gracefully retry if DB schema misses fields
             try {
                 const { data, error } = await supabaseClient.from('user_swords').insert(payload).select().single();
                 if (error) throw error;
                 inserted = data;
             } catch (insErr) {
-                console.warn('user_swords insert with attack failed, retrying without attack:', insErr);
-                // Retry without attack field if schema mismatch
-                const payload2 = Object.assign({}, payload);
-                delete payload2.attack;
-                const { data: data2, error: err2 } = await supabaseClient.from('user_swords').insert(payload2).select().single();
-                if (err2) throw err2;
-                inserted = data2;
+                console.warn('user_swords insert failed, attempting fallbacks:', insErr?.message || insErr);
+
+                // First fallback: remove `attack` if that column is missing
+                try {
+                    const payload2 = Object.assign({}, payload);
+                    delete payload2.attack;
+                    const { data: data2, error: err2 } = await supabaseClient.from('user_swords').insert(payload2).select().single();
+                    if (err2) throw err2;
+                    inserted = data2;
+                } catch (firstFallbackErr) {
+                    console.warn('first fallback failed (without attack):', firstFallbackErr?.message || firstFallbackErr);
+
+                    // Second fallback: also remove `rarity` if DB doesn't have that column
+                    try {
+                        const payload3 = Object.assign({}, payload);
+                        delete payload3.attack;
+                        delete payload3.rarity;
+                        const { data: data3, error: err3 } = await supabaseClient.from('user_swords').insert(payload3).select().single();
+                        if (err3) throw err3;
+                        inserted = data3;
+                    } catch (secondFallbackErr) {
+                        console.error('All insert fallbacks failed:', secondFallbackErr);
+                        throw secondFallbackErr;
+                    }
+                }
             }
 
             // update discoveries (max discovered level)
@@ -1245,6 +1264,8 @@
         user.gold = newGold;
         user.current_sword_lvl = 0;
         user.used_enhance_scroll = false;
+        // 판매 시 콤보를 0으로 초기화
+        try { comboCount = 0; comboMultiplier = 1.0; updateComboCounter(); } catch (e) { console.warn('combo reset failed', e); }
         
         // 판매 후 히든 검 확률 체크
         checkForHiddenSword();

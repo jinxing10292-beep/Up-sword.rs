@@ -60,11 +60,16 @@
     }
 
     async function loadMilestones() {
-      // 마일스톤 정의 로드
-      const { data: milestones } = await supabaseClient
+      // 마일스톤 정의 로드 (fallback if schema differs)
+      let { data: milestones } = await supabaseClient
         .from('achievement_milestones')
         .select('*')
         .order('milestone_count', { ascending: true });
+      if (!milestones || milestones.length === 0) {
+        console.warn('No milestones returned; trying fallback load');
+        const res = await supabaseClient.from('achievement_milestones').select('*').order('milestone_count', { ascending: true });
+        milestones = res.data || [];
+      }
 
       // 사용자가 달성한 업적 수 계산
       const { data: userAchievements } = await supabaseClient
@@ -207,11 +212,17 @@
     }
 
     async function loadAchievements() {
-      const { data: defs } = await supabaseClient
+      // Try to fetch only active achievements, but fall back if `active` filter yields no results
+      let { data: defs } = await supabaseClient
         .from('achievements')
         .select('*')
         .eq('active', true)
         .order('id', { ascending: true });
+      if (!defs || defs.length === 0) {
+        console.warn('No active achievements; falling back to fetch all achievements');
+        const res = await supabaseClient.from('achievements').select('*').order('id', { ascending: true });
+        defs = res.data || [];
+      }
 
       const { data: mine } = await supabaseClient
         .from('user_achievements')

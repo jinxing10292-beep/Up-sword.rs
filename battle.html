@@ -59,6 +59,12 @@
         .fighter-hp-bar { width: 150px; height: 25px; background: #e2e8f0; border-radius: 12px; overflow: hidden; position: relative; margin: 10px auto; }
         .fighter-hp-fill { background: linear-gradient(90deg, #f56565, #e53e3e); height: 100%; transition: width 0.3s; }
         .fighter-hp-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: 700; color: white; }
+
+        /* battle hit effects */
+        .damage-float { position: absolute; pointer-events: none; font-weight: 900; text-shadow: 0 2px 6px rgba(0,0,0,0.6); z-index: 1500; }
+        .damage-float.crit { color: #ffd700; font-size: 20px; }
+        .damage-float.normal { color: #ff6b6b; font-size: 16px; }
+        .hit-flash { box-shadow: 0 0 18px rgba(255,255,255,0.8) !important; }
         
         .battle-log { background: #2d3748; color: white; padding: 20px; border-radius: 12px; max-height: 300px; overflow-y: auto; font-size: 13px; line-height: 1.8; margin-bottom: 20px; }
         .log-entry { margin-bottom: 8px; padding: 5px; border-left: 3px solid #667eea; padding-left: 10px; }
@@ -362,6 +368,8 @@
             const playerDamage = Math.floor(playerAttack * (0.9 + Math.random() * 0.2)); // 90~110%
             dummyHp -= playerDamage;
             addLog(`🗡️ 당신의 공격! ${playerDamage} 데미지!`, 'player');
+            // show hit effect on dummy
+            try { showHitEffect('dummy', playerDamage, { crit: Math.random() < 0.08 }); } catch(e){}
             updateBattleUI(playerHp, playerMaxHp, Math.max(0, dummyHp), selectedDummy.maxHp);
             
             if (dummyHp <= 0) {
@@ -377,6 +385,8 @@
             const dummyDamage = Math.floor(5 + selectedDummy.level * 2);
             playerHp -= dummyDamage;
             addLog(`🎯 허수아비의 반격! ${dummyDamage} 데미지!`, 'dummy');
+            // show hit effect on player
+            try { showHitEffect('player', dummyDamage, { crit: false }); } catch(e){}
             updateBattleUI(Math.max(0, playerHp), playerMaxHp, dummyHp, selectedDummy.maxHp);
             
             if (playerHp <= 0) {
@@ -418,6 +428,44 @@
         entry.textContent = message;
         logDiv.appendChild(entry);
         logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    // Visual hit effect: floating damage numbers and quick flash on target
+    function showHitEffect(target, amount, opts = {}) {
+        try {
+            const arena = document.querySelector('.battle-field');
+            if (!arena) return;
+
+            const floatEl = document.createElement('div');
+            const isCrit = opts.crit || false;
+            floatEl.className = 'damage-float ' + (isCrit ? 'crit' : 'normal');
+            floatEl.textContent = (isCrit ? '💥' : '') + (amount > 0 ? `-${amount}` : '0');
+
+            // position near target element
+            let targetEl = (target === 'player') ? document.querySelector('.fighter:first-child') : document.querySelector('.fighter:last-child');
+            if (!targetEl) targetEl = arena;
+            const rect = targetEl.getBoundingClientRect();
+            const parentRect = arena.getBoundingClientRect();
+            const left = rect.left - parentRect.left + rect.width / 2;
+            const top = rect.top - parentRect.top + 10;
+
+            floatEl.style.left = `${left}px`;
+            floatEl.style.top = `${top}px`;
+            arena.appendChild(floatEl);
+
+            // quick flash on HP bar
+            const hpBar = (target === 'player') ? document.getElementById('playerHpFill') : document.getElementById('dummyHpFill');
+            if (hpBar) {
+                hpBar.classList.add('hit-flash');
+                setTimeout(() => hpBar.classList.remove('hit-flash'), 180);
+            }
+
+            // animate float
+            floatEl.animate([
+                { transform: 'translateY(0px) scale(1)', opacity: 1 },
+                { transform: 'translateY(-60px) scale(1.1)', opacity: 0 }
+            ], { duration: 900, easing: 'cubic-bezier(.2,.8,.2,1)' }).onfinish = () => floatEl.remove();
+        } catch (e) { console.warn('showHitEffect error', e); }
     }
     
     function sleep(ms) {

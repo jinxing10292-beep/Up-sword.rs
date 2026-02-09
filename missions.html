@@ -45,11 +45,18 @@
     }
 
     async function loadMissions() {
-      const { data: defs } = await supabaseClient
+      // Try to load only active missions; if that returns nothing (schema mismatch), fall back to loading all missions
+      let { data: defs } = await supabaseClient
         .from('missions')
         .select('*')
         .eq('active', true)
         .order('id', { ascending: true });
+
+      if (!defs || defs.length === 0) {
+        console.warn('No active missions returned; falling back to load all missions');
+        const res = await supabaseClient.from('missions').select('*').order('id', { ascending: true });
+        defs = res.data || [];
+      }
 
       const { data: mine } = await supabaseClient
         .from('user_missions')
