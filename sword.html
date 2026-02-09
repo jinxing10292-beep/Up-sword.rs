@@ -944,20 +944,36 @@
         }
         
         // 데이터베이스 업데이트 먼저 수행하고 에러 체크
+        // 안전 검사 및 디버그 로깅 추가: 서버 400 응답 원인이 payload 또는 id 누락일 수 있으므로 기록합니다.
+        const updatePayload = {
+            gold: user.gold,
+            money: user.money,
+            current_sword_lvl: newLevel,
+            current_weapon_type: nextWeaponType,
+            current_weapon_key: nextWeaponKey
+        };
+
+        console.log('profiles update payload:', updatePayload);
+        console.log('profiles update user.id:', user && user.id);
+
+        if (!user || !user.id) {
+            console.error('사용자 ID가 없어 업데이트를 중단합니다.', user);
+            alert('사용자 정보가 올바르지 않습니다. 페이지를 새로고침해주세요.');
+            isUpgrading = false;
+            img.classList.remove('hammering');
+            return;
+        }
+
         const { error } = await supabaseClient
             .from('profiles')
-            .update({ 
-                gold: user.gold,
-                money: user.money,
-                current_sword_lvl: newLevel,
-                current_weapon_type: nextWeaponType,
-                current_weapon_key: nextWeaponKey
-            })
+            .update(updatePayload)
             .eq('id', user.id);
 
         if (error) {
             console.error('강화 업데이트 오류:', error);
-            alert('강화 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+            // 추가 디버그: 서버 응답이 포함된 전체 에러를 보여줍니다.
+            try { console.error('error.details or message:', error.details || error.message || error); } catch(e){}
+            alert('강화 중 오류가 발생했습니다. 콘솔의 네트워크/로그를 확인해주세요.');
             isUpgrading = false;
             img.classList.remove('hammering');
             return;
