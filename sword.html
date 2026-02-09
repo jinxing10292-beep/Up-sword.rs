@@ -1033,6 +1033,11 @@
             showEffect(result === 'success', message);
             updateUI();
             isUpgrading = false; // Reset upgrading flag after completion
+
+            // If the sword was destroyed, run the hidden-sword check (1% chance)
+            if (result === 'destroy') {
+                try { setTimeout(() => checkForHiddenSword(), 300); } catch (e) { console.warn('checkForHiddenSword error:', e); }
+            }
         }, 600);
     }
 

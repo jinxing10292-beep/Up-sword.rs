@@ -266,7 +266,8 @@
                     return;
                 }
 
-                const { error } = await client
+                // Return the updated row so we can verify the change
+                const { data: updatedRow, error } = await client
                     .from('profiles')
                     .update({
                         gold,
@@ -274,9 +275,19 @@
                         current_sword_lvl: lvl,
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', id);
+                    .eq('id', id)
+                    .select()
+                    .maybeSingle();
+
+                console.log('updateUser response:', { updatedRow, error });
 
                 if (error) throw error;
+                if (!updatedRow) {
+                    showNotification('수정 요청은 전송되었지만 서버가 변경된 데이터를 반환하지 않았습니다.', 'error');
+                    await loadUsers();
+                    return;
+                }
+
                 showNotification('정보가 수정되었습니다.', 'success');
                 await loadUsers();
             } catch (err) {
@@ -314,16 +325,26 @@
                     finalGold += Math.floor(amount / 100);
                 }
 
-                const { error } = await client
+                const { data: updatedRow, error } = await client
                     .from('profiles')
                     .update({
                         gold: finalGold,
                         money: finalMoney,
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', id);
+                    .eq('id', id)
+                    .select()
+                    .maybeSingle();
+
+                console.log('convertUserCurrency response:', { updatedRow, error });
 
                 if (error) throw error;
+                if (!updatedRow) {
+                    showNotification('변환 요청은 전송되었지만 서버가 변경된 데이터를 반환하지 않았습니다.', 'error');
+                    await loadUsers();
+                    return;
+                }
+
                 showNotification('변환이 완료되었습니다.', 'success');
                 await loadUsers();
             } catch (err) {

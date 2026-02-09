@@ -868,9 +868,11 @@
             const completed = newProg >= Number(mission.target || 1);
 
             if (existing) {
-                await supabaseClient.from('user_missions').update({ progress: newProg, completed }).eq('id', existing.id);
+                const { data: udata, error: uerr } = await supabaseClient.from('user_missions').update({ progress: newProg, completed }).eq('id', existing.id).select().maybeSingle();
+                console.log('user_missions update response:', { udata, uerr });
             } else {
-                await supabaseClient.from('user_missions').insert({ user_id: user.id, mission_id: mission.id, progress: newProg, completed, claimed: false });
+                const { data: idata, error: ierr } = await supabaseClient.from('user_missions').insert({ user_id: user.id, mission_id: mission.id, progress: newProg, completed, claimed: false }).select().maybeSingle();
+                console.log('user_missions insert response:', { idata, ierr });
             }
             console.log('Mission progress updated', { key, missionId: mission.id, newProg, completed });
         } catch (e) {
@@ -897,9 +899,11 @@
             const unlocked = newProg >= Number(ach.target || 1);
 
             if (existing) {
-                await supabaseClient.from('user_achievements').update({ progress: newProg, unlocked }).eq('id', existing.id);
+                const { data: udata, error: uerr } = await supabaseClient.from('user_achievements').update({ progress: newProg, unlocked }).eq('id', existing.id).select().maybeSingle();
+                console.log('user_achievements update response:', { udata, uerr });
             } else {
-                await supabaseClient.from('user_achievements').insert({ user_id: user.id, achievement_id: ach.id, progress: newProg, unlocked });
+                const { data: idata, error: ierr } = await supabaseClient.from('user_achievements').insert({ user_id: user.id, achievement_id: ach.id, progress: newProg, unlocked }).select().maybeSingle();
+                console.log('user_achievements insert response:', { idata, ierr });
             }
             console.log('Achievement progress updated', { key, achievementId: ach.id, newProg, unlocked });
         } catch (e) {
