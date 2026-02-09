@@ -312,12 +312,37 @@
 
             const { data: p, error: profileError } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
             if (profileError || !p) {
-                console.error('프로필 로드 오류:', profileError);
-                alert('사용자 데이터를 불러올 수 없습니다.');
-                location.href = "login.html";
-                return;
+                console.warn('프로필이 존재하지 않거나 로드 실패, 프로필 생성 시도:', profileError);
+                // 프로필이 없을 경우 기본 프로필을 생성해보고 계속 진행
+                try {
+                    const nickname = session.user.user_metadata?.nickname || session.user.email?.split('@')[0] || 'Player';
+                    const insertData = {
+                        id: session.user.id,
+                        nickname: nickname,
+                        gold: 10000,
+                        money: 0,
+                        current_sword_lvl: 0
+                    };
+                    const { error: insertErr } = await supabaseClient.from('profiles').insert(insertData);
+                    if (insertErr) {
+                        console.error('프로필 생성 실패:', insertErr);
+                        alert('사용자 데이터를 불러올 수 없습니다. 다시 로그인 해주세요.');
+                        await supabaseClient.auth.signOut();
+                        location.href = "login.html";
+                        return;
+                    }
+                    const { data: newProfile } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
+                    user = newProfile;
+                } catch (e) {
+                    console.error('프로필 생성 중 오류:', e);
+                    alert('사용자 데이터를 불러올 수 없습니다. 다시 로그인 해주세요.');
+                    await supabaseClient.auth.signOut();
+                    location.href = "login.html";
+                    return;
+                }
+            } else {
+                user = p;
             }
-            user = p;
 
             // 안전한 기본값 설정 - 데이터베이스에서 null/undefined인 경우에만 0으로 설정
             if (user.current_sword_lvl === null || user.current_sword_lvl === undefined) {
@@ -875,9 +900,11 @@
                 
                 // 콤보 시스템 적용
                 comboCount++;
-                comboMultiplier = 1 + (comboCount * 0.1); // 10%씩 증가
-                
-                const bonusGold = Math.floor(upgradeCost * (comboMultiplier - 1));
+                // Reduce combo growth: 5% per combo and cap the multiplier
+                comboMultiplier = Math.min(1 + (comboCount * 0.05), 1.5);
+
+                // Smaller bonus to avoid large inflation
+                const bonusGold = Math.floor(upgradeCost * (comboMultiplier - 1) * 0.5);
                 if (bonusGold > 0) {
                     user.gold += bonusGold;
                     message = `강화 성공! [+${newLevel}레벨] 🔥 ${comboCount}콤보! (+${bonusGold.toLocaleString()}G 보너스)`;

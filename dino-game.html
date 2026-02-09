@@ -95,7 +95,8 @@
         let user = null;
         let gameRunning = false;
         let score = 0;
-        let gameSpeed = 5;
+        // Start slower and increase more smoothly over time
+        let gameSpeed = 3;
         
         const dino = {
             x: 50,
@@ -176,9 +177,10 @@
             ctx.fillRect(dino.x + 5, dino.y + dino.height, 8, 5);
             ctx.fillRect(dino.x + 25, dino.y + dino.height, 8, 5);
             
-            // Spawn obstacles
+            // Spawn obstacles periodically (interval shortens slightly as speed increases)
             frameCount++;
-            if (frameCount % 100 === 0) {
+            const spawnInterval = Math.max(60, Math.floor(140 - gameSpeed * 10));
+            if (frameCount % spawnInterval === 0) {
                 obstacles.push({
                     x: canvas.width,
                     y: 160,
@@ -213,9 +215,9 @@
                 }
             }
             
-            // Increase difficulty
-            if (frameCount % 500 === 0) {
-                gameSpeed += 0.5;
+            // Gradually increase difficulty over time
+            if (frameCount % 200 === 0) {
+                gameSpeed += 0.2;
             }
             
             // Draw ground
