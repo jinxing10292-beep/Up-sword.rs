@@ -448,8 +448,38 @@
                     if (logsError) {
                         console.log('활동 로그 테이블 없음 또는 조회 실패:', logsError.message);
                         renderLogs([]);
+                        renderLogStats([]);
                     } else {
-                        renderLogs(logs || []);
+                        const entries = logs || [];
+                        // 집계: 활동 유형별 카운트 및 골드/머니 증감 합계
+                        const agg = {};
+                        entries.forEach(e => {
+                            const key = e.activity_type || 'unknown';
+                            if (!agg[key]) {
+                                agg[key] = {
+                                    activity_type: key,
+                                    total_count: 0,
+                                    total_gold_gained: 0,
+                                    total_gold_lost: 0,
+                                    total_money_gained: 0,
+                                    total_money_lost: 0,
+                                    net_gold_change: 0,
+                                    net_money_change: 0
+                                };
+                            }
+                            const a = agg[key];
+                            a.total_count += 1;
+                            const g = Number(e.gold_change || 0);
+                            const m = Number(e.money_change || 0);
+                            if (g >= 0) a.total_gold_gained += g; else a.total_gold_lost += Math.abs(g);
+                            if (m >= 0) a.total_money_gained += m; else a.total_money_lost += Math.abs(m);
+                            a.net_gold_change += g;
+                            a.net_money_change += m;
+                        });
+
+                        const statsArray = Object.values(agg);
+                        renderLogStats(statsArray);
+                        renderLogs(entries);
                     }
                 } catch (err) {
                     console.log('활동 로그 조회 중 에러:', err);

@@ -418,7 +418,8 @@
         
         // 새로운 공식: (강화비용 + 기존판매가) × 성공확률역수 × 0.8 (20% 할인)
         const probabilityMultiplier = successRate > 0 ? (100 / successRate) : 1;
-        const newPrice = Math.floor((enhanceCost + basePrice) * probabilityMultiplier * 0.8);
+        // Apply existing 20% factor, then reduce final sell price by additional 5%
+        const newPrice = Math.floor((enhanceCost + basePrice) * probabilityMultiplier * 0.8 * 0.95);
         
         return newPrice;
     }
