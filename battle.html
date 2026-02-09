@@ -345,6 +345,11 @@
         let playerHp = playerMaxHp;
         let dummyHp = selectedDummy.hp;
         
+        // 회피율 및 크리티컬 확률 설정
+        const playerEvasion = Math.min(0.15, 0.05 + (user.battle_level * 0.005)); // 최대 15%
+        const playerCritChance = Math.min(0.25, 0.08 + (user.current_sword_lvl * 0.01)); // 최대 25%
+        const critMultiplier = 1.5; // 크리티컬 데미지 1.5배
+        
         battleLog = [];
         
         // UI 업데이트
@@ -365,11 +370,20 @@
             await sleep(800);
             
             // 플레이어 공격
-            const playerDamage = Math.floor(playerAttack * (0.9 + Math.random() * 0.2)); // 90~110%
+            const isCrit = Math.random() < playerCritChance;
+            const baseDamage = Math.floor(playerAttack * (0.9 + Math.random() * 0.2)); // 90~110%
+            const playerDamage = isCrit ? Math.floor(baseDamage * critMultiplier) : baseDamage;
+            
             dummyHp -= playerDamage;
-            addLog(`🗡️ 당신의 공격! ${playerDamage} 데미지!`, 'player');
+            
+            if (isCrit) {
+                addLog(`💥 크리티컬 히트! ${playerDamage} 데미지!`, 'player');
+            } else {
+                addLog(`🗡️ 당신의 공격! ${playerDamage} 데미지!`, 'player');
+            }
+            
             // show hit effect on dummy
-            try { showHitEffect('dummy', playerDamage, { crit: Math.random() < 0.08 }); } catch(e){}
+            try { showHitEffect('dummy', playerDamage, { crit: isCrit }); } catch(e){}
             updateBattleUI(playerHp, playerMaxHp, Math.max(0, dummyHp), selectedDummy.maxHp);
             
             if (dummyHp <= 0) {
@@ -381,12 +395,19 @@
             
             await sleep(800);
             
-            // 허수아비 반격 (약한 고정 데미지)
-            const dummyDamage = Math.floor(5 + selectedDummy.level * 2);
-            playerHp -= dummyDamage;
-            addLog(`🎯 허수아비의 반격! ${dummyDamage} 데미지!`, 'dummy');
-            // show hit effect on player
-            try { showHitEffect('player', dummyDamage, { crit: false }); } catch(e){}
+            // 허수아비 반격
+            const evaded = Math.random() < playerEvasion;
+            
+            if (evaded) {
+                addLog(`🌀 회피 성공! 공격을 피했습니다!`, 'player');
+            } else {
+                const dummyDamage = Math.floor(5 + selectedDummy.level * 2);
+                playerHp -= dummyDamage;
+                addLog(`🎯 허수아비의 반격! ${dummyDamage} 데미지!`, 'dummy');
+                // show hit effect on player
+                try { showHitEffect('player', dummyDamage, { crit: false }); } catch(e){}
+            }
+            
             updateBattleUI(Math.max(0, playerHp), playerMaxHp, dummyHp, selectedDummy.maxHp);
             
             if (playerHp <= 0) {
@@ -814,6 +835,13 @@
         const opponentMaxHp = 100 + ((opponent.battle_level || 1) * 20);
         let playerHp = playerMaxHp;
         let oppHp = opponentMaxHp;
+        
+        // 회피율 및 크리티컬 확률 설정
+        const playerEvasion = Math.min(0.15, 0.05 + ((user.battle_level || 1) * 0.005));
+        const opponentEvasion = Math.min(0.15, 0.05 + ((opponent.battle_level || 1) * 0.005));
+        const playerCritChance = Math.min(0.25, 0.08 + (user.current_sword_lvl * 0.01));
+        const opponentCritChance = Math.min(0.25, 0.08 + (opponent.current_sword_lvl * 0.01));
+        const critMultiplier = 1.5;
 
         battleLog = [];
         document.getElementById('playerName').textContent = user.nickname || '플레이어';
@@ -827,16 +855,46 @@
         let turn = 1;
         while (playerHp > 0 && oppHp > 0 && turn <= 100) {
             await sleep(700);
-            const playerDamage = Math.floor(playerAttack * (0.9 + Math.random() * 0.25));
-            oppHp -= playerDamage;
-            addLog(`🗡️ 당신의 공격! ${playerDamage} 데미지!`, 'player');
+            
+            // 플레이어 공격
+            const oppEvaded = Math.random() < opponentEvasion;
+            if (oppEvaded) {
+                addLog(`🌀 상대가 회피했습니다!`, 'dummy');
+            } else {
+                const isCrit = Math.random() < playerCritChance;
+                const baseDamage = Math.floor(playerAttack * (0.9 + Math.random() * 0.25));
+                const playerDamage = isCrit ? Math.floor(baseDamage * critMultiplier) : baseDamage;
+                oppHp -= playerDamage;
+                
+                if (isCrit) {
+                    addLog(`💥 크리티컬 히트! ${playerDamage} 데미지!`, 'player');
+                } else {
+                    addLog(`🗡️ 당신의 공격! ${playerDamage} 데미지!`, 'player');
+                }
+            }
+            
             updateBattleUI(playerHp, playerMaxHp, Math.max(0, oppHp), opponentMaxHp);
             if (oppHp <= 0) { await sleep(400); addLog(`🏆 상대 격파!`, 'result'); await handlePvPVictory(opponent); return; }
 
             await sleep(700);
-            const oppDamage = Math.floor(opponentAttack * (0.85 + Math.random() * 0.3));
-            playerHp -= oppDamage;
-            addLog(`🛡️ 상대의 공격! ${oppDamage} 데미지!`, 'dummy');
+            
+            // 상대 공격
+            const playerEvaded = Math.random() < playerEvasion;
+            if (playerEvaded) {
+                addLog(`🌀 회피 성공! 공격을 피했습니다!`, 'player');
+            } else {
+                const isCrit = Math.random() < opponentCritChance;
+                const baseDamage = Math.floor(opponentAttack * (0.85 + Math.random() * 0.3));
+                const oppDamage = isCrit ? Math.floor(baseDamage * critMultiplier) : baseDamage;
+                playerHp -= oppDamage;
+                
+                if (isCrit) {
+                    addLog(`💥 상대의 크리티컬! ${oppDamage} 데미지!`, 'dummy');
+                } else {
+                    addLog(`🛡️ 상대의 공격! ${oppDamage} 데미지!`, 'dummy');
+                }
+            }
+            
             updateBattleUI(Math.max(0, playerHp), playerMaxHp, oppHp, opponentMaxHp);
             if (playerHp <= 0) { await sleep(400); addLog(`💀 패배했습니다...`, 'result'); await handleDefeat(); return; }
 

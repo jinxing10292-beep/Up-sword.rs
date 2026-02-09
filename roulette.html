@@ -76,8 +76,9 @@
         
         .spinning { animation: roulette-spin 3s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
         @keyframes roulette-spin { 
-            0% { transform: rotate(0deg); } 
-            100% { transform: rotate(1800deg); } 
+            0% { transform: rotate(0deg); box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); } 
+            50% { box-shadow: 0 0 60px rgba(251, 191, 36, 1), 0 0 100px rgba(251, 191, 36, 0.6); }
+            100% { transform: rotate(1800deg); box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); } 
         }
         
         @keyframes fadeInOut {

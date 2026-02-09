@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>환전소 - Up Sword</title>
+    <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="minigame-responsive.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-family: 'Pretendard', sans-serif; padding: 20px 10px; min-height: 100vh; }
+        
+        .container { width: 100%; max-width: 500px; margin: 0 auto; }
+        .header { background: white; padding: 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 24px; font-weight: 900; color: #2d3748; }
+        .header button { background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: 700; }
+        
+        .balance-section { background: white; padding: 20px; border-bottom: 2px solid #e2e8f0; }
+        .balance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .balance-card { background: linear-gradient(135deg, #f8fafc, #edf2f7); padding: 15px; border-radius: 12px; text-align: center; }
+        .balance-label { font-size: 12px; color: #718096; margin-bottom: 5px; font-weight: 600; }
+        .balance-value { font-size: 24px; font-weight: 900; color: #2d3748; }
+        .balance-gold { color: #f59e0b; }
+        .balance-money { color: #a855f7; }
+        
+        .exchange-section { background: white; padding: 25px; border-radius: 0 0 20px 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .exchange-rate { background: #fef3c7; border: 2px solid #fbbf24; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
+        .exchange-rate-text { font-size: 18px; font-weight: 900; color: #92400e; }
+        
+        .input-group { margin-bottom: 20px; }
+        .input-label { font-size: 14px; font-weight: 700; color: #2d3748; margin-bottom: 8px; display: block; }
+        .input-wrapper { position: relative; }
+        .input-field { width: 100%; padding: 15px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 16px; font-weight: 700; }
+        .input-field:focus { outline: none; border-color: #667eea; }
+        .input-unit { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-weight: 700; color: #718096; }
+        
+        .quick-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+        .quick-btn { padding: 8px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 12px; color: #2d3748; transition: 0.2s; }
+        .quick-btn:hover { background: #667eea; color: white; border-color: #667eea; }
+        
+        .exchange-arrow { text-align: center; font-size: 24px; color: #667eea; margin: 15px 0; }
+        
+        .result-preview { background: #f0f9ff; border: 2px solid #3b82f6; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .result-text { font-size: 14px; color: #1e40af; margin-bottom: 5px; }
+        .result-value { font-size: 20px; font-weight: 900; color: #1e3a8a; }
+        
+        .exchange-btn { width: 100%; padding: 18px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 15px; font-size: 18px; font-weight: 900; cursor: pointer; transition: 0.2s; }
+        .exchange-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); }
+        .exchange-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        .limit-info { background: #fef2f2; border: 2px solid #fca5a5; padding: 12px; border-radius: 10px; margin-top: 15px; font-size: 12px; color: #991b1b; text-align: center; font-weight: 600; }
+        
+        .history-section { background: white; padding: 20px; border-radius: 20px; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .history-title { font-size: 18px; font-weight: 900; color: #2d3748; margin-bottom: 15px; }
+        .history-list { max-height: 300px; overflow-y: auto; }
+        .history-item { background: #f8fafc; padding: 12px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .history-date { font-size: 11px; color: #718096; }
+        .history-amount { font-size: 14px; font-weight: 700; color: #2d3748; }
+        .history-empty { text-align: center; color: #718096; padding: 40px 20px; }
+        
+        .loading { text-align: center; padding: 40px 20px; }
+        .spinner { border: 4px solid #f3f4f6; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>💱 환전소</h1>
+        <button onclick="location.href='home.html'">
+            <i class="fas fa-home"></i> 홈
+        </button>
+    </div>
+    
+    <div class="balance-section">
+        <div class="balance-grid">
+            <div class="balance-card">
+                <div class="balance-label">보유 머니</div>
+                <div class="balance-value balance-money" id="userMoney">0</div>
+            </div>
+            <div class="balance-card">
+                <div class="balance-label">보유 골드</div>
+                <div class="balance-value balance-gold" id="userGold">0</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="exchange-section">
+        <div class="exchange-rate">
+            <div class="exchange-rate-text">💎 1 머니 = 1,500 골드 💰</div>
+        </div>
+        
+        <div class="input-group">
+            <label class="input-label">환전할 머니</label>
+            <div class="input-wrapper">
+                <input type="number" class="input-field" id="moneyInput" placeholder="0" min="1" max="667" oninput="calculateExchange()">
+                <span class="input-unit">M</span>
+            </div>
+            <div class="quick-buttons">
+                <button class="quick-btn" onclick="setMoney(10)">10M</button>
+                <button class="quick-btn" onclick="setMoney(50)">50M</button>
+                <button class="quick-btn" onclick="setMoney(100)">100M</button>
+                <button class="quick-btn" onclick="setMoney('max')">최대</button>
+            </div>
+        </div>
+        
+        <div class="exchange-arrow">
+            <i class="fas fa-arrow-down"></i>
+        </div>
+        
+        <div class="result-preview">
+            <div class="result-text">받을 골드</div>
+            <div class="result-value" id="goldResult">0 G</div>
+        </div>
+        
+        <button class="exchange-btn" id="exchangeBtn" onclick="executeExchange()" disabled>
+            <i class="fas fa-exchange-alt"></i> 환전하기
+        </button>
+        
+        <div class="limit-info">
+            <i class="fas fa-info-circle"></i> 일일 환전 한도: <span id="dailyLimit">1,000,000</span>G | 최소: 1M | 최대: 667M
+        </div>
+    </div>
+    
+    <div class="history-section">
+        <div class="history-title">📜 환전 내역</div>
+        <div class="history-list" id="historyList">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>내역을 불러오는 중...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://blkghenrfizqjfigvkql.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsa2doZW5yZml6cWpmaWd2a3FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NzM5MDksImV4cCI6MjA4NTU0OTkwOX0.L6oh-I5EKTyxkTtjzm95q-hBQaUwIq34RaE6UXV6gJg';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    const EXCHANGE_RATE = 1500;
+    const DAILY_LIMIT = 1000000;
+    const MIN_EXCHANGE = 1;
+    const MAX_EXCHANGE = 667;
+    
+    let user = null;
+    let todayExchanged = 0;
+    
+    async function init() {
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { location.href = "login.html"; return; }
+            
+            const { data: p } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
+            user = p;
+            
+            updateBalance();
+            await loadHistory();
+        } catch (e) {
+            console.error(e);
+            alert('초기화 오류: ' + e.message);
+        }
+    }
+    
+    function updateBalance() {
+        document.getElementById('userMoney').textContent = (user.money || 0).toLocaleString();
+        document.getElementById('userGold').textContent = (user.gold || 0).toLocaleString();
+    }
+    
+    function setMoney(amount) {
+        if (amount === 'max') {
+            const maxByMoney = Math.min(user.money || 0, MAX_EXCHANGE);
+            const maxByLimit = Math.floor((DAILY_LIMIT - todayExchanged) / EXCHANGE_RATE);
+            amount = Math.min(maxByMoney, maxByLimit);
+        }
+        document.getElementById('moneyInput').value = amount;
+        calculateExchange();
+    }
+    
+    function calculateExchange() {
+        const moneyAmount = parseInt(document.getElementById('moneyInput').value) || 0;
+        const goldAmount = moneyAmount * EXCHANGE_RATE;
+        
+        document.getElementById('goldResult').textContent = goldAmount.toLocaleString() + ' G';
+        
+        const btn = document.getElementById('exchangeBtn');
+        const canExchange = moneyAmount >= MIN_EXCHANGE && 
+                           moneyAmount <= MAX_EXCHANGE && 
+                           moneyAmount <= (user.money || 0) &&
+                           goldAmount <= (DAILY_LIMIT - todayExchanged);
+        
+        btn.disabled = !canExchange;
+    }
+    
+    async function executeExchange() {
+        const moneyAmount = parseInt(document.getElementById('moneyInput').value) || 0;
+        const goldAmount = moneyAmount * EXCHANGE_RATE;
+        
+        if (moneyAmount < MIN_EXCHANGE) return alert('최소 1M부터 환전 가능합니다.');
+        if (moneyAmount > MAX_EXCHANGE) return alert('최대 667M까지 환전 가능합니다.');
+        if (moneyAmount > (user.money || 0)) return alert('머니가 부족합니다.');
+        if (goldAmount > (DAILY_LIMIT - todayExchanged)) return alert('일일 환전 한도를 초과했습니다.');
+        
+        if (!confirm(`${moneyAmount.toLocaleString()}M를 ${goldAmount.toLocaleString()}G로 환전하시겠습니까?`)) return;
+        
+        try {
+            const newMoney = (user.money || 0) - moneyAmount;
+            const newGold = (user.gold || 0) + goldAmount;
+            
+            const { error } = await supabaseClient
+                .from('profiles')
+                .update({ money: newMoney, gold: newGold })
+                .eq('id', user.id);
+            
+            if (error) throw error;
+            
+            user.money = newMoney;
+            user.gold = newGold;
+            todayExchanged += goldAmount;
+            
+            updateBalance();
+            document.getElementById('moneyInput').value = '';
+            calculateExchange();
+            
+            alert(`✅ 환전 완료!\n${moneyAmount.toLocaleString()}M → ${goldAmount.toLocaleString()}G`);
+            
+            await loadHistory();
+        } catch (e) {
+            console.error(e);
+            alert('환전 실패: ' + e.message);
+        }
+    }
+    
+    async function loadHistory() {
+        try {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '<div class="history-empty">환전 내역이 없습니다.</div>';
+            
+            const today = new Date().toISOString().split('T')[0];
+            todayExchanged = 0;
+            
+        } catch (e) {
+            console.error(e);
+            document.getElementById('historyList').innerHTML = '<div class="history-empty">내역을 불러올 수 없습니다.</div>';
+        }
+    }
+    
+    init();
+</script>
+</body>
+</html>

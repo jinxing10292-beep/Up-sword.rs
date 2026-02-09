@@ -132,15 +132,25 @@
             
             // 검 데이터 로드
             const swordData = await fetch('sword_names.json').then(r => r.json());
-            allSwords = swordData.swords;
+            allSwords = swordData.swords || [];
             
             // 사용자가 소유한 검 로드
-            const { data: ownedSwords } = await supabaseClient
+            const { data: ownedSwords, error: swordError } = await supabaseClient
                 .from('user_swords')
                 .select('sword_id')
                 .eq('user_id', user.id);
             
-            ownedSwords?.forEach(s => ownedSwordIds.add(s.sword_id));
+            if (swordError) {
+                console.warn('소유 검 로드 실패:', swordError);
+            }
+            
+            if (ownedSwords && ownedSwords.length > 0) {
+                ownedSwords.forEach(s => {
+                    if (s.sword_id) {
+                        ownedSwordIds.add(s.sword_id);
+                    }
+                });
+            }
             
             filteredSwords = allSwords;
             document.getElementById('loadingDiv').style.display = 'none';
@@ -148,8 +158,8 @@
             calculateLayout();
             renderPage();
         } catch (e) {
-            console.error(e);
-            document.getElementById('loadingDiv').innerHTML = '<p>오류가 발생했습니다.</p>';
+            console.error('초기화 오류:', e);
+            document.getElementById('loadingDiv').innerHTML = '<p>오류가 발생했습니다: ' + e.message + '</p>';
         }
     }
 

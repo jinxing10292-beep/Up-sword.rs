@@ -22,19 +22,89 @@ canvas, #gameCanvas, .roulette-wheel, .next-piece {
     display: block;
 }
 
-.games-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.games-grid { 
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
+    gap: 15px;
+}
 
 .back-btn { z-index: 9999; }
 
-/* Utility for smaller screens */
+/* 태블릿 크기 (768px 이하) */
+@media (max-width: 768px) {
+    .container, .game-container { max-width: 100%; padding: 10px; }
+    .header h1 { font-size: 20px !important; }
+    .games-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+    .game-card { padding: 15px !important; }
+    .game-icon { font-size: 48px !important; }
+    .game-title { font-size: 18px !important; }
+    .market-grid { grid-template-columns: 1fr !important; }
+    .roulette-wheel { width: 85vw !important; height: 85vw !important; max-width: 320px !important; max-height: 320px !important; }
+}
+
+/* 모바일 크기 (600px 이하) */
 @media (max-width: 600px) {
     body { padding: 8px; }
+    .header { padding: 12px 15px !important; }
     .header h1, .game-title { font-size: 18px !important; }
     .game-card { padding: 12px !important; }
+    .game-icon { font-size: 40px !important; }
+    .game-desc { font-size: 12px !important; }
     .panel, .market-card { padding: 12px !important; min-width: 0; }
-    .stat-item { font-size: 14px; }
-    .roulette-wheel { width: 90vw !important; height: 90vw !important; }
+    .stat-item { font-size: 13px; }
+    .roulette-wheel { width: 90vw !important; height: 90vw !important; max-width: 280px !important; max-height: 280px !important; }
+    .number-grid { grid-template-columns: repeat(6, 1fr) !important; gap: 3px !important; }
+    .number-btn { font-size: 9px !important; padding: 4px !important; }
+    .special-bets { grid-template-columns: 1fr !important; gap: 6px !important; }
+    .bet-controls { flex-direction: column; gap: 8px; }
+    .bet-amount { width: 100% !important; }
+    .quick-buttons { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .action-buttons { flex-direction: column; gap: 8px; }
+    .action-btn { width: 100% !important; padding: 12px !important; font-size: 14px !important; }
+    
+    /* 배틀 시스템 반응형 */
+    .battle-field { flex-direction: column; gap: 20px; padding: 20px 10px !important; }
+    .fighter { width: 100%; }
+    .fighter-hp-bar { width: 100% !important; max-width: 200px; }
+    .dummy-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+    .dummy-card { padding: 10px !important; }
+    
+    /* 주식 시스템 반응형 */
+    .market-card { margin-bottom: 12px; }
+    .market-chart { height: 60px !important; }
+    .tabs { flex-direction: column; gap: 8px; }
+    .tab { padding: 12px !important; font-size: 14px !important; }
+}
+
+/* 작은 모바일 (400px 이하) */
+@media (max-width: 400px) {
+    .header h1 { font-size: 16px !important; }
+    .game-icon { font-size: 36px !important; }
+    .game-title { font-size: 16px !important; }
+    .games-grid { grid-template-columns: 1fr !important; }
+    .roulette-wheel { width: 95vw !important; height: 95vw !important; max-width: 260px !important; max-height: 260px !important; }
+    .number-grid { grid-template-columns: repeat(5, 1fr) !important; }
+    .dummy-grid { grid-template-columns: repeat(2, 1fr) !important; }
 }
 
 /* Keep input/buttons usable on touch devices */
-button, .bet-btn, .action-btn, .restart-btn { touch-action: manipulation; }
+button, .bet-btn, .action-btn, .restart-btn, .quick-btn, .special-btn { 
+    touch-action: manipulation; 
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px; /* iOS 권장 터치 영역 */
+}
+
+/* 가로 모드 최적화 */
+@media (max-width: 900px) and (orientation: landscape) {
+    .roulette-wheel { width: 40vh !important; height: 40vh !important; }
+    .battle-field { flex-direction: row !important; }
+    .games-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important; }
+}
+
+/* 터치 디바이스 최적화 */
+@media (hover: none) and (pointer: coarse) {
+    button, .btn-main, .btn-sub, .game-card { 
+        min-height: 48px;
+        padding: 12px 16px;
+    }
+    .number-btn, .special-btn { min-height: 40px; }
+}

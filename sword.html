@@ -1582,6 +1582,33 @@
             user.current_weapon_key = hiddenKey;
             user.current_sword_lvl = 0;
             
+            // 히든검 영속성: user_swords 테이블에 저장
+            try {
+                // sword_names.json에서 히든검 정보 가져오기
+                const response = await fetch('sword_names.json');
+                const swordData = await response.json();
+                const hiddenSword = swordData.swords.find(s => s.type === 'hidden' && s.level === 0);
+                const swordId = hiddenSword ? hiddenSword.id : `hidden_${n}`;
+                
+                // user_swords 테이블에 히든검 저장
+                const { error: swordError } = await supabaseClient
+                    .from('user_swords')
+                    .insert({
+                        user_id: user.id,
+                        sword_id: swordId,
+                        level: 0,
+                        is_hidden: true,
+                        hidden_expires_at: null, // 영구 보관
+                        obtained_at: new Date().toISOString()
+                    });
+                
+                if (swordError) {
+                    console.warn('히든검 저장 실패:', swordError);
+                }
+            } catch (e) {
+                console.warn('히든검 영속성 저장 오류:', e);
+            }
+            
             // 데이터베이스 업데이트
             const { error } = await supabaseClient.from('profiles')
                 .update({
@@ -1597,7 +1624,7 @@
                 try { sessionStorage.setItem('hidden_temporary', '1'); } catch (e) { /* ignore */ }
                 updateUI();
                 setTimeout(() => {
-                    alert('🌟 히든 검을 획득했습니다! 🌟\n+100M 지급!\n\n히든 검은 머니로 강화할 수 있습니다.');
+                    alert('🌟 히든 검을 획득했습니다! 🌟\n+100M 지급!\n\n히든 검은 머니로 강화할 수 있으며, 도감에 영구 저장됩니다.');
                 }, 100);
             }
         }
