@@ -67,18 +67,22 @@
 
       list.innerHTML = rows.map(m => {
         const st = mineMap.get(m.id) || { progress: 0, completed: false, claimed: false };
-        const prog = Math.min(st.progress || 0, m.target || 1);
+        const progVal = Number(st.progress || 0);
+        const targetVal = Number(m.target || 1);
+        const prog = Math.min(progVal, targetVal);
         const done = st.completed;
         const claimable = done && !st.claimed;
+        // Apply 50% reduction to mission gold rewards
+        const shownReward = Math.floor((m.reward_gold || 0) * 0.5);
         const btn = claimable
-          ? `<button class="btn-main" onclick="claim('${m.id}', ${m.reward_gold || 0})">보상 받기</button>`
+          ? `<button class="btn-main" onclick="claim('${m.id}', ${shownReward})">보상 받기</button>`
           : `<button class="btn-sub" disabled>${done ? '완료' : '진행중'}</button>`;
 
         return `
           <div class="item">
             <div style="font-weight:900;">${m.title}</div>
             <div style="margin-top:6px; font-size:12px; color:#cbd5e0;">${m.description}</div>
-            <div style="margin-top:8px; font-size:12px;">진행: ${prog}/${m.target} / 보상: ${m.reward_gold}G</div>
+            <div style="margin-top:8px; font-size:12px;">진행: ${prog}/${targetVal} / 보상: ${shownReward}G</div>
             <div class="btns">${btn}</div>
           </div>
         `;

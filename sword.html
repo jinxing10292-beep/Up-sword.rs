@@ -1827,6 +1827,33 @@
             }
         }
     });
+
+    // Keyboard shortcuts for desktop users
+    // U = Upgrade, S = Sell, I = Store
+    document.addEventListener('keydown', function (e) {
+        try {
+            // Ignore when user is typing in inputs, textareas, or contenteditable
+            const active = document.activeElement;
+            const tag = active && active.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || (active && active.isContentEditable)) return;
+            // Ignore when modifier keys are pressed to avoid conflicts
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+            const key = (e.key || '').toLowerCase();
+            if (key === 'u') {
+                e.preventDefault();
+                if (typeof handleUpgrade === 'function') handleUpgrade();
+            } else if (key === 's') {
+                e.preventDefault();
+                if (typeof handleSell === 'function') handleSell();
+            } else if (key === 'i') {
+                e.preventDefault();
+                if (typeof handleStore === 'function') handleStore();
+            }
+        } catch (err) {
+            console.error('단축키 처리 중 오류:', err);
+        }
+    });
 </script>
 </body>
 </html>

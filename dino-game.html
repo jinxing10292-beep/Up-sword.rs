@@ -38,10 +38,34 @@
             padding: 20px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
+        .canvas-wrap {
+            perspective: 900px;
+            display: inline-block;
+            position: relative;
+        }
+
         #gameCanvas {
             border: 2px solid #333;
             display: block;
-            background: #fff;
+            background: linear-gradient(180deg,#fff 0%, #f3f3f3 100%);
+            transform-origin: 50% 60%;
+            transform: rotateX(12deg) translateZ(0);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.35), inset 0 -6px 24px rgba(0,0,0,0.06);
+            border-radius: 6px;
+        }
+
+        /* subtle depth under the canvas to reinforce 3D */
+        .canvas-depth {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            bottom: -18px;
+            height: 22px;
+            background: linear-gradient(90deg, rgba(0,0,0,0.18), rgba(0,0,0,0.06));
+            filter: blur(6px);
+            border-radius: 8px;
+            transform: translateZ(-30px) scale(0.98);
+            z-index: 0;
         }
         .score-display {
             text-align: center;
@@ -164,15 +188,23 @@
                 dino.grounded = true;
             }
             
-            // Draw dino (더 눈에 띄는 색상과 모양)
-            ctx.fillStyle = '#2ecc71';
+            // Draw dino with a subtle 3D look (gradient body, eye highlight, leg shadows)
+            const bodyGrad = ctx.createLinearGradient(dino.x, dino.y, dino.x + dino.width, dino.y + dino.height);
+            bodyGrad.addColorStop(0, '#2ecc71');
+            bodyGrad.addColorStop(1, '#27ae60');
+            ctx.fillStyle = bodyGrad;
             ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
-            
-            // 공룡 눈 추가
+
+            // Eye (white + pupil)
             ctx.fillStyle = '#fff';
             ctx.fillRect(dino.x + 25, dino.y + 5, 5, 5);
-            
-            // 공룡 다리
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(dino.x + 26, dino.y + 6, 2, 2);
+
+            // Legs with shadow to add depth
+            ctx.fillStyle = 'rgba(0,0,0,0.18)';
+            ctx.fillRect(dino.x + 5, dino.y + dino.height + 4, 8, 4);
+            ctx.fillRect(dino.x + 25, dino.y + dino.height + 4, 8, 4);
             ctx.fillStyle = '#27ae60';
             ctx.fillRect(dino.x + 5, dino.y + dino.height, 8, 5);
             ctx.fillRect(dino.x + 25, dino.y + dino.height, 8, 5);
@@ -193,8 +225,13 @@
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 obstacles[i].x -= gameSpeed;
                 
-                ctx.fillStyle = '#e74c3c';
-                ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+                // obstacle with slight 3D shading
+                const obs = obstacles[i];
+                const obsGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x + obs.width, obs.y + obs.height);
+                obsGrad.addColorStop(0, '#e74c3c');
+                obsGrad.addColorStop(1, '#c0392b');
+                ctx.fillStyle = obsGrad;
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
                 
                 // Check collision
                 if (

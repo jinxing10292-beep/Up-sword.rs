@@ -209,6 +209,14 @@
     <canvas class="matrix-bg" id="matrixCanvas"></canvas>
     
     <button class="back-btn" onclick="location.href='minigames.html'">← BACK</button>
+
+    <!-- Embedded YouTube music (Mazario - Tetris (Techno Version)) -->
+    <iframe id="musicIframe" style="display:none;" src="" allow="autoplay; encrypted-media" ></iframe>
+    <div id="musicAttribution" style="position:fixed; left:12px; bottom:12px; z-index:1200; color:#00ff41; font-family: 'Orbitron', monospace; font-size:12px; background:rgba(0,0,0,0.6); padding:6px 10px; border-radius:6px; border:1px solid rgba(0,255,65,0.15);">
+        Music: Mazario - Tetris (Techno Version)
+        <button id="musicToggle" style="margin-left:8px; padding:4px 8px; background:rgba(0,255,65,0.12); border:1px solid rgba(0,255,65,0.2); color:#00ff41; cursor:pointer;">Play</button>
+        <a href="https://www.youtube.com/watch?v=N_U8xzru9q0" target="_blank" style="color:#00ff41; margin-left:8px; text-decoration:underline;">Open on YouTube</a>
+    </div>
     
     <div class="game-container">
         <div class="side-panels">
@@ -280,6 +288,31 @@
     </div>
 
     <script>
+        // Music toggle script
+        (function(){
+            const iframe = document.getElementById('musicIframe');
+            const btn = document.getElementById('musicToggle');
+            const embedUrl = 'https://www.youtube.com/embed/N_U8xzru9q0?autoplay=1&controls=0&loop=1&playlist=N_U8xzru9q0';
+            let playing = false;
+            btn.addEventListener('click', () => {
+                if (!playing) {
+                    // set iframe src to start playback (may be blocked until user interacts)
+                    iframe.src = embedUrl;
+                    iframe.style.display = 'block';
+                    iframe.style.width = '1px';
+                    iframe.style.height = '1px';
+                    iframe.style.opacity = '0';
+                    btn.textContent = 'Pause';
+                    playing = true;
+                } else {
+                    // stop by clearing src
+                    iframe.src = '';
+                    iframe.style.display = 'none';
+                    btn.textContent = 'Play';
+                    playing = false;
+                }
+            });
+        })();
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const nextCanvas = document.getElementById('nextCanvas');

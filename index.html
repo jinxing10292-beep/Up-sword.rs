@@ -250,12 +250,8 @@
         if (lastCheck === today) return alert("이미 오늘 출석하셨습니다.");
         
         const currentGold = user.gold || 0;
-        let updateData = { gold: currentGold + 1000 }; // 10,000 → 1,000으로 감소
-        
-        // Only include credits in the update if it exists in the user object
-        if (user.credits !== undefined) {
-            updateData.credits = (user.credits || 0) + 5000;
-        }
+        // Award 10,000G for daily check
+        let updateData = { gold: currentGold + 10000 };
         
         // First try to update with credits
         let { error } = await supabaseClient
@@ -282,7 +278,7 @@
         
         if (!error) {
             localStorage.setItem(`daily_chk_${user.id}`, today);
-            alert("출석체크 완료!\n10,000G와 5,000크레딧이 지급되었습니다.");
+            alert("출석체크 완료!\n10,000G가 지급되었습니다.");
             location.reload();
         }
     }

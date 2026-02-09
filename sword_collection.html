@@ -111,11 +111,15 @@
     let allSwords = [];
     let filteredSwords = [];
     let currentPage = 1;
-    const itemsPerPage = 20;
+    let itemsPerPage = 20; // will be adaptive
     let currentTypeFilter = 'all';
     let currentRarityFilter = null;
     let user = null;
     let ownedSwordIds = new Set();
+
+    // card size assumptions (px)
+    const CARD_HEIGHT = 110; // approximate including gap
+    const CARD_WIDTH = 180; // approximate including gap
     
     async function init() {
         try {
@@ -140,12 +144,33 @@
             filteredSwords = allSwords;
             document.getElementById('loadingDiv').style.display = 'none';
             document.getElementById('contentDiv').style.display = 'block';
+            calculateLayout();
             renderPage();
         } catch (e) {
             console.error(e);
             document.getElementById('loadingDiv').innerHTML = '<p>오류가 발생했습니다.</p>';
         }
     }
+
+    // Recalculate itemsPerPage and columns based on viewport size
+    function calculateLayout() {
+        const container = document.querySelector('.container');
+        const containerRect = container.getBoundingClientRect();
+        const availableHeight = window.innerHeight - containerRect.top - 160; // header + filters + margins
+        const availableWidth = containerRect.width - 20;
+
+        const rows = Math.max(1, Math.floor(availableHeight / CARD_HEIGHT));
+        const cols = Math.max(1, Math.floor(availableWidth / CARD_WIDTH));
+        itemsPerPage = rows * cols;
+        // update grid columns
+        const grid = document.getElementById('swordGrid');
+        grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    }
+
+    window.addEventListener('resize', () => {
+        calculateLayout();
+        renderPage();
+    });
     
     function filterByType(type) {
         currentTypeFilter = type;
@@ -187,14 +212,27 @@
         const pageItems = filteredSwords.slice(start, end);
         
         const grid = document.getElementById('swordGrid');
-        grid.innerHTML = pageItems.map(sword => `
-            <div class="sword-card ${ownedSwordIds.has(sword.id) ? 'owned' : ''} ${sword.type === 'hidden' ? 'hidden' : ''}" onclick="showDetail(${sword.id})">
-                <div class="sword-name">${sword.name}</div>
-                <div class="sword-level">Lv. ${sword.level}</div>
-                <div class="sword-rarity rarity-${sword.rarity}">${sword.rarity.toUpperCase()}</div>
-                <div class="stats">ID: ${sword.id}</div>
-            </div>
-        `).join('');
+        // Virtualize basic rendering by creating elements manually
+        grid.innerHTML = '';
+        pageItems.forEach(sword => {
+            const card = document.createElement('div');
+            card.className = `sword-card ${ownedSwordIds.has(sword.id) ? 'owned' : ''} ${sword.type === 'hidden' ? 'hidden' : ''}`;
+            card.setAttribute('role', 'button');
+            card.tabIndex = 0;
+            card.onclick = () => showDetail(sword.id);
+
+            const name = document.createElement('div'); name.className = 'sword-name'; name.textContent = sword.name;
+            const lvl = document.createElement('div'); lvl.className = 'sword-level'; lvl.textContent = `Lv. ${sword.level}`;
+            const rarity = document.createElement('div'); rarity.className = `sword-rarity rarity-${sword.rarity}`; rarity.textContent = (sword.rarity||'').toUpperCase();
+            const stats = document.createElement('div'); stats.className = 'stats'; stats.textContent = `ID: ${sword.id}`;
+
+            card.appendChild(name);
+            card.appendChild(lvl);
+            card.appendChild(rarity);
+            card.appendChild(stats);
+
+            grid.appendChild(card);
+        });
         
         renderPagination();
     }
