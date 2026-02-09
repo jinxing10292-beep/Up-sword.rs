@@ -100,8 +100,10 @@
 
         async function checkAuthentication() {
             try {
-                if (typeof supabase !== 'undefined' && supabase.createClient) {
-                    client = supabase.createClient(S_URL, S_KEY);
+                // Ensure we use the global supabase object if available
+                const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+                if (sup && sup.createClient) {
+                    client = sup.createClient(S_URL, S_KEY);
                 } else {
                     throw new Error("Supabase 라이브러리가 로드되지 않았습니다.");
                 }

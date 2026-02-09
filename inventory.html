@@ -285,6 +285,8 @@
             // 3. 로컬 배열에서도 제거
             userSwords = userSwords.filter(s => s.id !== swordId);
             updateUI();
+            // Clear any temporary hidden flag if present (award should be transient)
+            try { sessionStorage.removeItem('hidden_temporary'); } catch (e) { /* ignore */ }
             
             alert('검이 장착되었습니다! 검 강화 페이지에서 확인하세요.');
         } catch (e) {

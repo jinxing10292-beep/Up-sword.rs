@@ -200,7 +200,9 @@
 <script>
     const SUPABASE_URL = 'https://blkghenrfizqjfigvkql.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsa2doZW5yZml6cWpmaWd2a3FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NzM5MDksImV4cCI6MjA4NTU0OTkwOX0.L6oh-I5EKTyxkTtjzm95q-hBQaUwIq34RaE6UXV6gJg';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Use window.supabase if available to be resilient in different load orders
+    const _sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+    const supabaseClient = (_sup && _sup.createClient) ? _sup.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
     
     let user = null;
     let selectedDummy = null;
@@ -305,22 +307,22 @@
             `;
             
             if (!isLocked) {
-                card.onclick = () => selectDummy(dummy);
+                card.onclick = function(ev) { selectDummy(dummy, this); };
             }
             
             grid.appendChild(card);
         }
     }
     
-    function selectDummy(dummy) {
+    function selectDummy(dummy, cardEl) {
         selectedDummy = dummy;
-        
+
         // 모든 카드 선택 해제
         document.querySelectorAll('.dummy-card').forEach(c => c.classList.remove('selected'));
-        
-        // 선택된 카드 표시
-        event.target.closest('.dummy-card').classList.add('selected');
-        
+
+        // 선택된 카드 표시 (전달된 요소 사용)
+        try { if (cardEl && cardEl.classList) cardEl.classList.add('selected'); } catch (e) { console.warn('selectDummy: could not add selected class', e); }
+
         document.getElementById('startBattleBtn').disabled = false;
     }
     

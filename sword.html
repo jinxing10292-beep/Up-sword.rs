@@ -683,6 +683,31 @@
         const weaponType = getWeaponType();
         const weaponKey = user.current_weapon_key || 'sword_01';
         const isHidden = weaponType === 'hidden';
+
+        // If a temporary hidden flag was set (e.g., just awarded), clear it once
+        // the user obtains a non-zero level weapon so the hidden state doesn't persist.
+        try {
+            const tmpHidden = sessionStorage.getItem('hidden_temporary');
+            if (tmpHidden && user.current_sword_lvl > 0 && user.current_weapon_type === 'hidden') {
+                // Reset to normal weapon on server and locally
+                try {
+                    const { error: clearErr } = await supabaseClient.from('profiles')
+                        .update({ current_weapon_type: 'normal', current_weapon_key: 'sword_01' })
+                        .eq('id', user.id);
+                    if (!clearErr) {
+                        sessionStorage.removeItem('hidden_temporary');
+                        user.current_weapon_type = 'normal';
+                        user.current_weapon_key = 'sword_01';
+                    } else {
+                        console.warn('failed to clear temporary hidden on server:', clearErr);
+                    }
+                } catch (e) {
+                    console.warn('error clearing temporary hidden:', e);
+                }
+            }
+        } catch (e) {
+            console.warn('hidden_temporary check error:', e);
+        }
         
         document.getElementById('u-nick').innerText = ((user.nickname && user.nickname.trim()) ? user.nickname : '플레이어') + '님';
         document.getElementById('u-gold').innerText = (user.gold || 0).toLocaleString() + "G";
@@ -1044,40 +1069,31 @@
         const rarity = type === 'hidden' ? 'legendary' : (level >= 15 ? 'epic' : level >= 10 ? 'rare' : 'common');
 
         try {
-            // Try inserting with attack field; if schema doesn't have 'attack', retry without it
-            let insErr = null;
-            try {
-                const { error } = await supabaseClient.from('user_swords').insert({
-                    user_id: user.id,
-                    sword_id: swordId,
-                    sword_level: level,
-                    sword_name: actualName,
-                    weapon_type: type,
-                    weapon_key: key,
-                    attack: attack,
-                    rarity: rarity
-                });
-                insErr = error;
-            } catch (e) {
-                insErr = e;
-            }
+            // Try inserting with attack field; request the inserted row back for verification
+            const payload = {
+                user_id: user.id,
+                sword_id: swordId,
+                sword_level: level,
+                sword_name: actualName,
+                weapon_type: type,
+                weapon_key: key,
+                attack: attack,
+                rarity: rarity
+            };
 
-            if (insErr) {
-                console.warn('user_swords insert failed, attempting fallback without attack:', insErr);
-                try {
-                    const { error: retryErr } = await supabaseClient.from('user_swords').insert({
-                        user_id: user.id,
-                        sword_id: swordId,
-                        sword_level: level,
-                        sword_name: actualName,
-                        weapon_type: type,
-                        weapon_key: key,
-                        rarity: rarity
-                    });
-                    if (retryErr) throw retryErr;
-                } catch (re) {
-                    throw re; // bubble up to outer catch
-                }
+            let inserted = null;
+            try {
+                const { data, error } = await supabaseClient.from('user_swords').insert(payload).select().single();
+                if (error) throw error;
+                inserted = data;
+            } catch (insErr) {
+                console.warn('user_swords insert with attack failed, retrying without attack:', insErr);
+                // Retry without attack field if schema mismatch
+                const payload2 = Object.assign({}, payload);
+                delete payload2.attack;
+                const { data: data2, error: err2 } = await supabaseClient.from('user_swords').insert(payload2).select().single();
+                if (err2) throw err2;
+                inserted = data2;
             }
 
             // update discoveries (max discovered level)
@@ -1118,6 +1134,8 @@
             user.current_weapon_key = 'sword_01';
             updateUI();
 
+            // Clear any temporary hidden flag so the hidden state won't persist
+            try { sessionStorage.removeItem('hidden_temporary'); } catch (e) { /* ignore */ }
             alert('현재 검을 인벤토리에 보관했습니다.');
             
             // 보관 후 히든 검 확률 체크
@@ -1549,6 +1567,8 @@
                 .eq('id', user.id);
             
             if (!error) {
+                // Mark as temporary so it can be cleared after next normal action
+                try { sessionStorage.setItem('hidden_temporary', '1'); } catch (e) { /* ignore */ }
                 updateUI();
                 setTimeout(() => {
                     alert('🌟 히든 검을 획득했습니다! 🌟\n+100M 지급!\n\n히든 검은 머니로 강화할 수 있습니다.');
