@@ -179,13 +179,18 @@
     </div>
 </div>
 
-<!-- PvP Challenge Modal -->
+<!-- PvP Challenge Modal (select from list) -->
 <div class="result-modal" id="pvpModal" style="display:none;">
-    <div class="result-content">
+    <div class="result-content" style="max-width:520px;">
         <div style="font-size:20px; font-weight:900; margin-bottom:12px;">PvP 도전하기</div>
-        <input id="pvpTarget" placeholder="상대 닉네임 또는 이메일 입력" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:12px;" />
-        <div style="display:flex; gap:8px;">
-            <button class="modal-btn btn-confirm" onclick="challengePlayer()">도전</button>
+        <input id="pvpSearch" placeholder="닉네임으로 검색" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:10px;" />
+        <div id="pvpUserList" style="max-height:300px; overflow:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:8px;">
+            <div style="color:#718096; font-size:13px;">로딩 중...</div>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <button id="pvpLoadMore" class="modal-btn btn-cancel" onclick="pvpLoadMore()">더 불러오기</button>
+            <div style="flex:1"></div>
+            <button id="pvpChallengeBtn" class="modal-btn btn-confirm" onclick="challengePlayer()">도전</button>
             <button class="modal-btn btn-cancel" onclick="closePvPModal()">취소</button>
         </div>
         <div id="pvpInfo" style="margin-top:12px; color:#718096; font-size:13px;"></div>
@@ -605,47 +610,130 @@
     
     window.onload = init;
 
-    // PvP modal controls
+    // PvP modal controls (select user from list)
+    let selectedPvpOpponent = null;
     function openPvPModal() {
-        document.getElementById('pvpModal').style.display = 'flex';
-        document.getElementById('pvpTarget').value = '';
+        selectedPvpOpponent = null;
         document.getElementById('pvpInfo').innerText = '';
+        document.getElementById('pvpModal').style.display = 'flex';
+        renderPvpUserList();
     }
     function closePvPModal() { document.getElementById('pvpModal').style.display = 'none'; }
 
-    async function challengePlayer() {
-        const q = document.getElementById('pvpTarget').value.trim();
-        if (!q) return alert('닉네임 또는 이메일을 입력하세요.');
+    // pvp list state
+    let pvpPage = 1;
+    const PVP_PAGE_SIZE = 50;
+    let pvpQuery = '';
+    let pvpHasMore = true;
 
+    function resetPvpList() {
+        pvpPage = 1; pvpHasMore = true; document.getElementById('pvpLoadMore').style.display = 'inline-block';
+    }
+
+    async function renderPvpUserList(append = false) {
+        const listEl = document.getElementById('pvpUserList');
+        if (!append) listEl.innerHTML = '<div style="color:#718096">로딩 중...</div>';
         try {
-            // Try to find by nickname or email
-            const { data: target, error } = await supabaseClient
-                .from('profiles')
-                .select('*')
-                .or(`nickname.eq.${q},email.eq.${q}`)
-                .maybeSingle();
+            const q = (pvpQuery || '').trim();
+            const start = (pvpPage - 1) * PVP_PAGE_SIZE;
+            const end = start + PVP_PAGE_SIZE - 1;
 
-            if (error || !target) return alert('대상을 찾을 수 없습니다. 정확한 닉네임 또는 이메일을 입력하세요.');
+            let query = supabaseClient.from('profiles').select('id,nickname,battle_level,updated_at,current_sword_lvl,email').order('nickname', { ascending: true }).range(start, end);
+            if (q.length > 0) {
+                // use ilike for case-insensitive partial match
+                query = supabaseClient.from('profiles').select('id,nickname,battle_level,updated_at,current_sword_lvl,email').ilike('nickname', `%${q}%`).order('nickname', { ascending: true }).range(start, end);
+            }
 
-            // Basic checks: both players must have at least one sword in inventory and battle_level >= 2
+            const { data: users, error } = await query;
+            if (error) throw error;
+
+            if (!append) listEl.innerHTML = '';
+            // append users
+            users.forEach(u => {
+                if (u.id === user.id) return;
+                const item = document.createElement('div');
+                item.style.display = 'flex';
+                item.style.justifyContent = 'space-between';
+                item.style.alignItems = 'center';
+                item.style.padding = '8px';
+                item.style.border = '1px solid #e2e8f0';
+                item.style.borderRadius = '8px';
+                item.style.cursor = 'pointer';
+                // online if updated_at within 5 minutes
+                let onlineBadge = '';
+                try {
+                    if (u.updated_at) {
+                        const ms = Date.now() - new Date(u.updated_at).getTime();
+                        if (ms < 5 * 60 * 1000) onlineBadge = '<span style="color:#48bb78; font-weight:800; margin-right:8px;">●</span>';
+                        else onlineBadge = '<span style="color:#cbd5e0; margin-right:8px;">○</span>';
+                    }
+                } catch (e) {}
+
+                item.innerHTML = `<div style="display:flex; align-items:center;"><div style=\"margin-right:8px;\">${onlineBadge}</div><div style=\"font-weight:700\">${u.nickname || '(익명)'}</div></div><div style="font-size:12px;color:#718096">Lv.${u.battle_level||1}</div>`;
+                item.onclick = (ev) => {
+                    selectedPvpOpponent = u;
+                    document.getElementById('pvpInfo').innerText = `선택: ${u.nickname || '(익명)'} (Lv.${u.battle_level||1})`;
+                    Array.from(listEl.children).forEach(ch => ch.style.background = '');
+                    ev.currentTarget.style.background = '#f0f7ff';
+                };
+                listEl.appendChild(item);
+            });
+
+            // if returned less than page size, no more
+            if (!users || users.length < PVP_PAGE_SIZE) {
+                pvpHasMore = false;
+                document.getElementById('pvpLoadMore').style.display = 'none';
+            } else {
+                document.getElementById('pvpLoadMore').style.display = 'inline-block';
+            }
+
+            if (listEl.children.length === 0) listEl.innerHTML = '<div style="color:#718096">대상 사용자가 없습니다.</div>';
+        } catch (e) {
+            console.error('유저 목록 로드 실패:', e);
+            listEl.innerHTML = '<div style="color:#e53e3e">사용자 목록을 불러오는데 실패했습니다.</div>';
+        }
+    }
+
+    function pvpLoadMore() {
+        if (!pvpHasMore) return;
+        pvpPage++;
+        renderPvpUserList(true);
+    }
+
+    // search debounce
+    let pvpSearchTimer = null;
+    document.addEventListener('DOMContentLoaded', () => {
+        const s = document.getElementById('pvpSearch');
+        if (s) {
+            s.addEventListener('input', (e) => {
+                clearTimeout(pvpSearchTimer);
+                pvpSearchTimer = setTimeout(() => {
+                    pvpQuery = e.target.value || '';
+                    resetPvpList();
+                    renderPvpUserList(false);
+                }, 300);
+            });
+        }
+    });
+
+    async function challengePlayer() {
+        if (!selectedPvpOpponent) return alert('도전할 플레이어를 선택하세요.');
+        const target = selectedPvpOpponent;
+        try {
             const [{ data: mySwords }, { data: theirSwords }] = await Promise.all([
                 supabaseClient.from('user_swords').select('id').eq('user_id', user.id).limit(1),
                 supabaseClient.from('user_swords').select('id').eq('user_id', target.id).limit(1)
             ]);
-
-            if (!mySwords || mySwords.length === 0) return alert('당신의 인벤토리에 검이 없습니다. 인벤토리에서 검을 보유해야 PvP에 참여할 수 있습니다.');
-            if (!theirSwords || theirSwords.length === 0) return alert('상대의 인벤토리에 검이 없습니다. 다른 플레이어를 선택하세요.');
-
-            if ((user.battle_level || 1) < 2) return alert('PvP 참여를 위해 배틀 레벨이 2 이상이어야 합니다.');
-            if ((target.battle_level || 1) < 2) return alert('상대의 배틀 레벨이 2 이상이어야 PvP가 가능합니다.');
-
-            // Show confirmation and start PvP
-            if (!confirm(`${target.nickname || target.email}님에게 도전하시겠습니까?
-조건: 서로 인벤토리에 검 보유, 배틀 레벨 2+`)) return;
-
+            const myHas = mySwords && mySwords.length > 0;
+            const theirHas = theirSwords && theirSwords.length > 0;
+            const myLevelOk = (user.battle_level || 1) >= 2;
+            const theirLevelOk = (target.battle_level || 1) >= 2;
+            if (!myHas || !theirHas || !myLevelOk || !theirLevelOk) {
+                return alert('상대 플레이어가 준비되지 않았습니다. (인벤토리에 검 보유, 또는 배틀 레벨이 2 이상이어야 합니다)');
+            }
+            if (!confirm(`${target.nickname || target.email}님에게 도전하시겠습니까?`)) return;
             closePvPModal();
             await startPvP(target);
-
         } catch (e) {
             console.error('PvP 도전 오류:', e);
             alert('PvP 도전 중 오류가 발생했습니다. 콘솔을 확인하세요.');
