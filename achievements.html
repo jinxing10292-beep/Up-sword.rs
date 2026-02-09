@@ -233,13 +233,15 @@
         const targetVal = Number(a.target || 1);
         const prog = Math.min(progVal, targetVal);
         const unlocked = st.unlocked;
+        const title = a.title || a.name || a.key || '(제목 없음)';
+        const desc = a.description || a.desc || a.body || '';
         return `
           <div class="item">
             <div style="display:flex; justify-content:space-between; gap:10px; align-items:center;">
-              <div style="font-weight:900;">${a.title}</div>
+              <div style="font-weight:900;">${title}</div>
               <div class="badge">${unlocked ? '달성' : '미달성'}</div>
             </div>
-            <div style="margin-top:6px; font-size:12px; color:#cbd5e0;">${a.description}</div>
+            <div style="margin-top:6px; font-size:12px; color:#cbd5e0;">${desc}</div>
             <div style="margin-top:8px; font-size:12px;">진행: ${prog}/${targetVal}</div>
           </div>
         `;

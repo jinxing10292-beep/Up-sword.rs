@@ -78,10 +78,12 @@
           ? `<button class="btn-main" onclick="claim('${m.id}', ${shownReward})">보상 받기</button>`
           : `<button class="btn-sub" disabled>${done ? '완료' : '진행중'}</button>`;
 
+        const title = m.title || m.name || m.key || '(제목 없음)';
+        const desc = m.description || m.desc || m.body || '';
         return `
           <div class="item">
-            <div style="font-weight:900;">${m.title}</div>
-            <div style="margin-top:6px; font-size:12px; color:#cbd5e0;">${m.description}</div>
+            <div style="font-weight:900;">${title}</div>
+            <div style="margin-top:6px; font-size:12px; color:#cbd5e0;">${desc}</div>
             <div style="margin-top:8px; font-size:12px;">진행: ${prog}/${targetVal} / 보상: ${shownReward}G</div>
             <div class="btns">${btn}</div>
           </div>

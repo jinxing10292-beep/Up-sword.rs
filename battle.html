@@ -638,10 +638,10 @@
             const start = (pvpPage - 1) * PVP_PAGE_SIZE;
             const end = start + PVP_PAGE_SIZE - 1;
 
-            let query = supabaseClient.from('profiles').select('id,nickname,battle_level,updated_at,current_sword_lvl,email').order('nickname', { ascending: true }).range(start, end);
+            let query = supabaseClient.from('profiles').select('id,nickname,battle_level,updated_at').order('nickname', { ascending: true }).range(start, end);
             if (q.length > 0) {
                 // use ilike for case-insensitive partial match
-                query = supabaseClient.from('profiles').select('id,nickname,battle_level,updated_at,current_sword_lvl,email').ilike('nickname', `%${q}%`).order('nickname', { ascending: true }).range(start, end);
+                query = supabaseClient.from('profiles').select('id,nickname,battle_level,updated_at').ilike('nickname', `%${q}%`).order('nickname', { ascending: true }).range(start, end);
             }
 
             const { data: users, error } = await query;
@@ -720,20 +720,29 @@
         if (!selectedPvpOpponent) return alert('도전할 플레이어를 선택하세요.');
         const target = selectedPvpOpponent;
         try {
+            // fetch full opponent profile to ensure required fields exist
+            const { data: fullProfile, error: profileError } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', target.id)
+                .single();
+            if (profileError) throw profileError;
+            const opp = { ...target, ...fullProfile };
+
             const [{ data: mySwords }, { data: theirSwords }] = await Promise.all([
                 supabaseClient.from('user_swords').select('id').eq('user_id', user.id).limit(1),
-                supabaseClient.from('user_swords').select('id').eq('user_id', target.id).limit(1)
+                supabaseClient.from('user_swords').select('id').eq('user_id', opp.id).limit(1)
             ]);
             const myHas = mySwords && mySwords.length > 0;
             const theirHas = theirSwords && theirSwords.length > 0;
             const myLevelOk = (user.battle_level || 1) >= 2;
-            const theirLevelOk = (target.battle_level || 1) >= 2;
+            const theirLevelOk = (opp.battle_level || 1) >= 2;
             if (!myHas || !theirHas || !myLevelOk || !theirLevelOk) {
                 return alert('상대 플레이어가 준비되지 않았습니다. (인벤토리에 검 보유, 또는 배틀 레벨이 2 이상이어야 합니다)');
             }
-            if (!confirm(`${target.nickname || target.email}님에게 도전하시겠습니까?`)) return;
+            if (!confirm(`${opp.nickname || opp.email || opp.id}님에게 도전하시겠습니까?`)) return;
             closePvPModal();
-            await startPvP(target);
+            await startPvP(opp);
         } catch (e) {
             console.error('PvP 도전 오류:', e);
             alert('PvP 도전 중 오류가 발생했습니다. 콘솔을 확인하세요.');
