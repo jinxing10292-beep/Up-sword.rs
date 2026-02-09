@@ -79,6 +79,10 @@
             <i class="fa-solid fa-gem"></i>
             <span id="userMoney">0</span>M
         </div>
+        <div class="currency-item" style="color:#7b3fe4; font-weight:800;">
+            <i class="fa-solid fa-dungeon" style="transform: rotate(20deg);"></i>
+            <span id="userBattleCoins">0</span>💎
+        </div>
     </div>
     
     <div class="shop-content">
@@ -86,6 +90,7 @@
             <button class="tab-btn active" onclick="switchCategory('enhancement')">강화 아이템</button>
             <button class="tab-btn" onclick="switchCategory('protection')">보호 아이템</button>
             <button class="tab-btn" onclick="switchCategory('macro')">매크로</button>
+            <button class="tab-btn" onclick="switchCategory('battle')">배틀 상점</button>
         </div>
         
         <div id="loadingDiv" class="loading">
@@ -242,6 +247,45 @@
                 levels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
             }
         ]
+        ,
+        battle: [
+            {
+                id: 'hp_potion',
+                name: '전투 회복 포션',
+                icon: '🧪',
+                description: '전투 중 즉시 HP를 회복합니다. PvP 또는 아레나에서 사용 가능.',
+                priceGold: 0,
+                priceMoney: 0,
+                priceCoins: 20
+            },
+            {
+                id: 'atk_boost',
+                name: '일시적 공격력 부스트',
+                icon: '🔥',
+                description: '다음 전투에서 공격력이 +10 상승합니다 (1회).',
+                priceGold: 0,
+                priceMoney: 0,
+                priceCoins: 50
+            },
+            {
+                id: 'arena_ticket',
+                name: '아레나 티켓',
+                icon: '🎫',
+                description: '특별 보스 또는 PvP 이벤트에 입장할 수 있는 티켓입니다.',
+                priceGold: 0,
+                priceMoney: 0,
+                priceCoins: 100
+            },
+            {
+                id: 'sword_skin',
+                name: '검 스킨 (랜덤)',
+                icon: '✨',
+                description: '인벤토리의 검에 적용 가능한 랜덤 스킨.',
+                priceGold: 0,
+                priceMoney: 0,
+                priceCoins: 35
+            }
+        ]
     };
     
     async function init() {
@@ -278,6 +322,7 @@
     function updateCurrency() {
         document.getElementById('userGold').innerText = (user.gold || 0).toLocaleString();
         document.getElementById('userMoney').innerText = (user.money || 0).toLocaleString();
+        document.getElementById('userBattleCoins').innerText = (user.battle_coins || 0).toLocaleString();
     }
     
     function switchCategory(category) {
@@ -302,6 +347,7 @@
                     <div class="price-info">
                         ${item.priceGold > 0 ? `<span class="price-gold">${item.priceGold.toLocaleString()}G</span>` : ''}
                         ${item.priceMoney > 0 ? `<span class="price-money">${item.priceMoney.toLocaleString()}M</span>` : ''}
+                        ${item.priceCoins > 0 ? `<span style="color:#7b3fe4; font-weight:800;">${item.priceCoins.toLocaleString()}💎</span>` : ''}
                     </div>
                     <button class="buy-btn" onclick="showPurchaseModal('${item.id}')">구매</button>
                 </div>
@@ -348,6 +394,7 @@
                     <span>
                         ${item.priceGold > 0 ? `<span class="price-gold">${item.priceGold.toLocaleString()}G</span>` : ''}
                         ${item.priceMoney > 0 ? `<span class="price-money">${item.priceMoney.toLocaleString()}M</span>` : ''}
+                        ${item.priceCoins > 0 ? `<span style="color:#7b3fe4; font-weight:800;">${item.priceCoins.toLocaleString()}💎</span>` : ''}
                     </span>
                 </div>
                 ${!isMacro ? `
@@ -356,6 +403,7 @@
                     <span id="totalPrice">
                         ${item.priceGold > 0 ? `<span class="price-gold">${item.priceGold.toLocaleString()}G</span>` : ''}
                         ${item.priceMoney > 0 ? `<span class="price-money">${item.priceMoney.toLocaleString()}M</span>` : ''}
+                        ${item.priceCoins > 0 ? `<span style="color:#7b3fe4; font-weight:800;">${(item.priceCoins).toLocaleString()}💎</span>` : ''}
                     </span>
                 </div>
                 ` : ''}
@@ -389,12 +437,14 @@
     function updateTotalPrice() {
         if (!selectedItem) return;
         
-        const totalGold = selectedItem.priceGold * selectedQuantity;
-        const totalMoney = selectedItem.priceMoney * selectedQuantity;
+        const totalGold = (selectedItem.priceGold || 0) * selectedQuantity;
+        const totalMoney = (selectedItem.priceMoney || 0) * selectedQuantity;
+        const totalCoins = (selectedItem.priceCoins || 0) * selectedQuantity;
         
         document.getElementById('totalPrice').innerHTML = `
             ${totalGold > 0 ? `<span class="price-gold">${totalGold.toLocaleString()}G</span>` : ''}
             ${totalMoney > 0 ? `<span class="price-money">${totalMoney.toLocaleString()}M</span>` : ''}
+            ${totalCoins > 0 ? `<span style="color:#7b3fe4; font-weight:800;">${totalCoins.toLocaleString()}💎</span>` : ''}
         `;
     }
     
@@ -406,25 +456,24 @@
             return purchaseMacro();
         }
         
-        const totalGold = selectedItem.priceGold * selectedQuantity;
-        const totalMoney = selectedItem.priceMoney * selectedQuantity;
-        
+        const totalGold = (selectedItem.priceGold || 0) * selectedQuantity;
+        const totalMoney = (selectedItem.priceMoney || 0) * selectedQuantity;
+        const totalCoins = (selectedItem.priceCoins || 0) * selectedQuantity;
+
         // 잔액 확인
-        if (user.gold < totalGold) {
-            return alert('골드가 부족합니다.');
-        }
-        if (user.money < totalMoney) {
-            return alert('머니가 부족합니다.');
-        }
+        if (user.gold < totalGold) return alert('골드가 부족합니다.');
+        if (user.money < totalMoney) return alert('머니가 부족합니다.');
+        if (user.battle_coins < totalCoins) return alert('배틀 코인이 부족합니다.');
         
         try {
-            // 화폐 차감
+            // 화폐 차감 (골드/머니/배틀코인)
             const newGold = user.gold - totalGold;
             const newMoney = user.money - totalMoney;
+            const newCoins = (user.battle_coins || 0) - totalCoins;
             
             const { error: updateError } = await supabaseClient
                 .from('profiles')
-                .update({ gold: newGold, money: newMoney })
+                .update({ gold: newGold, money: newMoney, battle_coins: newCoins })
                 .eq('id', user.id)
                 .select();
             
@@ -459,7 +508,7 @@
                         item_id: selectedItem.id,
                         item_name: selectedItem.name,
                         quantity: selectedQuantity,
-                        item_type: currentCategory
+                        item_type: currentCategory === 'battle' ? 'battle' : currentCategory
                     })
                     .select();
                 
@@ -468,6 +517,7 @@
             
             user.gold = newGold;
             user.money = newMoney;
+            user.battle_coins = newCoins;
             updateCurrency();
             closeModal();
             

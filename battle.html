@@ -106,6 +106,9 @@
             </div>
         </div>
     </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px;">
+        <button class="home-btn" onclick="openPvPModal()">PvP 도전</button>
+    </div>
     
     <div class="main-content">
         <div class="user-info">
@@ -173,6 +176,19 @@
         <div class="result-title" id="resultTitle"></div>
         <div class="result-rewards" id="resultRewards"></div>
         <button class="close-btn" onclick="closeResult()">확인</button>
+    </div>
+</div>
+
+<!-- PvP Challenge Modal -->
+<div class="result-modal" id="pvpModal" style="display:none;">
+    <div class="result-content">
+        <div style="font-size:20px; font-weight:900; margin-bottom:12px;">PvP 도전하기</div>
+        <input id="pvpTarget" placeholder="상대 닉네임 또는 이메일 입력" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:12px;" />
+        <div style="display:flex; gap:8px;">
+            <button class="modal-btn btn-confirm" onclick="challengePlayer()">도전</button>
+            <button class="modal-btn btn-cancel" onclick="closePvPModal()">취소</button>
+        </div>
+        <div id="pvpInfo" style="margin-top:12px; color:#718096; font-size:13px;"></div>
     </div>
 </div>
 
@@ -407,7 +423,8 @@
             const coinsGained = selectedDummy.coins;
             
             let newExp = user.battle_exp + expGained;
-            let newLevel = user.battle_level;
+            let prevLevel = user.battle_level;
+            let newLevel = prevLevel;
             let leveledUp = false;
             
             // 레벨업 체크
@@ -462,8 +479,8 @@
             
             updateUI();
             
-            // 결과 모달 표시
-            showResultModal(true, expGained, coinsGained, leveledUp, newLevel);
+            // 결과 모달 표시 (prevLevel 포함)
+            showResultModal(true, expGained, coinsGained, leveledUp, prevLevel, newLevel, { type: 'pve' });
             
         } catch (e) {
             console.error('승리 처리 오류:', e);
@@ -492,14 +509,14 @@
             if (historyError) console.error('기록 저장 실패:', historyError);
             
             // 결과 모달 표시
-            showResultModal(false, 0, 0, false, 0);
+            showResultModal(false, 0, 0, false, user.battle_level || 1, user.battle_level || 1);
             
         } catch (e) {
             console.error('패배 처리 오류:', e);
         }
     }
     
-    function showResultModal(isWin, exp, coins, leveledUp, newLevel) {
+    function showResultModal(isWin, exp, coins, leveledUp, prevLevel, newLevel, extra) {
         const modal = document.getElementById('resultModal');
         const icon = document.getElementById('resultIcon');
         const title = document.getElementById('resultTitle');
@@ -522,15 +539,53 @@
             `;
             
             if (leveledUp) {
+                // show animated stat increases
+                const prevAtk = 10 + (prevLevel * 5);
+                const newAtk = 10 + (newLevel * 5);
+                const prevHp = 100 + (prevLevel * 20);
+                const newHp = 100 + (newLevel * 20);
+
                 rewardsHTML += `
-                    <div class="reward-item" style="background: linear-gradient(135deg, #ffd700, #ffed4e); padding: 10px; border-radius: 8px; margin-top: 10px;">
-                        <span class="reward-label" style="color: #2d3748;">🎊 레벨 업!</span>
-                        <span class="reward-value" style="color: #2d3748;">Lv.${newLevel}</span>
+                    <div style="background: linear-gradient(135deg, #ffd700, #ffed4e); padding: 12px; border-radius: 10px; margin-top: 12px; text-align:center;">
+                        <div style="font-weight:900; color:#2d3748;">🎊 레벨 업! Lv.${newLevel}</div>
+                        <div style="display:flex; justify-content:space-around; margin-top:8px;">
+                            <div>
+                                <div style="font-size:12px; color:#2d3748;">공격력</div>
+                                <div id="animAtk" style="font-size:20px; font-weight:900; color:#000;">${prevAtk}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:12px; color:#2d3748;">체력</div>
+                                <div id="animHp" style="font-size:20px; font-weight:900; color:#000;">${prevHp}</div>
+                            </div>
+                        </div>
                     </div>
                 `;
             }
             
             rewards.innerHTML = rewardsHTML;
+
+            // Animate the stat numbers if leveled up
+            if (leveledUp) {
+                const atkEl = document.getElementById('animAtk');
+                const hpEl = document.getElementById('animHp');
+                if (atkEl && hpEl) {
+                    const steps = 30;
+                    let step = 0;
+                    const atkStart = prevAtk;
+                    const hpStart = prevHp;
+                    const atkDiff = newAtk - prevAtk;
+                    const hpDiff = newHp - prevHp;
+                    const interval = setInterval(() => {
+                        step++;
+                        const t = step / steps;
+                        atkEl.textContent = Math.floor(atkStart + atkDiff * easeOutCubic(t));
+                        hpEl.textContent = Math.floor(hpStart + hpDiff * easeOutCubic(t));
+                        if (step >= steps) clearInterval(interval);
+                    }, 20);
+                    // small confetti effect
+                    burstParticles(40);
+                }
+            }
         } else {
             icon.textContent = '💀';
             title.textContent = '패배...';
@@ -549,6 +604,162 @@
     }
     
     window.onload = init;
+
+    // PvP modal controls
+    function openPvPModal() {
+        document.getElementById('pvpModal').style.display = 'flex';
+        document.getElementById('pvpTarget').value = '';
+        document.getElementById('pvpInfo').innerText = '';
+    }
+    function closePvPModal() { document.getElementById('pvpModal').style.display = 'none'; }
+
+    async function challengePlayer() {
+        const q = document.getElementById('pvpTarget').value.trim();
+        if (!q) return alert('닉네임 또는 이메일을 입력하세요.');
+
+        try {
+            // Try to find by nickname or email
+            const { data: target, error } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .or(`nickname.eq.${q},email.eq.${q}`)
+                .maybeSingle();
+
+            if (error || !target) return alert('대상을 찾을 수 없습니다. 정확한 닉네임 또는 이메일을 입력하세요.');
+
+            // Basic checks: both players must have at least one sword in inventory and battle_level >= 2
+            const [{ data: mySwords }, { data: theirSwords }] = await Promise.all([
+                supabaseClient.from('user_swords').select('id').eq('user_id', user.id).limit(1),
+                supabaseClient.from('user_swords').select('id').eq('user_id', target.id).limit(1)
+            ]);
+
+            if (!mySwords || mySwords.length === 0) return alert('당신의 인벤토리에 검이 없습니다. 인벤토리에서 검을 보유해야 PvP에 참여할 수 있습니다.');
+            if (!theirSwords || theirSwords.length === 0) return alert('상대의 인벤토리에 검이 없습니다. 다른 플레이어를 선택하세요.');
+
+            if ((user.battle_level || 1) < 2) return alert('PvP 참여를 위해 배틀 레벨이 2 이상이어야 합니다.');
+            if ((target.battle_level || 1) < 2) return alert('상대의 배틀 레벨이 2 이상이어야 PvP가 가능합니다.');
+
+            // Show confirmation and start PvP
+            if (!confirm(`${target.nickname || target.email}님에게 도전하시겠습니까?
+조건: 서로 인벤토리에 검 보유, 배틀 레벨 2+`)) return;
+
+            closePvPModal();
+            await startPvP(target);
+
+        } catch (e) {
+            console.error('PvP 도전 오류:', e);
+            alert('PvP 도전 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+        }
+    }
+
+    async function startPvP(opponent) {
+        // Setup UI
+        document.getElementById('setupArea').style.display = 'none';
+        document.getElementById('battleArea').style.display = 'block';
+
+        const playerAttack = 10 + (user.current_sword_lvl * 5);
+        const opponentAttack = 10 + (opponent.current_sword_lvl * 5);
+        const playerMaxHp = 100 + ((user.battle_level || 1) * 20);
+        const opponentMaxHp = 100 + ((opponent.battle_level || 1) * 20);
+        let playerHp = playerMaxHp;
+        let oppHp = opponentMaxHp;
+
+        battleLog = [];
+        document.getElementById('playerName').textContent = user.nickname || '플레이어';
+        document.getElementById('playerAtk').textContent = playerAttack;
+        document.getElementById('dummyName').textContent = opponent.nickname || opponent.email || '상대';
+        document.getElementById('dummyHp').textContent = opponentMaxHp;
+        updateBattleUI(playerHp, playerMaxHp, oppHp, opponentMaxHp);
+
+        addLog(`🤝 PvP 시작: ${user.nickname || user.email} vs ${opponent.nickname || opponent.email}`);
+
+        let turn = 1;
+        while (playerHp > 0 && oppHp > 0 && turn <= 100) {
+            await sleep(700);
+            const playerDamage = Math.floor(playerAttack * (0.9 + Math.random() * 0.25));
+            oppHp -= playerDamage;
+            addLog(`🗡️ 당신의 공격! ${playerDamage} 데미지!`, 'player');
+            updateBattleUI(playerHp, playerMaxHp, Math.max(0, oppHp), opponentMaxHp);
+            if (oppHp <= 0) { await sleep(400); addLog(`🏆 상대 격파!`, 'result'); await handlePvPVictory(opponent); return; }
+
+            await sleep(700);
+            const oppDamage = Math.floor(opponentAttack * (0.85 + Math.random() * 0.3));
+            playerHp -= oppDamage;
+            addLog(`🛡️ 상대의 공격! ${oppDamage} 데미지!`, 'dummy');
+            updateBattleUI(Math.max(0, playerHp), playerMaxHp, oppHp, opponentMaxHp);
+            if (playerHp <= 0) { await sleep(400); addLog(`💀 패배했습니다...`, 'result'); await handleDefeat(); return; }
+
+            turn++;
+        }
+        if (turn > 100) { addLog('⏱️ 시간 초과 - 무승부로 간주됩니다.', 'result'); await handleDefeat(); }
+    }
+
+    async function handlePvPVictory(opponent) {
+        try {
+            // rewards based on opponent's battle level
+            const expGained = (opponent.battle_level || 1) * 20;
+            const coinsGained = (opponent.battle_level || 1) * 10;
+
+            let newExp = user.battle_exp + expGained;
+            let prevLevel = user.battle_level;
+            let newLevel = prevLevel;
+            let leveledUp = false;
+            let requiredExp = getRequiredExp(newLevel);
+            while (newExp >= requiredExp) { newExp -= requiredExp; newLevel++; leveledUp = true; requiredExp = getRequiredExp(newLevel); }
+
+            const newCoins = (user.battle_coins || 0) + coinsGained;
+
+            // Update profiles and insert battle history with opponent info
+            const { error: updateError } = await supabaseClient.from('profiles').update({
+                battle_exp: newExp,
+                battle_level: newLevel,
+                battle_coins: newCoins
+            }).eq('id', user.id).select();
+            if (updateError) throw updateError;
+
+            const { error: historyError } = await supabaseClient.from('battle_history').insert({
+                user_id: user.id,
+                opponent_id: opponent.id,
+                dummy_level: opponent.battle_level,
+                user_sword_level: user.current_sword_lvl,
+                user_attack: 10 + (user.current_sword_lvl * 5),
+                dummy_hp: opponent.battle_level,
+                result: 'pvp',
+                exp_gained: expGained,
+                coins_gained: coinsGained,
+                battle_log: battleLog
+            }).select();
+            if (historyError) console.error('PvP 기록 저장 실패:', historyError);
+
+            user.battle_exp = newExp; user.battle_level = newLevel; user.battle_coins = newCoins;
+            updateUI();
+
+            showResultModal(true, expGained, coinsGained, leveledUp, prevLevel, newLevel, { type: 'pvp', opponent });
+        } catch (e) {
+            console.error('PvP 승리 처리 오류:', e);
+            alert('보상 지급 중 오류 발생: ' + e.message);
+        }
+    }
+
+    // small helper: particle burst for level-up
+    function burstParticles(count) {
+        for (let i = 0; i < count; i++) {
+            const p = document.createElement('div');
+            p.style.position = 'fixed';
+            p.style.left = (50 + (Math.random() - 0.5) * 30) + '%';
+            p.style.top = (40 + Math.random() * 10) + '%';
+            p.style.width = (6 + Math.random() * 12) + 'px';
+            p.style.height = p.style.width;
+            p.style.background = ['#ffd700','#ff8a00','#48bb78','#00ccff'][Math.floor(Math.random()*4)];
+            p.style.borderRadius = '50%';
+            p.style.zIndex = 2000;
+            document.body.appendChild(p);
+            const tx = (Math.random()-0.5)*300; const ty = -150 - Math.random()*200;
+            p.animate([{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${tx}px, ${ty}px) scale(0.3)`, opacity: 0 }], { duration: 900 + Math.random()*800, easing: 'cubic-bezier(.2,.8,.2,1)' }).onfinish = () => p.remove();
+        }
+    }
+
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 </script>
 </body>
 </html>
