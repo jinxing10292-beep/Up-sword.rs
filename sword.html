@@ -945,16 +945,10 @@
         
         // 데이터베이스 업데이트 먼저 수행하고 에러 체크
         // 안전 검사 및 디버그 로깅 추가: 서버 400 응답 원인이 payload 또는 id 누락일 수 있으므로 기록합니다.
-        const updatePayload = {
-            gold: user.gold,
-            money: user.money,
-            current_sword_lvl: newLevel,
-            current_weapon_type: nextWeaponType,
-            current_weapon_key: nextWeaponKey
-        };
-
-        console.log('profiles update payload:', updatePayload);
-        console.log('profiles update user.id:', user && user.id);
+        // 안전한 타입 변환: Supabase(PostgREST)는 타입 불일치로 400을 반환할 수 있습니다.
+        const safeGold = Number(user.gold);
+        const safeMoney = Number(user.money);
+        const safeLevel = Number(newLevel);
 
         if (!user || !user.id) {
             console.error('사용자 ID가 없어 업데이트를 중단합니다.', user);
@@ -963,6 +957,30 @@
             img.classList.remove('hammering');
             return;
         }
+
+        if (!Number.isFinite(safeGold) || !Number.isFinite(safeMoney) || !Number.isFinite(safeLevel)) {
+            console.error('업데이트할 숫자 필드가 유효하지 않습니다.', { safeGold, safeMoney, safeLevel, user, newLevel });
+            alert('서버에 보낼 데이터가 유효하지 않습니다. 콘솔을 확인하세요.');
+            isUpgrading = false;
+            img.classList.remove('hammering');
+            return;
+        }
+
+        // 일부 Supabase 스키마에서 `current_weapon_type` 또는 `current_weapon_key`가 없을 수 있습니다.
+        // 서버에서 400(PGRST204)이 발생하지 않도록 먼저 존재가 확실한 필드만 전송합니다.
+        const updatePayload = {
+            gold: Math.trunc(safeGold),
+            money: Math.trunc(safeMoney),
+            current_sword_lvl: Math.trunc(safeLevel)
+        };
+
+        // JSON 직렬화로 전송 전 유효한 JSON인지 확인
+        try {
+            console.log('profiles update payload (json):', JSON.stringify(updatePayload));
+        } catch (e) {
+            console.error('updatePayload 직렬화 실패:', e, updatePayload);
+        }
+        console.log('profiles update user.id:', user && user.id);
 
         const { error } = await supabaseClient
             .from('profiles')
