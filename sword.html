@@ -1720,7 +1720,6 @@
             return `<div class="${className}">[${entry.time}] ${entry.message}</div>`;
         }).reverse().join('');
         
-        // 스크롤을 맨 위로 (최신 로그가 위에 오도록)
         logContent.scrollTop = 0;
     }
     
@@ -1730,12 +1729,10 @@
             return;
         }
         
-        // 로그 모달 표시 (간단한 alert로 대체)
         const logText = macroLog.map(entry => `[${entry.time}] ${entry.message}`).reverse().join('\n');
         alert('매크로 로그:\n\n' + logText);
     }
 
-    // 페이지 가시성 변경 시 데이터 동기화 (탭 전환, 페이지 이동 등)
     document.addEventListener('visibilitychange', async function() {
         if (!document.hidden && user) {
             console.log('검 페이지가 다시 활성화됨 - 데이터 동기화 시작');
