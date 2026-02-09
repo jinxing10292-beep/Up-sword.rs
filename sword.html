@@ -1044,17 +1044,41 @@
         const rarity = type === 'hidden' ? 'legendary' : (level >= 15 ? 'epic' : level >= 10 ? 'rare' : 'common');
 
         try {
-            const { error: insErr } = await supabaseClient.from('user_swords').insert({
-                user_id: user.id,
-                sword_id: swordId,
-                sword_level: level,
-                sword_name: actualName,
-                weapon_type: type,
-                weapon_key: key,
-                attack: attack,
-                rarity: rarity
-            });
-            if (insErr) throw insErr;
+            // Try inserting with attack field; if schema doesn't have 'attack', retry without it
+            let insErr = null;
+            try {
+                const { error } = await supabaseClient.from('user_swords').insert({
+                    user_id: user.id,
+                    sword_id: swordId,
+                    sword_level: level,
+                    sword_name: actualName,
+                    weapon_type: type,
+                    weapon_key: key,
+                    attack: attack,
+                    rarity: rarity
+                });
+                insErr = error;
+            } catch (e) {
+                insErr = e;
+            }
+
+            if (insErr) {
+                console.warn('user_swords insert failed, attempting fallback without attack:', insErr);
+                try {
+                    const { error: retryErr } = await supabaseClient.from('user_swords').insert({
+                        user_id: user.id,
+                        sword_id: swordId,
+                        sword_level: level,
+                        sword_name: actualName,
+                        weapon_type: type,
+                        weapon_key: key,
+                        rarity: rarity
+                    });
+                    if (retryErr) throw retryErr;
+                } catch (re) {
+                    throw re; // bubble up to outer catch
+                }
+            }
 
             // update discoveries (max discovered level)
             const { data: existing } = await supabaseClient
@@ -1083,13 +1107,15 @@
 
             // reset current sword to 0 after storing
             const { error: resetErr } = await supabaseClient.from('profiles')
-                .update({ current_sword_lvl: 0 })
+                .update({ current_sword_lvl: 0, current_weapon_type: 'normal', current_weapon_key: 'sword_01' })
                 .eq('id', user.id);
             
             if (resetErr) throw resetErr;
             
             // 데이터베이스 업데이트 성공 후 로컬 변수 업데이트
             user.current_sword_lvl = 0;
+            user.current_weapon_type = 'normal';
+            user.current_weapon_key = 'sword_01';
             updateUI();
 
             alert('현재 검을 인벤토리에 보관했습니다.');

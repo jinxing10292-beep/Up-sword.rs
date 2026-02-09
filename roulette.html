@@ -440,19 +440,36 @@
             if (goldError) throw goldError;
             
             // 룰렛 게임 기록 저장
-            const { error: gameError } = await supabaseClient
-                .from('roulette_history')
-                .insert({
-                    user_id: user.id,
-                    winning_number: winningNumber,
-                    total_bet_amount: betAmount * selectedBets.length,
-                    total_win_amount: totalWin,
-                    net_result: netResult,
-                    bets_placed: selectedBets
-                });
-            
-            if (gameError) {
-                console.log('룰렛 게임 기록 저장 실패:', gameError);
+            // Try to save full record including bets_placed; if schema lacks that column, retry a minimal payload
+            try {
+                const { error: gameError } = await supabaseClient
+                    .from('roulette_history')
+                    .insert({
+                        user_id: user.id,
+                        winning_number: winningNumber,
+                        total_bet_amount: betAmount * selectedBets.length,
+                        total_win_amount: totalWin,
+                        net_result: netResult,
+                        bets_placed: selectedBets
+                    });
+                if (gameError) {
+                    console.warn('룰렛 게임 기록 저장 실패, 시도: 폴백', gameError);
+                    // If error indicates missing bets_placed column, retry without it
+                    if (gameError.code === 'PGRST204' && gameError.message && gameError.message.includes('bets_placed')) {
+                        const { error: retryErr } = await supabaseClient
+                            .from('roulette_history')
+                            .insert({
+                                user_id: user.id,
+                                winning_number: winningNumber,
+                                total_bet_amount: betAmount * selectedBets.length,
+                                total_win_amount: totalWin,
+                                net_result: netResult
+                            });
+                        if (retryErr) console.error('룰렛 기록 재시도 실패:', retryErr);
+                    }
+                }
+            } catch (e) {
+                console.error('룰렛 기록 저장 중 예외:', e);
             }
         } catch (e) {
             console.error('데이터베이스 업데이트 오류:', e);

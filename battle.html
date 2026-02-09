@@ -486,6 +486,10 @@
             
             // 결과 모달 표시 (prevLevel 포함)
             showResultModal(true, expGained, coinsGained, leveledUp, prevLevel, newLevel, { type: 'pve' });
+            // 자동 미션/업적 갱신 시도 (키는 서버의 정의에 따라 다름)
+            // 일반적으로 미션/업적 키는 'defeat_dummy' 또는 'pve_win' 같은 문자열입니다.
+            incrementUserMissionByKey('defeat_dummy', 1);
+            incrementUserAchievementByKey('defeat_dummy', 1);
             
         } catch (e) {
             console.error('승리 처리 오류:', e);
@@ -832,9 +836,72 @@
             updateUI();
 
             showResultModal(true, expGained, coinsGained, leveledUp, prevLevel, newLevel, { type: 'pvp', opponent });
+            // 시도: PvP 관련 미션/업적 갱신
+            incrementUserMissionByKey('pvp_win', 1);
+            incrementUserAchievementByKey('pvp_win', 1);
         } catch (e) {
             console.error('PvP 승리 처리 오류:', e);
             alert('보상 지급 중 오류 발생: ' + e.message);
+        }
+    }
+
+    // Helper: increment mission by a known key (defensive - won't throw on missing schema)
+    async function incrementUserMissionByKey(key, amount = 1) {
+        try {
+            // Try to find mission by key column first
+            let mission = null;
+            try {
+                const { data: m } = await supabaseClient.from('missions').select('*').eq('key', key).maybeSingle();
+                mission = m;
+            } catch (e) {
+                // fallback: try title match
+                const { data: m2 } = await supabaseClient.from('missions').select('*').ilike('title', `%${key}%`).limit(1);
+                mission = (m2 && m2[0]) || null;
+            }
+            if (!mission) return console.log('incrementUserMissionByKey: mission not found for', key);
+
+            const { data: existing } = await supabaseClient.from('user_missions').select('*').eq('user_id', user.id).eq('mission_id', mission.id).maybeSingle();
+            const prevProg = existing?.progress || 0;
+            const newProg = prevProg + amount;
+            const completed = newProg >= Number(mission.target || 1);
+
+            if (existing) {
+                await supabaseClient.from('user_missions').update({ progress: newProg, completed }).eq('id', existing.id);
+            } else {
+                await supabaseClient.from('user_missions').insert({ user_id: user.id, mission_id: mission.id, progress: newProg, completed, claimed: false });
+            }
+            console.log('Mission progress updated', { key, missionId: mission.id, newProg, completed });
+        } catch (e) {
+            console.warn('incrementUserMissionByKey failed:', e?.message || e);
+        }
+    }
+
+    // Helper: increment achievement by key similarly
+    async function incrementUserAchievementByKey(key, amount = 1) {
+        try {
+            let ach = null;
+            try {
+                const { data: a } = await supabaseClient.from('achievements').select('*').eq('key', key).maybeSingle();
+                ach = a;
+            } catch (e) {
+                const { data: a2 } = await supabaseClient.from('achievements').select('*').ilike('title', `%${key}%`).limit(1);
+                ach = (a2 && a2[0]) || null;
+            }
+            if (!ach) return console.log('incrementUserAchievementByKey: achievement not found for', key);
+
+            const { data: existing } = await supabaseClient.from('user_achievements').select('*').eq('user_id', user.id).eq('achievement_id', ach.id).maybeSingle();
+            const prevProg = existing?.progress || 0;
+            const newProg = prevProg + amount;
+            const unlocked = newProg >= Number(ach.target || 1);
+
+            if (existing) {
+                await supabaseClient.from('user_achievements').update({ progress: newProg, unlocked }).eq('id', existing.id);
+            } else {
+                await supabaseClient.from('user_achievements').insert({ user_id: user.id, achievement_id: ach.id, progress: newProg, unlocked });
+            }
+            console.log('Achievement progress updated', { key, achievementId: ach.id, newProg, unlocked });
+        } catch (e) {
+            console.warn('incrementUserAchievementByKey failed:', e?.message || e);
         }
     }
 
