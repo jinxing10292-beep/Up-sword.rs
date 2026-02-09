@@ -664,7 +664,7 @@
                 }
             }
             
-            if (linesCleared > 0) {
+                if (linesCleared > 0) {
                 lines += linesCleared;
                 
                 // Advanced scoring system
@@ -681,8 +681,11 @@
                 // Level progression
                 const newLevel = Math.floor(lines / 10) + 1;
                 if (newLevel > level) {
+                    const prevLevel = level;
                     level = newLevel;
                     dropInterval = Math.max(50, 1000 - (level - 1) * 50);
+                    // Award gold for each level increment: for L = prevLevel+1..level give L*100
+                    try { awardTetrisLevelGold(prevLevel, level); } catch (e) { console.error('레벨 보상 지급 오류:', e); }
                 }
                 
                 updateDisplay();
@@ -754,16 +757,40 @@
         }
         
         function createParticles() {
-            for (let i = 0; i < 20; i++) {
+            const colors = ['#00ff41', '#00ccff', '#ffd700', '#ff6b6b', '#ff8a00'];
+            const count = 30 + Math.floor(Math.random() * 40);
+            for (let i = 0; i < count; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'particle';
+                const size = 4 + Math.floor(Math.random() * 12);
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
                 particle.style.left = Math.random() * window.innerWidth + 'px';
-                particle.style.top = Math.random() * window.innerHeight + 'px';
-                particle.style.animation = `particle-float 2s ease-out forwards`;
+                particle.style.top = (window.innerHeight * 0.2 + Math.random() * window.innerHeight * 0.6) + 'px';
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.borderRadius = Math.random() > 0.6 ? '50%' : '4px';
+                particle.style.opacity = '1';
+                particle.style.zIndex = 9000;
                 document.body.appendChild(particle);
-                
-                setTimeout(() => particle.remove(), 2000);
+
+                const tx = (Math.random() - 0.5) * window.innerWidth * 0.6;
+                const ty = -120 - Math.random() * 240;
+                const dur = 900 + Math.floor(Math.random() * 900);
+                particle.animate([
+                    { transform: 'translate(0,0) scale(1)', opacity: 1 },
+                    { transform: `translate(${tx}px, ${ty}px) scale(0.3) rotate(${Math.random()*720-360}deg)`, opacity: 0 }
+                ], { duration: dur, easing: 'cubic-bezier(.2,.8,.2,1)' }).onfinish = () => particle.remove();
             }
+            // Quick screen flash for emphasis
+            const flash = document.createElement('div');
+            flash.style.position = 'fixed';
+            flash.style.inset = '0';
+            flash.style.background = 'rgba(255,255,255,0.06)';
+            flash.style.zIndex = 9500;
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 120);
+            // subtle camera shake
+            document.body.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-4px)' }, { transform: 'translateY(0)' }], { duration: 300 });
         }
         
         function updateDisplay() {
@@ -811,6 +838,45 @@
                     console.error('골드 업데이트 오류:', e);
                     alert('골드 저장 중 오류 발생: ' + e.message);
                 }
+            }
+        }
+
+        // Award gold for tetris level increases: for L = from+1..to give L*100 each
+        async function awardTetrisLevelGold(fromLevel, toLevel) {
+            if (!user) return;
+            try {
+                let total = 0;
+                for (let L = fromLevel + 1; L <= toLevel; L++) total += L * 100;
+                if (total <= 0) return;
+
+                // Update local and remote gold
+                const oldGold = user.gold || 0;
+                const newGold = oldGold + total;
+                // Local update for immediate feedback
+                user.gold = newGold;
+                // Visual feedback
+                // show a small gold popup near level display
+                const el = document.createElement('div');
+                el.textContent = `+${total.toLocaleString()}G`;
+                el.style.position = 'fixed';
+                el.style.left = '50%';
+                el.style.top = '12%';
+                el.style.transform = 'translateX(-50%)';
+                el.style.padding = '8px 14px';
+                el.style.background = 'linear-gradient(90deg,#ffd700,#ff8a00)';
+                el.style.color = '#000';
+                el.style.fontWeight = '900';
+                el.style.borderRadius = '10px';
+                el.style.zIndex = 10010;
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 1500);
+
+                // Persist to server
+                const { error } = await supabaseClient.from('profiles').update({ gold: newGold }).eq('id', user.id);
+                if (error) console.error('테트리스 레벨 보상 DB 업데이트 실패:', error);
+                else console.log('테트리스 레벨 보상 지급:', { userId: user.id, total, newGold });
+            } catch (e) {
+                console.error('awardTetrisLevelGold 오류:', e);
             }
         }
         

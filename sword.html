@@ -471,9 +471,6 @@
     
     function showItemUsageConfirm(itemId, userItemId) {
         const itemNames = {
-            'stone_basic': '기본 강화석',
-            'stone_advanced': '고급 강화석',
-            'stone_premium': '프리미엄 강화석',
             'enhance_scroll_1': '확정 강화권 (1~5강)',
             'enhance_scroll_2': '확정 강화권 (6~10강)',
             'enhance_scroll_3': '확정 강화권 (11~15강)',
@@ -511,10 +508,7 @@
             'protect_scroll_2': { min: 11, max: 15 },
             'protect_scroll_3': { min: 16, max: 20 },
             'maintain_scroll_1': { min: 11, max: 15 },
-            'maintain_scroll_2': { min: 16, max: 20 },
-            'stone_basic': { min: 0, max: 20 },
-            'stone_advanced': { min: 0, max: 20 },
-            'stone_premium': { min: 0, max: 20 }
+            'maintain_scroll_2': { min: 16, max: 20 }
         };
         
         const range = itemRanges[itemId];
@@ -639,30 +633,6 @@
     
     function applyItemEffect(itemId) {
         const currentLevel = user.current_sword_lvl;
-        
-        // 강화석 - 성공률 증가 (다음 강화 시 적용)
-        if (itemId.startsWith('stone_')) {
-            const stoneData = {
-                'stone_basic': { bonus: 5, name: '기본 강화석' },
-                'stone_advanced': { bonus: 10, name: '고급 강화석' },
-                'stone_premium': { bonus: 20, name: '프리미엄 강화석' }
-            };
-            
-            const stone = stoneData[itemId];
-            if (!stone) {
-                return { success: false, message: '알 수 없는 강화석입니다.' };
-            }
-            
-            // 강화석 효과를 다음 강화에 적용하기 위해 임시 저장
-            sessionStorage.setItem('activeStone', itemId);
-            sessionStorage.setItem('stoneBonus', stone.bonus);
-            
-            return {
-                success: true,
-                newLevel: currentLevel,
-                message: `${stone.name} 사용! 다음 강화 시 성공률 +${stone.bonus}% 적용됩니다.`
-            };
-        }
         
         if (itemId.startsWith('enhance_scroll_')) {
             // 확정 강화권 - 무조건 100% 성공
@@ -876,15 +846,7 @@
             rates.success = Math.min(rates.success * eventMultiplier, 100);
         }
         
-        // 강화석 보너스 적용
-        const activeStone = sessionStorage.getItem('activeStone');
-        const stoneBonus = parseInt(sessionStorage.getItem('stoneBonus') || '0');
-        if (activeStone && stoneBonus > 0) {
-            rates.success = Math.min(rates.success + stoneBonus, 100);
-            // 강화석 사용 후 제거
-            sessionStorage.removeItem('activeStone');
-            sessionStorage.removeItem('stoneBonus');
-        }
+        // 강화석 시스템 제거 - 더 이상 강화석 보너스 없음
         
         // Determine enhancement result
         const result = determineEnhancementResult(rates);
@@ -1473,52 +1435,61 @@
         // 기존 애니메이션 제거
         img.className = 'sword-img';
         
-        // 새 애니메이션 추가
+        // 새 애니메이션 추가: 더 강한 파티클과 화면 흔들림
         setTimeout(() => {
             if (result === 'success') {
                 img.classList.add('success-effect');
-                createParticles('success');
+                document.body.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-6px)' }, { transform: 'translateY(0)' }], { duration: 350, easing: 'cubic-bezier(.2,.8,.2,1)' });
+                createParticles('success', 60);
             } else if (result === 'destroy') {
                 img.classList.add('destroy-effect');
-                createParticles('destroy');
+                // stronger screen shake
+                document.body.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(0)' }], { duration: 700, iterations: 1 });
+                createParticles('destroy', 90);
             } else {
                 img.classList.add('fail-effect');
+                createParticles('fail', 30);
             }
         }, 10);
     }
     
     function createParticles(type) {
-        const colors = type === 'success' ? 
-            ['#48bb78', '#38a169', '#2f855a'] : 
-            ['#f56565', '#e53e3e', '#c53030'];
-        
-        for (let i = 0; i < 20; i++) {
+        const successColors = ['#ffd66b', '#ff8a00', '#ffd700', '#fff59d'];
+        const greenColors = ['#48bb78', '#38a169', '#2f855a'];
+        const redColors = ['#f56565', '#e53e3e', '#c53030', '#ff7b7b'];
+
+        const colors = type === 'success' ? successColors.concat(greenColors) : (type === 'destroy' ? redColors.concat(['#ff6b00']) : redColors);
+        const count = arguments[1] || 30;
+
+        for (let i = 0; i < count; i++) {
+            const size = 6 + Math.floor(Math.random() * 12);
             const particle = document.createElement('div');
             particle.style.cssText = `
                 position: fixed;
-                width: 10px;
-                height: 10px;
+                width: ${size}px;
+                height: ${size}px;
                 background: ${colors[Math.floor(Math.random() * colors.length)]};
-                border-radius: 50%;
+                border-radius: ${Math.random() > 0.5 ? '50%' : '8px'};
                 pointer-events: none;
-                z-index: 1000;
-                left: 50%;
-                top: 50%;
+                z-index: 10000;
+                left: calc(50% + ${Math.floor((Math.random() - 0.5) * 120)}px);
+                top: calc(50% + ${Math.floor((Math.random() - 0.5) * 80)}px);
+                opacity: 1;
             `;
-            
             document.body.appendChild(particle);
-            
-            const angle = (Math.PI * 2 * i) / 20;
-            const velocity = 100 + Math.random() * 100;
+
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = 80 + Math.random() * 240;
             const tx = Math.cos(angle) * velocity;
-            const ty = Math.sin(angle) * velocity;
-            
+            const ty = Math.sin(angle) * velocity - 20;
+
+            const dur = 800 + Math.floor(Math.random() * 900);
             particle.animate([
-                { transform: 'translate(0, 0)', opacity: 1 },
-                { transform: `translate(${tx}px, ${ty}px)`, opacity: 0 }
+                { transform: 'translate(0,0) scale(1)', opacity: 1 },
+                { transform: `translate(${tx}px, ${ty}px) scale(0.4) rotate(${Math.random()*720-360}deg)`, opacity: 0 }
             ], {
-                duration: 1000,
-                easing: 'cubic-bezier(0, 0.5, 0.5, 1)'
+                duration: dur,
+                easing: 'cubic-bezier(.2,.8,.2,1)'
             }).onfinish = () => particle.remove();
         }
     }
