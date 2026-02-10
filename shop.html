@@ -341,12 +341,10 @@
     }
     
     function showPurchaseModal(itemId) {
-        // allow lookup across all categories including currency & battle
         const allItems = [].concat(...Object.values(SHOP_ITEMS));
         const item = allItems.find(i => i.id === itemId);
         if (!item) return;
         
-        // 매크로는 이미 소유하고 있는지 확인
         if (item.id === 'auto_macro' && user.has_macro) {
             alert('이미 매크로를 소유하고 있습니다!\n검 강화 페이지에서 매크로 패널을 확인하세요.');
             return;
@@ -359,6 +357,51 @@
         const isMacro = item.id === 'auto_macro';
         const isCurrency = item.id === 'buy_battle_coin';
         
+        let quantityHtml = '';
+        if (isCurrency) {
+            quantityHtml = `
+            <div style="margin-bottom:12px; text-align:center;">
+                <label style="font-weight:700;">구매 수량(코인):</label>
+                <input type="number" id="buyCoinQty" value="1" min="1" style="width:80px; margin-left:8px; padding:6px; border-radius:6px; border:1px solid #e2e8f0;">
+            </div>`;
+        } else if (!isMacro) {
+            quantityHtml = `
+            <div class="quantity-selector">
+                <span style="font-weight: 600;">수량:</span>
+                <button class="qty-btn" onclick="changeQuantity(-1)">-</button>
+                <input type="number" class="qty-input" id="quantityInput" value="1" min="1" max="99" onchange="updateQuantity()">
+                <button class="qty-btn" onclick="changeQuantity(1)">+</button>
+            </div>`;
+        }
+        
+        let priceDisplayHtml = '';
+        if (isCurrency) {
+            priceDisplayHtml = `
+                <div style="display:flex; justify-content:space-between; font-weight:700; font-size:16px;">
+                    <span>총 가격:</span>
+                    <span id="totalPriceCurrency">${item.priceGold.toLocaleString()}G per coin</span>
+                </div>`;
+        } else if (!isMacro) {
+            priceDisplayHtml = `
+                <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px;">
+                    <span>총 가격:</span>
+                    <span id="totalPrice">
+                        ${item.priceGold > 0 ? '<span class="price-gold">' + item.priceGold.toLocaleString() + 'G</span>' : ''}
+                        ${item.priceMoney > 0 ? '<span class="price-money">' + item.priceMoney.toLocaleString() + 'M</span>' : ''}
+                        ${item.priceCoins > 0 ? '<span style="color:#7b3fe4; font-weight:800;">' + item.priceCoins.toLocaleString() + '💎</span>' : ''}
+                    </span>
+                </div>`;
+        }
+        
+        let macroInfoHtml = '';
+        if (isMacro) {
+            macroInfoHtml = `
+                <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #718096;">
+                    <span>보유 골드:</span>
+                    <span>${user.gold.toLocaleString()}G</span>
+                </div>`;
+        }
+        
         content.innerHTML = `
             <div style="text-align: center; margin-bottom: 20px;">
                 <div style="font-size: 32px; margin-bottom: 10px;">${item.icon}</div>
@@ -367,51 +410,19 @@
                 ${isMacro ? '<p style="color: #e53e3e; font-weight: 600; font-size: 12px;">※ 매크로는 영구적으로 사용할 수 있습니다</p>' : ''}
             </div>
             
-            ${isCurrency ? `
-            <div style="margin-bottom:12px; text-align:center;">
-                <label style="font-weight:700;">구매 수량(코인):</label>
-                <input type="number" id="buyCoinQty" value="1" min="1" style="width:80px; margin-left:8px; padding:6px; border-radius:6px; border:1px solid #e2e8f0;">
-            </div>
-            ` : (!isMacro ? `
-            <div class="quantity-selector">
-                <span style="font-weight: 600;">수량:</span>
-                <button class="qty-btn" onclick="changeQuantity(-1)">-</button>
-                <input type="number" class="qty-input" id="quantityInput" value="1" min="1" max="99" onchange="updateQuantity()">
-                <button class="qty-btn" onclick="changeQuantity(1)">+</button>
-            </div>
-            ` : ''}
+            ${quantityHtml}
             
             <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                     <span>${isMacro ? '가격:' : '단가:'}</span>
                     <span>
-                        ${item.priceGold > 0 ? `<span class="price-gold">${item.priceGold.toLocaleString()}G</span>` : ''}
-                        ${item.priceMoney > 0 ? `<span class="price-money">${item.priceMoney.toLocaleString()}M</span>` : ''}
-                        ${item.priceCoins > 0 ? `<span style="color:#7b3fe4; font-weight:800;">${item.priceCoins.toLocaleString()}💎</span>` : ''}
+                        ${item.priceGold > 0 ? '<span class="price-gold">' + item.priceGold.toLocaleString() + 'G</span>' : ''}
+                        ${item.priceMoney > 0 ? '<span class="price-money">' + item.priceMoney.toLocaleString() + 'M</span>' : ''}
+                        ${item.priceCoins > 0 ? '<span style="color:#7b3fe4; font-weight:800;">' + item.priceCoins.toLocaleString() + '💎</span>' : ''}
                     </span>
                 </div>
-                ${isCurrency ? `
-                <div style="display:flex; justify-content:space-between; font-weight:700; font-size:16px;">
-                    <span>총 가격:</span>
-                    <span id="totalPriceCurrency">${(item.priceGold).toLocaleString()}G per coin</span>
-                </div>
-                ` : ''}
-                ${!isMacro && !isCurrency ? `
-                <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px;">
-                    <span>총 가격:</span>
-                    <span id="totalPrice">
-                        ${item.priceGold > 0 ? `<span class="price-gold">${item.priceGold.toLocaleString()}G</span>` : ''}
-                        ${item.priceMoney > 0 ? `<span class="price-money">${item.priceMoney.toLocaleString()}M</span>` : ''}
-                        ${item.priceCoins > 0 ? `<span style="color:#7b3fe4; font-weight:800;">${(item.priceCoins).toLocaleString()}💎</span>` : ''}
-                    </span>
-                </div>
-                ` : ''}
-                ${isMacro ? `
-                <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #718096;">
-                    <span>보유 골드:</span>
-                    <span>${user.gold.toLocaleString()}G</span>
-                </div>
-                ` : ''}
+                ${priceDisplayHtml}
+                ${macroInfoHtml}
             </div>
             
             <button class="modal-btn btn-confirm" onclick="purchaseItem()">구매하기</button>
