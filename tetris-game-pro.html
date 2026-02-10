@@ -68,6 +68,92 @@
             box-shadow: 0 0 20px #00ff41;
         }
         
+        .help-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto;
+        }
+        
+        .help-content {
+            background: #1a1a2e;
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: #00ff41;
+        }
+        
+        .help-content h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .help-content p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .help-close {
+            background: rgba(0, 255, 65, 0.2);
+            border: 2px solid #00ff41;
+            color: #00ff41;
+            padding: 10px 30px;
+            cursor: pointer;
+            border-radius: 5px;
+            display: block;
+            margin: 20px auto 0;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+        }
+        
+        .touch-controls {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            gap: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .touch-controls {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 90%;
+                max-width: 400px;
+            }
+        }
+        
+        .touch-btn {
+            background: rgba(0, 255, 65, 0.3);
+            border: 2px solid #00ff41;
+            color: #00ff41;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            touch-action: manipulation;
+            font-family: 'Orbitron', monospace;
+        }
+        
+        .touch-btn:active {
+            background: rgba(0, 255, 65, 0.5);
+        }
+        
         .game-container {
             display: flex;
             justify-content: center;
@@ -226,16 +312,18 @@
     <canvas class="matrix-bg" id="matrixCanvas"></canvas>
     
     <button class="back-btn" onclick="location.href='minigames.html'">← BACK</button>
-    <button class="help-btn" onclick="document.getElementById('helpModal').style.display='flex'">❓ 도움말</button>
+    <button class="help-btn" onclick="document.getElementById('helpModal').style.display='flex'">❓</button>
 
-    <div id="helpModal" class="help-modal">
+    <div id="helpModal" class="help-modal" onclick="if(event.target===this) this.style.display='none'">
         <div class="help-content">
             <h2>🎮 테트리스 PRO 도움말</h2>
-            <p><strong>조작법:</strong><br>
+            <p><strong>PC 조작법:</strong><br>
             ← → : 좌우 이동<br>
             ↑ : 회전<br>
             ↓ : 빠른 낙하<br>
             스페이스바 : 즉시 낙하</p>
+            <p><strong>모바일:</strong><br>
+            화면 하단 버튼 사용</p>
             <p><strong>게임 규칙:</strong><br>
             • 블록을 쌓아 가로줄을 완성하면 사라집니다<br>
             • 레벨이 올라갈수록 속도가 빨라집니다<br>
@@ -246,6 +334,14 @@
             • 게임 종료 시 자동 저장</p>
             <button class="help-close" onclick="document.getElementById('helpModal').style.display='none'">닫기</button>
         </div>
+    </div>
+
+    <div class="touch-controls">
+        <button class="touch-btn" id="touchLeft">←</button>
+        <button class="touch-btn" id="touchRotate">↻</button>
+        <button class="touch-btn" id="touchRight">→</button>
+        <button class="touch-btn" id="touchDown">↓</button>
+        <button class="touch-btn" id="touchDrop">⬇</button>
     </div>
 
     <!-- Embedded YouTube music (Mazario - Tetris (Techno Version)) -->
@@ -958,6 +1054,14 @@
                     break;
             }
         });
+        
+        // Touch controls
+        document.getElementById('touchLeft').addEventListener('click', () => { if (gameRunning) move(-1); });
+        document.getElementById('touchRight').addEventListener('click', () => { if (gameRunning) move(1); });
+        document.getElementById('touchRotate').addEventListener('click', () => { if (gameRunning) rotate(); });
+        document.getElementById('touchDown').addEventListener('click', () => { if (gameRunning) drop(); });
+        document.getElementById('touchDrop').addEventListener('click', () => { if (gameRunning) hardDrop(); });
+
         
         // Add particle animation CSS
         const style = document.createElement('style');
