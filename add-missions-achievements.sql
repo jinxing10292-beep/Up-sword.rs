@@ -5,6 +5,7 @@ ALTER TABLE missions ADD COLUMN IF NOT EXISTS key VARCHAR(100) UNIQUE;
 ALTER TABLE missions ADD COLUMN IF NOT EXISTS target INTEGER DEFAULT 1;
 ALTER TABLE missions ADD COLUMN IF NOT EXISTS reward_gold INTEGER DEFAULT 0;
 ALTER TABLE missions ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;
+ALTER TABLE missions ADD COLUMN IF NOT EXISTS mission_type VARCHAR(50) DEFAULT 'daily';
 
 -- 2. achievements 테이블에 필요한 컬럼 추가
 ALTER TABLE achievements ADD COLUMN IF NOT EXISTS key VARCHAR(100) UNIQUE;
@@ -30,22 +31,23 @@ CREATE INDEX IF NOT EXISTS idx_user_missions_user_mission ON user_missions(user_
 CREATE INDEX IF NOT EXISTS idx_user_achievements_user_achievement ON user_achievements(user_id, achievement_id);
 
 -- 6. 미션 데이터 삽입
-INSERT INTO missions (key, title, description, target, reward_gold, active) VALUES
-('enhance_success', '강화 성공', '검을 1회 강화 성공하세요', 1, 1000, true),
-('enhance_10', '강화 10회', '검을 10회 강화 성공하세요', 10, 10000, true),
-('enhance_50', '강화 50회', '검을 50회 강화 성공하세요', 50, 50000, true),
-('enhance_100', '강화 100회', '검을 100회 강화 성공하세요', 100, 100000, true),
-('defeat_dummy', '허수아비 격파', '허수아비를 1회 격파하세요', 1, 500, true),
-('defeat_dummy_10', '허수아비 10회 격파', '허수아비를 10회 격파하세요', 10, 5000, true),
-('defeat_dummy_50', '허수아비 50회 격파', '허수아비를 50회 격파하세요', 50, 25000, true),
-('pvp_win', 'PvP 승리', 'PvP에서 1회 승리하세요', 1, 2000, true),
-('pvp_win_10', 'PvP 10회 승리', 'PvP에서 10회 승리하세요', 10, 20000, true)
+INSERT INTO missions (key, title, description, target, reward_gold, active, mission_type) VALUES
+('enhance_success', '강화 성공', '검을 1회 강화 성공하세요', 1, 1000, true, 'daily'),
+('enhance_10', '강화 10회', '검을 10회 강화 성공하세요', 10, 10000, true, 'weekly'),
+('enhance_50', '강화 50회', '검을 50회 강화 성공하세요', 50, 50000, true, 'achievement'),
+('enhance_100', '강화 100회', '검을 100회 강화 성공하세요', 100, 100000, true, 'achievement'),
+('defeat_dummy', '허수아비 격파', '허수아비를 1회 격파하세요', 1, 500, true, 'daily'),
+('defeat_dummy_10', '허수아비 10회 격파', '허수아비를 10회 격파하세요', 10, 5000, true, 'weekly'),
+('defeat_dummy_50', '허수아비 50회 격파', '허수아비를 50회 격파하세요', 50, 25000, true, 'achievement'),
+('pvp_win', 'PvP 승리', 'PvP에서 1회 승리하세요', 1, 2000, true, 'daily'),
+('pvp_win_10', 'PvP 10회 승리', 'PvP에서 10회 승리하세요', 10, 20000, true, 'weekly')
 ON CONFLICT (key) DO UPDATE SET
     title = EXCLUDED.title,
     description = EXCLUDED.description,
     target = EXCLUDED.target,
     reward_gold = EXCLUDED.reward_gold,
-    active = EXCLUDED.active;
+    active = EXCLUDED.active,
+    mission_type = EXCLUDED.mission_type;
 
 -- 7. 업적 데이터 삽입
 INSERT INTO achievements (key, title, description, target, active) VALUES
@@ -87,6 +89,7 @@ COMMENT ON COLUMN missions.key IS '미션 고유 키 (코드에서 참조)';
 COMMENT ON COLUMN missions.target IS '목표 달성 수치';
 COMMENT ON COLUMN missions.reward_gold IS '보상 골드';
 COMMENT ON COLUMN missions.active IS '활성화 여부';
+COMMENT ON COLUMN missions.mission_type IS '미션 타입 (daily, weekly, achievement)';
 COMMENT ON COLUMN achievements.key IS '업적 고유 키 (코드에서 참조)';
 COMMENT ON COLUMN achievements.target IS '목표 달성 수치';
 COMMENT ON COLUMN achievements.active IS '활성화 여부';
