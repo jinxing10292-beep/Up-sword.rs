@@ -47,7 +47,23 @@
             z-index: 1000;
         }
         
-        .back-btn:hover {
+        .help-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 255, 65, 0.2);
+            border: 2px solid #00ff41;
+            color: #00ff41;
+            padding: 10px 20px;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .help-btn:hover, .back-btn:hover {
             background: rgba(0, 255, 65, 0.4);
             box-shadow: 0 0 20px #00ff41;
         }
@@ -210,6 +226,27 @@
     <canvas class="matrix-bg" id="matrixCanvas"></canvas>
     
     <button class="back-btn" onclick="location.href='minigames.html'">← BACK</button>
+    <button class="help-btn" onclick="document.getElementById('helpModal').style.display='flex'">❓ 도움말</button>
+
+    <div id="helpModal" class="help-modal">
+        <div class="help-content">
+            <h2>🎮 테트리스 PRO 도움말</h2>
+            <p><strong>조작법:</strong><br>
+            ← → : 좌우 이동<br>
+            ↑ : 회전<br>
+            ↓ : 빠른 낙하<br>
+            스페이스바 : 즉시 낙하</p>
+            <p><strong>게임 규칙:</strong><br>
+            • 블록을 쌓아 가로줄을 완성하면 사라집니다<br>
+            • 레벨이 올라갈수록 속도가 빨라집니다<br>
+            • 블록이 맨 위에 닿으면 게임 오버</p>
+            <p><strong>보상:</strong><br>
+            • 줄 제거: 100~800G<br>
+            • 레벨업: 레벨 × 100G<br>
+            • 게임 종료 시 자동 저장</p>
+            <button class="help-close" onclick="document.getElementById('helpModal').style.display='none'">닫기</button>
+        </div>
+    </div>
 
     <!-- Embedded YouTube music (Mazario - Tetris (Techno Version)) -->
     <iframe id="musicIframe" style="display:none;" src="" allow="autoplay; encrypted-media" ></iframe>

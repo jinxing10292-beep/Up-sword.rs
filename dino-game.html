@@ -32,6 +32,59 @@
             font-weight: bold;
             cursor: pointer;
         }
+        .help-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .help-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .help-content {
+            background: white;
+            border: 3px solid #333;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: #333;
+        }
+        .help-content h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .help-content p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        .help-close {
+            background: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 30px;
+            cursor: pointer;
+            border-radius: 8px;
+            display: block;
+            margin: 20px auto 0;
+            font-weight: bold;
+        }
         .game-container {
             background: white;
             border: 3px solid #333;
@@ -100,6 +153,23 @@
 </head>
 <body>
     <button class="back-btn" onclick="location.href='minigames.html'">← 돌아가기</button>
+    <button class="help-btn" onclick="document.getElementById('helpModal').style.display='flex'">❓ 도움말</button>
+
+    <div id="helpModal" class="help-modal">
+        <div class="help-content">
+            <h2>🦖 공룡 게임 도움말</h2>
+            <p><strong>조작법:</strong><br>
+            스페이스바 또는 화면 터치: 점프</p>
+            <p><strong>게임 규칙:</strong><br>
+            • 장애물을 피해 최대한 오래 생존하세요<br>
+            • 점수가 높을수록 속도가 빨라집니다<br>
+            • 장애물에 부딪히면 게임 오버</p>
+            <p><strong>보상:</strong><br>
+            • 점수 100점당 10G 지급<br>
+            • 게임 종료 시 자동 저장</p>
+            <button class="help-close" onclick="document.getElementById('helpModal').style.display='none'">닫기</button>
+        </div>
+    </div>
     
     <div class="game-container">
         <h1 style="text-align: center; margin: 0 0 15px 0;">🦖 공룡 게임</h1>

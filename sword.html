@@ -908,20 +908,20 @@
                 // 일반 강화 성공 시 확정 강화권 플래그 초기화
                 user.used_enhance_scroll = false;
                 
-                // 미션/업적 업데이트
+                // 미션/업적 업데이트 (await 추가)
                 try {
-                    incrementUserMissionByKey('enhance_success', 1);
-                    incrementUserAchievementByKey('enhance_success', 1);
+                    await incrementUserMissionByKey('enhance_success', 1);
+                    await incrementUserAchievementByKey('enhance_success', 1);
                     
                     // 레벨별 업적
                     if (newLevel >= 10) {
-                        incrementUserAchievementByKey('enhance_10', 1);
+                        await incrementUserAchievementByKey('enhance_10', 1);
                     }
                     if (newLevel >= 15) {
-                        incrementUserAchievementByKey('enhance_15', 1);
+                        await incrementUserAchievementByKey('enhance_15', 1);
                     }
                     if (newLevel >= 20) {
-                        incrementUserAchievementByKey('enhance_20', 1);
+                        await incrementUserAchievementByKey('enhance_20', 1);
                     }
                 } catch (e) {
                     console.warn('미션/업적 업데이트 실패:', e);
