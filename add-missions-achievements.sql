@@ -1,6 +1,20 @@
 -- 미션 및 업적 데이터 추가
 
--- 미션 데이터 삽입
+-- 1. missions 테이블에 key 컬럼 추가 (없는 경우)
+ALTER TABLE missions ADD COLUMN IF NOT EXISTS key VARCHAR(100) UNIQUE;
+
+-- 2. achievements 테이블에 key 컬럼 추가 (없는 경우)
+ALTER TABLE achievements ADD COLUMN IF NOT EXISTS key VARCHAR(100) UNIQUE;
+
+-- 3. 인덱스 추가 (성능 최적화)
+CREATE INDEX IF NOT EXISTS idx_missions_key ON missions(key);
+CREATE INDEX IF NOT EXISTS idx_missions_active ON missions(active);
+CREATE INDEX IF NOT EXISTS idx_achievements_key ON achievements(key);
+CREATE INDEX IF NOT EXISTS idx_achievements_active ON achievements(active);
+CREATE INDEX IF NOT EXISTS idx_user_missions_user_mission ON user_missions(user_id, mission_id);
+CREATE INDEX IF NOT EXISTS idx_user_achievements_user_achievement ON user_achievements(user_id, achievement_id);
+
+-- 4. 미션 데이터 삽입
 INSERT INTO missions (key, title, description, target, reward_gold, active) VALUES
 ('enhance_success', '강화 성공', '검을 1회 강화 성공하세요', 1, 1000, true),
 ('enhance_10', '강화 10회', '검을 10회 강화 성공하세요', 10, 10000, true),
@@ -18,7 +32,7 @@ ON CONFLICT (key) DO UPDATE SET
     reward_gold = EXCLUDED.reward_gold,
     active = EXCLUDED.active;
 
--- 업적 데이터 삽입
+-- 5. 업적 데이터 삽입
 INSERT INTO achievements (key, title, description, target, active) VALUES
 ('enhance_success', '첫 강화', '검을 처음으로 강화하세요', 1, true),
 ('enhance_10', '강화 마스터', '검을 10강까지 강화하세요', 1, true),
@@ -41,7 +55,7 @@ ON CONFLICT (key) DO UPDATE SET
     target = EXCLUDED.target,
     active = EXCLUDED.active;
 
--- 업적 마일스톤 데이터 삽입
+-- 6. 업적 마일스톤 데이터 삽입
 INSERT INTO achievement_milestones (milestone_count, reward_gold, reward_money) VALUES
 (5, 10000, 10),
 (10, 25000, 25),
@@ -53,15 +67,7 @@ ON CONFLICT (milestone_count) DO UPDATE SET
     reward_gold = EXCLUDED.reward_gold,
     reward_money = EXCLUDED.reward_money;
 
--- 인덱스 추가 (성능 최적화)
-CREATE INDEX IF NOT EXISTS idx_missions_key ON missions(key);
-CREATE INDEX IF NOT EXISTS idx_missions_active ON missions(active);
-CREATE INDEX IF NOT EXISTS idx_achievements_key ON achievements(key);
-CREATE INDEX IF NOT EXISTS idx_achievements_active ON achievements(active);
-CREATE INDEX IF NOT EXISTS idx_user_missions_user_mission ON user_missions(user_id, mission_id);
-CREATE INDEX IF NOT EXISTS idx_user_achievements_user_achievement ON user_achievements(user_id, achievement_id);
-
--- 주석 추가
+-- 7. 주석 추가
 COMMENT ON COLUMN missions.key IS '미션 고유 키 (코드에서 참조)';
 COMMENT ON COLUMN missions.active IS '활성화 여부';
 COMMENT ON COLUMN achievements.key IS '업적 고유 키 (코드에서 참조)';
