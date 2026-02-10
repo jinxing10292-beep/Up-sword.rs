@@ -907,6 +907,25 @@
                 
                 // 일반 강화 성공 시 확정 강화권 플래그 초기화
                 user.used_enhance_scroll = false;
+                
+                // 미션/업적 업데이트
+                try {
+                    incrementUserMissionByKey('enhance_success', 1);
+                    incrementUserAchievementByKey('enhance_success', 1);
+                    
+                    // 레벨별 업적
+                    if (newLevel >= 10) {
+                        incrementUserAchievementByKey('enhance_10', 1);
+                    }
+                    if (newLevel >= 15) {
+                        incrementUserAchievementByKey('enhance_15', 1);
+                    }
+                    if (newLevel >= 20) {
+                        incrementUserAchievementByKey('enhance_20', 1);
+                    }
+                } catch (e) {
+                    console.warn('미션/업적 업데이트 실패:', e);
+                }
                 break;
             case 'maintain':
                 message = "강화 실패!";
@@ -1371,6 +1390,70 @@
     }
 
     init();
+
+    // 미션/업적 업데이트 함수들
+    async function incrementUserMissionByKey(key, amount = 1) {
+        try {
+            let mission = null;
+            try {
+                const { data: m } = await supabaseClient.from('missions').select('*').eq('key', key).maybeSingle();
+                mission = m;
+            } catch (e) {
+                const { data: m2 } = await supabaseClient.from('missions').select('*').ilike('title', `%${key}%`).limit(1);
+                mission = (m2 && m2[0]) || null;
+            }
+            if (!mission) {
+                console.log('incrementUserMissionByKey: mission not found for', key);
+                return;
+            }
+
+            const { data: existing } = await supabaseClient.from('user_missions').select('*').eq('user_id', user.id).eq('mission_id', mission.id).maybeSingle();
+            const prevProg = existing?.progress || 0;
+            const newProg = prevProg + amount;
+            const completed = newProg >= Number(mission.target || 1);
+
+            if (existing) {
+                await supabaseClient.from('user_missions').update({ progress: newProg, completed }).eq('id', existing.id);
+            } else {
+                await supabaseClient.from('user_missions').insert({ user_id: user.id, mission_id: mission.id, progress: newProg, completed, claimed: false });
+            }
+            console.log('Mission progress updated', { key, missionId: mission.id, newProg, completed });
+        } catch (e) {
+            console.warn('incrementUserMissionByKey failed:', e?.message || e);
+        }
+    }
+
+    async function incrementUserAchievementByKey(key, amount = 1) {
+        try {
+            let ach = null;
+            try {
+                const { data: a } = await supabaseClient.from('achievements').select('*').eq('key', key).maybeSingle();
+                ach = a;
+            } catch (e) {
+                const { data: a2 } = await supabaseClient.from('achievements').select('*').ilike('title', `%${key}%`).limit(1);
+                ach = (a2 && a2[0]) || null;
+            }
+            if (!ach) {
+                console.log('incrementUserAchievementByKey: achievement not found for', key);
+                return;
+            }
+
+            const { data: existing } = await supabaseClient.from('user_achievements').select('*').eq('user_id', user.id).eq('achievement_id', ach.id).maybeSingle();
+            const prevProg = existing?.progress || 0;
+            const newProg = prevProg + amount;
+            const unlocked = newProg >= Number(ach.target || 1);
+            const completed = unlocked;
+
+            if (existing) {
+                await supabaseClient.from('user_achievements').update({ progress: newProg, unlocked, completed }).eq('id', existing.id);
+            } else {
+                await supabaseClient.from('user_achievements').insert({ user_id: user.id, achievement_id: ach.id, progress: newProg, unlocked, completed });
+            }
+            console.log('Achievement progress updated', { key, achievementId: ach.id, newProg, unlocked });
+        } catch (e) {
+            console.warn('incrementUserAchievementByKey failed:', e?.message || e);
+        }
+    }
 
     // 강화 히스토리 관련 함수들
     function addToHistory(result) {

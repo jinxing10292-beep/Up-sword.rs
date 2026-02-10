@@ -966,7 +966,10 @@
                 const { data: m2 } = await supabaseClient.from('missions').select('*').ilike('title', `%${key}%`).limit(1);
                 mission = (m2 && m2[0]) || null;
             }
-            if (!mission) return console.log('incrementUserMissionByKey: mission not found for', key);
+            if (!mission) {
+                console.log('incrementUserMissionByKey: mission not found for', key);
+                return;
+            }
 
             const { data: existing } = await supabaseClient.from('user_missions').select('*').eq('user_id', user.id).eq('mission_id', mission.id).maybeSingle();
             const prevProg = existing?.progress || 0;
@@ -974,11 +977,11 @@
             const completed = newProg >= Number(mission.target || 1);
 
             if (existing) {
-                const { data: udata, error: uerr } = await supabaseClient.from('user_missions').update({ progress: newProg, completed }).eq('id', existing.id).select().maybeSingle();
-                console.log('user_missions update response:', { udata, uerr });
+                const { error: uerr } = await supabaseClient.from('user_missions').update({ progress: newProg, completed }).eq('id', existing.id).select();
+                if (uerr) console.warn('user_missions update error:', uerr);
             } else {
-                const { data: idata, error: ierr } = await supabaseClient.from('user_missions').insert({ user_id: user.id, mission_id: mission.id, progress: newProg, completed, claimed: false }).select().maybeSingle();
-                console.log('user_missions insert response:', { idata, ierr });
+                const { error: ierr } = await supabaseClient.from('user_missions').insert({ user_id: user.id, mission_id: mission.id, progress: newProg, completed, claimed: false }).select();
+                if (ierr) console.warn('user_missions insert error:', ierr);
             }
             console.log('Mission progress updated', { key, missionId: mission.id, newProg, completed });
         } catch (e) {
@@ -997,19 +1000,23 @@
                 const { data: a2 } = await supabaseClient.from('achievements').select('*').ilike('title', `%${key}%`).limit(1);
                 ach = (a2 && a2[0]) || null;
             }
-            if (!ach) return console.log('incrementUserAchievementByKey: achievement not found for', key);
+            if (!ach) {
+                console.log('incrementUserAchievementByKey: achievement not found for', key);
+                return;
+            }
 
             const { data: existing } = await supabaseClient.from('user_achievements').select('*').eq('user_id', user.id).eq('achievement_id', ach.id).maybeSingle();
             const prevProg = existing?.progress || 0;
             const newProg = prevProg + amount;
             const unlocked = newProg >= Number(ach.target || 1);
+            const completed = unlocked; // 호환성을 위해 completed도 설정
 
             if (existing) {
-                const { data: udata, error: uerr } = await supabaseClient.from('user_achievements').update({ progress: newProg, unlocked }).eq('id', existing.id).select().maybeSingle();
-                console.log('user_achievements update response:', { udata, uerr });
+                const { error: uerr } = await supabaseClient.from('user_achievements').update({ progress: newProg, unlocked, completed }).eq('id', existing.id).select();
+                if (uerr) console.warn('user_achievements update error:', uerr);
             } else {
-                const { data: idata, error: ierr } = await supabaseClient.from('user_achievements').insert({ user_id: user.id, achievement_id: ach.id, progress: newProg, unlocked }).select().maybeSingle();
-                console.log('user_achievements insert response:', { idata, ierr });
+                const { error: ierr } = await supabaseClient.from('user_achievements').insert({ user_id: user.id, achievement_id: ach.id, progress: newProg, unlocked, completed }).select();
+                if (ierr) console.warn('user_achievements insert error:', ierr);
             }
             console.log('Achievement progress updated', { key, achievementId: ach.id, newProg, unlocked });
         } catch (e) {
