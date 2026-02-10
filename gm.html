@@ -88,7 +88,7 @@
 
         // Initialize Supabase client reliably so GM page works like other pages
         let client = null;
-        try { client = supabase.createClient(S_URL, S_KEY); } catch (e) { console.warn('supabase client init failed, will attempt lazy init', e); }
+        let allUsers = [];
 
         // GM 승인 이메일 목록 (gm-login.html과 동일하게 유지)
         const APPROVED_GM_EMAILS = [
@@ -98,9 +98,6 @@
         
         // 세션 만료 시간 (1시간)
         const SESSION_TIMEOUT = 60 * 60 * 1000;
-        
-        let client;
-        let allUsers = [];
 
         async function checkAuthentication() {
             try {

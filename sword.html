@@ -1069,56 +1069,24 @@
         } catch (e) {
             swordId = type === 'normal' ? (level + 1) : (841 + level);
         }
-        
-        const attack = 10 + level * 5;
-        const rarity = type === 'hidden' ? 'legendary' : (level >= 15 ? 'epic' : level >= 10 ? 'rare' : 'common');
 
         try {
-            // Try inserting with attack field; request the inserted row back for verification
+            // user_swords 테이블에 검 저장 (최소 필드만 사용)
             const payload = {
                 user_id: user.id,
                 sword_id: swordId,
-                sword_level: level,
-                sword_name: actualName,
-                weapon_type: type,
-                weapon_key: key,
-                attack: attack,
-                rarity: rarity
+                level: level,
+                is_hidden: type === 'hidden',
+                obtained_at: new Date().toISOString()
             };
 
-            let inserted = null;
-            // Try inserting with full payload, but gracefully retry if DB schema misses fields
-            try {
-                const { data, error } = await supabaseClient.from('user_swords').insert(payload).select().single();
-                if (error) throw error;
-                inserted = data;
-            } catch (insErr) {
-                console.warn('user_swords insert failed, attempting fallbacks:', insErr?.message || insErr);
-
-                // First fallback: remove `attack` if that column is missing
-                try {
-                    const payload2 = Object.assign({}, payload);
-                    delete payload2.attack;
-                    const { data: data2, error: err2 } = await supabaseClient.from('user_swords').insert(payload2).select().single();
-                    if (err2) throw err2;
-                    inserted = data2;
-                } catch (firstFallbackErr) {
-                    console.warn('first fallback failed (without attack):', firstFallbackErr?.message || firstFallbackErr);
-
-                    // Second fallback: also remove `rarity` if DB doesn't have that column
-                    try {
-                        const payload3 = Object.assign({}, payload);
-                        delete payload3.attack;
-                        delete payload3.rarity;
-                        const { data: data3, error: err3 } = await supabaseClient.from('user_swords').insert(payload3).select().single();
-                        if (err3) throw err3;
-                        inserted = data3;
-                    } catch (secondFallbackErr) {
-                        console.error('All insert fallbacks failed:', secondFallbackErr);
-                        throw secondFallbackErr;
-                    }
-                }
-            }
+            const { data, error } = await supabaseClient
+                .from('user_swords')
+                .insert(payload)
+                .select()
+                .single();
+            
+            if (error) throw error;
 
             // update discoveries (max discovered level)
             const { data: existing } = await supabaseClient
@@ -1165,6 +1133,7 @@
             // 보관 후 히든 검 확률 체크
             setTimeout(() => checkForHiddenSword(), 500);
         } catch (e) {
+            console.error('보관 오류:', e);
             alert('보관 중 오류: ' + (e?.message || e));
         }
     }
