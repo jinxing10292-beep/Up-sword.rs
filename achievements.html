@@ -239,11 +239,11 @@
       }
 
       list.innerHTML = rows.map(a => {
-        const st = mineMap.get(a.id) || { progress: 0, unlocked: false };
+        const st = mineMap.get(a.id) || { progress: 0, unlocked: false, completed: false };
         const progVal = Number(st.progress || 0);
         const targetVal = Number(a.target || 1);
         const prog = Math.min(progVal, targetVal);
-        const unlocked = st.unlocked;
+        const unlocked = st.unlocked || st.completed || (progVal >= targetVal);
         const title = a.title || a.name || a.key || '(제목 없음)';
         const desc = a.description || a.desc || a.body || '';
         return `

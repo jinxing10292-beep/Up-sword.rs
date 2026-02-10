@@ -1,9 +1,26 @@
 achievement_milestones
 5 columns
-	
+id
+integer	int4
+
+milestone_count
+integer	int4
+
+reward_gold
+bigint	int8
+
+reward_money
+bigint	int8
+
+created_at
+timestamp with time zone	
+timestamptz
+
+---------------
+
 achievements
 10 columns
-	
+
 battle_history
 11 columns
 	
