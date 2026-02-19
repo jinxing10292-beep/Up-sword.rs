@@ -603,10 +603,15 @@
             }
             
             modal.style.display = 'flex';
+            modal.style.visibility = 'visible';
+            document.body.style.overflow = 'hidden';
         }
         
         function closeResult() {
-            document.getElementById('resultModal').style.display = 'none';
+            const modal = document.getElementById('resultModal');
+            modal.style.display = 'none';
+            modal.style.visibility = 'hidden';
+            document.body.style.overflow = 'auto';
             loadHistory();
         }
         

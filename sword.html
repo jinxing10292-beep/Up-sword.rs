@@ -683,31 +683,6 @@
         const weaponType = getWeaponType();
         const weaponKey = user.current_weapon_key || 'sword_01';
         const isHidden = weaponType === 'hidden';
-
-        // If a temporary hidden flag was set (e.g., just awarded), clear it once
-        // the user obtains a non-zero level weapon so the hidden state doesn't persist.
-        try {
-            const tmpHidden = sessionStorage.getItem('hidden_temporary');
-            if (tmpHidden && user.current_sword_lvl > 0 && user.current_weapon_type === 'hidden') {
-                // Reset to normal weapon on server and locally
-                try {
-                    const { error: clearErr } = await supabaseClient.from('profiles')
-                        .update({ current_weapon_type: 'normal', current_weapon_key: 'sword_01' })
-                        .eq('id', user.id);
-                    if (!clearErr) {
-                        sessionStorage.removeItem('hidden_temporary');
-                        user.current_weapon_type = 'normal';
-                        user.current_weapon_key = 'sword_01';
-                    } else {
-                        console.warn('failed to clear temporary hidden on server:', clearErr);
-                    }
-                } catch (e) {
-                    console.warn('error clearing temporary hidden:', e);
-                }
-            }
-        } catch (e) {
-            console.warn('hidden_temporary check error:', e);
-        }
         
         document.getElementById('u-nick').innerText = ((user.nickname && user.nickname.trim()) ? user.nickname : '플레이어') + '님';
         document.getElementById('u-gold').innerText = (user.gold || 0).toLocaleString() + "G";
