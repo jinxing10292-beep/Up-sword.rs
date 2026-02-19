@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>복권 - Up Sword</title>
+    <link rel="icon" href="https://i.ifh.cc/vXLMs6.jpg" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <link rel="stylesheet" href="minigame-responsive.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Pretendard', sans-serif;
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 32px;
+            color: #333;
+        }
+        
+        .header p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .lottery-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .lottery-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #333;
+        }
+        
+        .lottery-numbers {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .number-ball {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 3px solid #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .number-ball:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .number-ball.selected {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-color: #f5576c;
+            transform: scale(1.15);
+        }
+        
+        .bonus-ball {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            color: white;
+            background: linear-gradient(135deg, #ffd89b 0%, #ff6b6b 100%);
+            border: 3px solid #ff6b6b;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .bonus-ball:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+        }
+        
+        .bonus-ball.selected {
+            transform: scale(1.15);
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+        }
+        
+        .bonus-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+            text-align: center;
+        }
+        
+        .bonus-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .bonus-numbers {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .bonus-ball {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-auto {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-auto:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-clear {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .btn-clear:hover {
+            background: #d0d0d0;
+        }
+        
+        .btn-buy {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+        
+        .btn-buy:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+        }
+        
+        .btn-buy:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .price-info {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .result-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .result-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .result-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .result-prize {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f5576c;
+            margin-bottom: 15px;
+        }
+        
+        .result-gold {
+            font-size: 20px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .btn-close {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .btn-close:hover {
+            background: #5568d3;
+        }
+        
+        .history-section {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .history-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .history-item {
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .history-item.win {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="location.href='minigames.html'">←</button>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🎰 복권</h1>
+            <p>6개의 번호와 보너스 번호를 선택하세요!</p>
+        </div>
+        
+        <div class="lottery-card">
+            <div class="lottery-title">번호 선택 (1~45)</div>
+            <div class="lottery-numbers" id="numberGrid"></div>
+            
+            <div class="bonus-section">
+                <div class="bonus-label">보너스 번호 선택</div>
+                <div class="bonus-numbers" id="bonusGrid"></div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-auto" onclick="autoSelect()">🎲 자동선택</button>
+                <button class="btn btn-clear" onclick="clearSelection()">초기화</button>
+            </div>
+            
+            <div class="price-info">1장: 1,000G</div>
+            <button class="btn-buy" onclick="buyLottery()" id="buyBtn">복권 구매</button>
+        </div>
+        
+        <div class="history-section">
+            <div class="history-title">최근 당첨 기록</div>
+            <div id="historyList"></div>
+        </div>
+    </div>
+    
+    <div class="result-modal" id="resultModal">
+        <div class="result-content">
+            <div class="result-title" id="resultTitle">당첨!</div>
+            <div class="result-prize" id="resultPrize"></div>
+            <div class="result-gold" id="resultGold"></div>
+            <button class="btn-close" onclick="closeResult()">확인</button>
+        </div>
+    </div>
+    
+    <script>
+        let user = null;
+        let selectedNumbers = new Set();
+        let selectedBonus = null;
+        let lotteryHistory = [];
+        
+        const LOTTERY_PRICE = 1000;
+        const WINNING_NUMBERS = [7, 14, 21, 28, 35, 42]; // 고정 당첨번호
+        const WINNING_BONUS = 45; // 고정 보너스
+        
+        const PRIZES = {
+            '1등': { match: 6, bonus: true, gold: 1000000 },
+            '2등': { match: 6, bonus: false, gold: 500000 },
+            '3등': { match: 5, bonus: true, gold: 100000 },
+            '4등': { match: 5, bonus: false, gold: 50000 },
+            '5등': { match: 4, bonus: false, gold: 10000 },
+            '꽝': { match: 0, bonus: false, gold: 0 }
+        };
+        
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                location.href = "login.html";
+                return;
+            }
+            
+            const { data: p } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+            
+            user = p;
+            renderNumberGrid();
+            renderBonusGrid();
+            loadHistory();
+        }
+        
+        function renderNumberGrid() {
+            const grid = document.getElementById('numberGrid');
+            grid.innerHTML = '';
+            
+            for (let i = 1; i <= 45; i++) {
+                const ball = document.createElement('div');
+                ball.className = 'number-ball';
+                ball.textContent = i;
+                ball.onclick = () => toggleNumber(i, ball);
+                grid.appendChild(ball);
+            }
+        }
+        
+        function renderBonusGrid() {
+            const grid = document.getElementById('bonusGrid');
+            grid.innerHTML = '';
+            
+            for (let i = 1; i <= 45; i++) {
+                const ball = document.createElement('div');
+                ball.className = 'bonus-ball';
+                ball.textContent = i;
+                ball.onclick = () => selectBonus(i, ball);
+                grid.appendChild(ball);
+            }
+        }
+        
+        function toggleNumber(num, element) {
+            if (selectedNumbers.has(num)) {
+                selectedNumbers.delete(num);
+                element.classList.remove('selected');
+            } else {
+                if (selectedNumbers.size >= 6) {
+                    alert('최대 6개까지만 선택할 수 있습니다.');
+                    return;
+                }
+                selectedNumbers.add(num);
+                element.classList.add('selected');
+            }
+            updateBuyButton();
+        }
+        
+        function selectBonus(num, element) {
+            // 이미 선택된 보너스 제거
+            if (selectedBonus !== null) {
+                const prevElements = document.querySelectorAll('.bonus-ball');
+                prevElements.forEach(el => {
+                    if (parseInt(el.textContent) === selectedBonus) {
+                        el.classList.remove('selected');
+                    }
+                });
+            }
+            
+            if (selectedBonus === num) {
+                selectedBonus = null;
+                element.classList.remove('selected');
+            } else {
+                selectedBonus = num;
+                element.classList.add('selected');
+            }
+            updateBuyButton();
+        }
+        
+        function autoSelect() {
+            clearSelection();
+            
+            // 6개 번호 자동 선택
+            while (selectedNumbers.size < 6) {
+                selectedNumbers.add(Math.floor(Math.random() * 45) + 1);
+            }
+            
+            // 보너스 번호 자동 선택
+            selectedBonus = Math.floor(Math.random() * 45) + 1;
+            
+            // UI 업데이트
+            document.querySelectorAll('.number-ball').forEach(ball => {
+                const num = parseInt(ball.textContent);
+                if (selectedNumbers.has(num)) {
+                    ball.classList.add('selected');
+                }
+            });
+            
+            document.querySelectorAll('.bonus-ball').forEach(ball => {
+                const num = parseInt(ball.textContent);
+                if (num === selectedBonus) {
+                    ball.classList.add('selected');
+                }
+            });
+            
+            updateBuyButton();
+        }
+        
+        function clearSelection() {
+            selectedNumbers.clear();
+            selectedBonus = null;
+            
+            document.querySelectorAll('.number-ball').forEach(ball => {
+                ball.classList.remove('selected');
+            });
+            
+            document.querySelectorAll('.bonus-ball').forEach(ball => {
+                ball.classList.remove('selected');
+            });
+            
+            updateBuyButton();
+        }
+        
+        function updateBuyButton() {
+            const btn = document.getElementById('buyBtn');
+            btn.disabled = selectedNumbers.size !== 6 || selectedBonus === null;
+        }
+        
+        async function buyLottery() {
+            if (selectedNumbers.size !== 6 || selectedBonus === null) {
+                alert('6개의 번호와 보너스 번호를 모두 선택해주세요.');
+                return;
+            }
+            
+            if (!user || user.gold < LOTTERY_PRICE) {
+                alert('골드가 부족합니다.');
+                return;
+            }
+            
+            try {
+                // 골드 차감
+                const newGold = user.gold - LOTTERY_PRICE;
+                await supabaseClient
+                    .from('profiles')
+                    .update({ gold: newGold })
+                    .eq('id', user.id);
+                
+                user.gold = newGold;
+                
+                // 당첨 확인
+                const result = checkWinning();
+                
+                // 당첨금 지급
+                if (result.gold > 0) {
+                    const finalGold = user.gold + result.gold;
+                    await supabaseClient
+                        .from('profiles')
+                        .update({ gold: finalGold })
+                        .eq('id', user.id);
+                    
+                    user.gold = finalGold;
+                }
+                
+                // 결과 표시
+                showResult(result);
+                
+                // 히스토리 저장
+                saveToHistory(result);
+                
+                // 선택 초기화
+                clearSelection();
+                
+            } catch (e) {
+                alert('오류가 발생했습니다: ' + e.message);
+            }
+        }
+        
+        function checkWinning() {
+            const matchCount = Array.from(selectedNumbers).filter(num => 
+                WINNING_NUMBERS.includes(num)
+            ).length;
+            
+            const bonusMatch = selectedBonus === WINNING_BONUS;
+            
+            let prizeKey = '꽝';
+            
+            if (matchCount === 6 && bonusMatch) {
+                prizeKey = '1등';
+            } else if (matchCount === 6) {
+                prizeKey = '2등';
+            } else if (matchCount === 5 && bonusMatch) {
+                prizeKey = '3등';
+            } else if (matchCount === 5) {
+                prizeKey = '4등';
+            } else if (matchCount === 4) {
+                prizeKey = '5등';
+            }
+            
+            const prize = PRIZES[prizeKey];
+            return {
+                rank: prizeKey,
+                gold: prize.gold,
+                matchCount: matchCount,
+                bonusMatch: bonusMatch
+            };
+        }
+        
+        function showResult(result) {
+            const modal = document.getElementById('resultModal');
+            const title = document.getElementById('resultTitle');
+            const prize = document.getElementById('resultPrize');
+            const gold = document.getElementById('resultGold');
+            
+            title.textContent = result.rank;
+            prize.textContent = `${result.matchCount}개 번호 일치${result.bonusMatch ? ' + 보너스' : ''}`;
+            gold.textContent = result.gold > 0 ? `+${result.gold.toLocaleString()}G` : '꽝입니다 :(';
+            
+            if (result.rank === '꽝') {
+                title.style.color = '#999';
+            } else {
+                title.style.color = '#f5576c';
+            }
+            
+            modal.style.display = 'flex';
+        }
+        
+        function closeResult() {
+            document.getElementById('resultModal').style.display = 'none';
+            loadHistory();
+        }
+        
+        function saveToHistory(result) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ko-KR');
+            lotteryHistory.unshift({
+                time: timeStr,
+                rank: result.rank,
+                gold: result.gold
+            });
+            
+            if (lotteryHistory.length > 10) {
+                lotteryHistory.pop();
+            }
+            
+            localStorage.setItem('lotteryHistory', JSON.stringify(lotteryHistory));
+        }
+        
+        function loadHistory() {
+            const saved = localStorage.getItem('lotteryHistory');
+            lotteryHistory = saved ? JSON.parse(saved) : [];
+            
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            if (lotteryHistory.length === 0) {
+                historyList.innerHTML = '<div class="history-item">아직 기록이 없습니다.</div>';
+                return;
+            }
+            
+            lotteryHistory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item' + (item.gold > 0 ? ' win' : '');
+                div.textContent = `${item.time} - ${item.rank} (${item.gold > 0 ? '+' + item.gold.toLocaleString() + 'G' : '꽝'})`;
+                historyList.appendChild(div);
+            });
+        }
+        
+        init();
+    </script>
+</body>
+</html>

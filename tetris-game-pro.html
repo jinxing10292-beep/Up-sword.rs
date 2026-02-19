@@ -352,6 +352,21 @@
         <a href="https://www.youtube.com/watch?v=N_U8xzru9q0" target="_blank" style="color:#00ff41; margin-left:8px; text-decoration:underline;">Open on YouTube</a>
     </div>
     
+    <div id="deviceSelectModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 10000;">
+        <div style="background: #1a1a2e; border: 3px solid #00ff41; border-radius: 20px; padding: 40px; text-align: center; color: #00ff41; font-family: 'Orbitron', monospace;">
+            <h2 style="font-size: 32px; margin-bottom: 30px; text-shadow: 0 0 20px #00ff41;">게임 모드 선택</h2>
+            <p style="font-size: 18px; margin-bottom: 40px;">어떤 기기에서 플레이하시나요?</p>
+            <div style="display: flex; gap: 20px; justify-content: center;">
+                <button onclick="selectDevice('mobile')" style="background: rgba(0, 255, 65, 0.3); border: 2px solid #00ff41; color: #00ff41; padding: 20px 40px; font-size: 20px; font-weight: bold; border-radius: 10px; cursor: pointer; font-family: 'Orbitron', monospace; transition: all 0.3s;">
+                    📱 휴대전화
+                </button>
+                <button onclick="selectDevice('pc')" style="background: rgba(0, 255, 65, 0.3); border: 2px solid #00ff41; color: #00ff41; padding: 20px 40px; font-size: 20px; font-weight: bold; border-radius: 10px; cursor: pointer; font-family: 'Orbitron', monospace; transition: all 0.3s;">
+                    🖥️ 컴퓨터
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="game-container">
         <div class="side-panels">
             <div class="panel">
@@ -422,6 +437,27 @@
     </div>
 
     <script>
+        let gameMode = null; // 'mobile' or 'pc'
+        
+        function selectDevice(device) {
+            gameMode = device;
+            document.getElementById('deviceSelectModal').style.display = 'none';
+            
+            if (device === 'mobile') {
+                // 모바일 모드: 터치 컨트롤 활성화, 키보드 비활성화
+                document.querySelector('.touch-controls').style.display = 'flex';
+                document.querySelector('.side-panels:nth-of-type(2)').style.display = 'none';
+                document.querySelector('.game-container').style.flexDirection = 'column';
+                document.querySelector('.game-container').style.gap = '20px';
+            } else {
+                // PC 모드: 키보드 컨트롤 활성화, 터치 컨트롤 숨김
+                document.querySelector('.touch-controls').style.display = 'none';
+                document.querySelector('.side-panels:nth-of-type(2)').style.display = 'flex';
+                document.querySelector('.game-container').style.flexDirection = 'row';
+                document.querySelector('.game-container').style.gap = '30px';
+            }
+        }
+        
         // Music toggle script
         (function(){
             const iframe = document.getElementById('musicIframe');
